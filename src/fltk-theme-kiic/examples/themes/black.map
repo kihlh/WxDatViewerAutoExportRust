@@ -1,0 +1,285 @@
+# FLTK standard colors.
+#     These have all been muted for the Black color theme,
+#     and black/white brightnesses are inverted.
+#
+cmap 0 140 140 140		# black: color of most label text
+cmap 1 120 0   0 		# red: red tty errors
+cmap 2 0  120  0 		# grn: jobs 'Continue' button border color
+cmap 3 120 120 0		# yel
+cmap 4 0   0   120		# blu (label color for "Reports", "Current Job", "Run/Busy" state..)
+cmap 5 120 0   120		# mag LOGFILE: jobdonecommand.log, jobdumpcommand.log
+cmap 6 0   120 120		# cyn
+cmap 7 0 0 0		# wht bg color of some input fields (Try, Add, etc)
+cmap 8 100 100 100		# desaturated black
+cmap 9 100 0  0 		# desaturated red dump button red
+cmap 10 0 100 0		# desaturated grn
+cmap 11 100 100 0		# desaturated yel
+cmap 12 0 0 100		# desaturated blu
+cmap 13 100 0 100		# desaturated mag color for the 'enabled' search box
+cmap 14 0 100 100		# desaturated cyn
+cmap 15 50 50 50		# desaturated white
+
+# Gray scale ramp.
+#     We've inverted and muted it to 180 max for the Black color theme
+#
+cmap 32 180 180 180
+cmap 33 122 122 122
+cmap 34 117 117 117
+cmap 35 112 112 112
+cmap 36 106 106 106
+cmap 37 101 101 101
+cmap 38 96 96 96   
+cmap 39 90 90 90   
+cmap 40 85 85 85   
+cmap 41 80 80 80   
+cmap 42 74 74 74   
+cmap 43 69 69 69   
+cmap 44 64 64 64   
+cmap 45 58 58 58   
+cmap 46 53 53 53   
+cmap 47 48 48 48   
+cmap 48 42 42 42   
+cmap 49 37 37 37   
+cmap 50 32 32 32   
+cmap 51 26 26 26   
+cmap 52 21 21 21   
+cmap 53 16 16 16   
+cmap 54 10 10 10   
+cmap 55 0  0  0
+
+# FLTK 5x8x5 COLOR CUBE
+#	Muted ramps to 110 max rgb brightness levels.
+#	Ramps are /not/ inverted.
+#	r:0-110,5 g=0-110,8 b=0-110,5
+#
+#  #!/usr/bin/perl
+#  $c = 56; $max = 110;
+#  for ( $b=0; $b<5; $b++ ) {
+#    for ( $r=0; $r<5; $r++) {
+#      for ( $g=0; $g<8; $g++ ) {
+#        printf("    cmap %-3d %-3d %-3d %-3d\n", $c++,
+#						      (($r/4.0)*$max+.5),
+#						      (($g/7.0)*$max+.5),
+#						      (($b/4.0)*$max+.5));
+#  } printf("\n"); } }
+#
+cmap 56  0   0   0  
+cmap 57  0   16  0  
+cmap 58  0   31  0  
+cmap 59  0   47  0		# "Done" green
+cmap 60  0   63  0  
+cmap 61  0   79  0  
+cmap 62  0   94  0  
+cmap 63  0   110 0  
+cmap 64  28  0   0  
+cmap 65  28  16  0  
+cmap 66  28  31  0  
+cmap 67  28  47  0  
+cmap 68  28  63  0  
+cmap 69  28  79  0  
+cmap 70  28  94  0  
+cmap 71  28  110 0  
+cmap 72  55  0   0  
+cmap 73  55  16  0  
+cmap 74  55  31  0  
+cmap 75  55  47  0  
+cmap 76  55  63  0  
+cmap 77  55  79  0  
+cmap 78  55  94  0  
+cmap 79  55  110 0  
+cmap 80  83  0   0  
+cmap 81  83  16  0  
+cmap 82  83  31  0  
+cmap 83  83  47  0  
+cmap 84  83  63  0  
+cmap 85  83  79  0  
+cmap 86  83  94  0  
+cmap 87  83  110 0  
+cmap 88  110 0   0  
+cmap 89  110 16  0  
+cmap 90  110 31  0		# Die/Pause orange
+cmap 91  110 47  0  
+cmap 92  110 63  0  
+cmap 93  110 79  0  
+cmap 94  110 94  0		# report button 'running a command'
+cmap 95  110 110 0		# text apply()ion color (bg)
+cmap 96  0   0   28 
+cmap 97  0   16  28 
+cmap 98  0   31  28 
+cmap 99  0   47  28 
+cmap 100 0   63  28 
+cmap 101 0   79  28 
+cmap 102 0   94  28 
+cmap 103 0   110 28 
+cmap 104 28  0   28 
+cmap 105 28  16  28 
+cmap 106 28  31  28 
+cmap 107 28  47  28 
+cmap 108 28  63  28 
+cmap 109 28  79  28 
+cmap 110 28  94  28 
+cmap 111 28  110 28 
+cmap 112 55  0   28 
+cmap 113 55  16  28 
+cmap 114 55  31  28 
+cmap 115 55  47  28 
+cmap 116 55  63  28 
+cmap 117 55  79  28 
+cmap 118 55  94  28 
+cmap 119 55  110 28 
+cmap 120 83  0   28 
+cmap 121 83  16  28 
+cmap 122 83  31  28 
+cmap 123 83  47  28 
+cmap 124 83  63  28 
+cmap 125 83  79  28 
+cmap 126 83  94  28 
+cmap 127 83  110 28 
+cmap 128 110 0   28 
+cmap 129 110 16  28 
+cmap 130 110 31  28 
+cmap 131 110 47  28 
+cmap 132 110 63  28 
+cmap 133 110 79  28 
+cmap 134 110 94  28 
+cmap 135 110 110 28 
+cmap 136 0   0   55 
+cmap 137 0   16  55 
+cmap 138 0   31  55 
+cmap 139 0   47  55 
+cmap 140 0   63  55 
+cmap 141 0   79  55 
+cmap 142 0   94  55 
+cmap 143 0   110 55 
+cmap 144 28  0   55 
+cmap 145 28  16  55 
+cmap 146 28  31  55 
+cmap 147 28  47  55 
+cmap 148 28  63  55 
+cmap 149 28  79  55 
+cmap 150 28  94  55 
+cmap 151 28  110 55 
+cmap 152 55  0   55 
+cmap 153 55  16  55 
+cmap 154 55  31  55 
+cmap 155 55  47  55 
+cmap 156 55  63  55 
+cmap 157 55  79  55 
+cmap 158 55  94  55 
+cmap 159 55  110 55 
+cmap 160 83  0   55 
+cmap 161 83  16  55 
+cmap 162 83  31  55 
+cmap 163 83  47  55 
+cmap 164 83  63  55 
+cmap 165 83  79  55 
+cmap 166 83  94  55 
+cmap 167 83  110 55 
+cmap 168 110 0   55 
+cmap 169 110 16  55 
+cmap 170 110 31  55 
+cmap 171 110 47  55 
+cmap 172 110 63  55 
+cmap 173 110 79  55 
+cmap 174 110 94  55 
+cmap 175 110 110 55 
+cmap 176 0   0   83 
+cmap 177 0   16  83 
+cmap 178 0   31  83 
+cmap 179 0   47  83 
+cmap 180 0   63  83 
+cmap 181 0   79  83 
+cmap 182 0   94  83 
+cmap 183 0   110 83 
+cmap 184 28  0   83 
+cmap 185 28  16  83 
+cmap 186 28  31  83 
+cmap 187 28  47  83 
+cmap 188 28  63  83 
+cmap 189 28  79  83 
+cmap 190 28  94  83 
+cmap 191 28  110 83 
+cmap 192 55  0   83 
+cmap 193 55  16  83 
+cmap 194 55  31  83 
+cmap 195 55  47  83 
+cmap 196 55  63  83 
+cmap 197 55  79  83 
+cmap 198 55  94  83 
+cmap 199 55  110 83 
+cmap 200 83  0   83 
+cmap 201 83  16  83 
+cmap 202 83  31  83 
+cmap 203 83  47  83 
+cmap 204 83  63  83 
+cmap 205 83  79  83 
+cmap 206 83  94  83 
+cmap 207 83  110 83 
+cmap 208 110 0   83 
+cmap 209 110 16  83 
+cmap 210 110 31  83 
+cmap 211 110 47  83 
+cmap 212 110 63  83 
+cmap 213 110 79  83 
+cmap 214 110 94  83 
+cmap 215 110 110 83 
+cmap 216 0   0   110
+cmap 217 0   16  110
+cmap 218 0   31  110
+cmap 219 0   47  110
+cmap 220 0   63  110
+cmap 221 0   79  110
+cmap 222 0   94  110
+cmap 223 0   110 110
+cmap 224 28  0   110
+cmap 225 28  16  110
+cmap 226 28  31  110
+cmap 227 28  47  110
+cmap 228 28  63  110
+cmap 229 28  79  110
+cmap 230 28  94  110
+cmap 231 28  110 110
+cmap 232 55  0   110
+cmap 233 55  16  110
+cmap 234 55  31  110
+cmap 235 55  47  110
+cmap 236 55  63  110
+cmap 237 55  79  110
+cmap 238 55  94  110
+cmap 239 55  110 110
+cmap 240 83  0   110
+cmap 241 83  16  110
+cmap 242 83  31  110
+cmap 243 83  47  110
+cmap 244 83  63  110
+cmap 245 83  79  110
+cmap 246 83  94  110
+cmap 247 83  110 110
+cmap 248 110 0   110
+cmap 249 110 16  110
+cmap 250 110 31  110
+cmap 251 110 47  110
+cmap 252 110 63  110
+cmap 253 110 79  110
+cmap 254 110 94  110
+cmap 255 110 110 110
+
+# RE-PROGRAMMED COLORS
+#     We have to force these off the normal ramps
+#     for the interface to look right..
+#
+cmap 0   140 140 140	# black: color of most label text
+cmap 1   180 40  40 	# red: red tty errors
+cmap 2   0   120 0 		# grn: jobs 'Continue' button border color
+cmap 4   100 100 240	# blu (label color for "Reports", "Current Job", "Run/Busy" state..)
+cmap 5   160 60  160	# mag: LOGFILE: jobdonecommand.log, jobdumpcommand.log
+cmap 9   100 0   0		# Dump button red
+cmap 13  60  20  60		# desaturated magenta: color for the 'enabled' search box
+cmap 15  200 50  50		# "checks" in checkboxes (Edit|Preferences..)
+cmap 59  40 140  40		# "Done" green
+cmap 90  160 120 40		# Die/Pause orange
+cmap 94  120 80  20		# report button 'running a command'
+cmap 95  140 140 100	# text apply()ion color
+cmap 124 90  68  30		# "End" and "Add Nevercpu" button color (orange)
+cmap 254 50  70  70		# bgcolor of 'current jobid' lines in tty browser
+cmap 255 70  70  70		# FL_WHITE -- tty browser bg color
