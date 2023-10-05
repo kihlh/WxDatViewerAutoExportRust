@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "WxDatViewerAutoExportRust"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
+ "arc-swap",
  "chrono",
  "clipboard",
  "fl2rust",
@@ -15,6 +16,7 @@ dependencies = [
  "fwatcher",
  "glob 0.3.1",
  "hotwatch",
+ "keepcalm",
  "lazy_static",
  "libc",
  "libloading",
@@ -23,6 +25,7 @@ dependencies = [
  "msgbox",
  "notify 6.1.1",
  "once_cell",
+ "protobuf",
  "regex",
  "rusqlite",
  "serde_json",
@@ -91,6 +94,12 @@ name = "anyhow"
 version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+
+[[package]]
+name = "arc-swap"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
 
 [[package]]
 name = "atk"
@@ -1006,6 +1015,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "keepcalm"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "031ddc7e27bbb011c78958881a3723873608397b8b10e146717fc05cf3364d78"
+dependencies = [
+ "once_cell",
+ "parking_lot",
+]
+
+[[package]]
 name = "kernel32-sys"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1457,6 +1476,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18fb31db3f9bddb2ea821cde30a9f70117e3f119938b5ee630b7403aa6e2ead9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "protobuf"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b55bad9126f378a853655831eb7363b7b01b81d19f8cb1218861086ca4a1a61e"
+dependencies = [
+ "once_cell",
+ "protobuf-support",
+ "thiserror",
+]
+
+[[package]]
+name = "protobuf-support"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d4d7b8601c814cfb36bcebb79f0e61e45e1e93640cf778837833bbed05c372"
+dependencies = [
+ "thiserror",
 ]
 
 [[package]]

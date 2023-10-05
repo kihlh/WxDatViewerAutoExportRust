@@ -1,4 +1,4 @@
-#include <string>
+﻿#include <string>
 #include <windows.h>
 #include <Windows.h>
 #include <vector>
@@ -31,10 +31,22 @@ using namespace std;
 IMPORT_DLL void  _setWinIcon(long hwnds);
 IMPORT_DLL bool  _setShowWindows(long hwnds, bool visible);
 IMPORT_DLL void  _set_tray();
-IMPORT_DLL bool  _createMutex(string MutexName);
-IMPORT_DLL bool  _removeMutex(string MutexName);
-IMPORT_DLL bool  _hasMutex(string MutexName);
+IMPORT_DLL bool  _createMutex(const char* MutexName);
+IMPORT_DLL bool  _removeMutex(const char* MutexName);
+IMPORT_DLL bool  _hasMutex(const char* MutexName);
 IMPORT_DLL bool  _setStartup();
 IMPORT_DLL void  _openSelectFolder();
 IMPORT_DLL bool  _setWindowsTop(long hwnds, bool visible);
 IMPORT_DLL bool _setCloseWindow(long hwnds, bool closeRoot);
+IMPORT_DLL const char* _openSelectFolder2();
+IMPORT_DLL void _Error(const char* title, const char* info);
+IMPORT_DLL void _Stop(const char* title, const char* info);
+IMPORT_DLL bool _Confirm(const char* title, const char* info);
+IMPORT_DLL bool _Alert(const char* title, const char* info);
+IMPORT_DLL const char* _getRegistrValue(long hKey, const char* _subKey, const char* _key);
+IMPORT_DLL bool _hasWeChat();
+IMPORT_DLL void _setTaskbarWin(long hwnds);
+IMPORT_DLL long _findWindow(const char* className, const char* title);
+IMPORT_DLL bool _hasStartup();
+
+

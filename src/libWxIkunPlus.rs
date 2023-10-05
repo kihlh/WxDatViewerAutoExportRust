@@ -1,21 +1,37 @@
+#![allow(warnings, unused)]
+
 use std::env;
-use std::ffi::CString;
-use std::ffi::{c_int, c_long, c_void, OsStr};
+use std::ffi::{c_int, c_long, c_void, OsStr,c_uint};
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+// use libc::{c_void, c_uint};
+pub type PCSTR =*const c_char;
 
 // #![crate_type = "staticlib"]
+//  请注意 所有传入的文本都必须是utf8
 #[link(name = "libWxIkunPlus", kind = "static")]
 extern "C" {
     fn _setWinIcon(_hWnd: c_long) -> c_void;
     fn _setShowWindows(_hWnd: c_long, visible: bool) -> bool;
     fn _set_tray() -> c_void;
-    fn _createMutex(mutex: *const c_char) -> bool;
-    fn _removeMutex(mutex: *const c_char) -> bool;
-    fn _hasMutex(mutex: *const c_char) -> bool;
+    fn _createMutex(mutex:PCSTR) -> bool;
+    fn _removeMutex(mutex:PCSTR) -> bool;
+    fn _hasMutex(mutex:PCSTR) -> bool;
     fn _setStartup() -> bool;
+    fn _hasStartup() -> bool;
     fn _openSelectFolder() -> c_void;
     fn _setWindowsTop(_hWnd: c_long, visible: bool) -> bool;
     fn _setCloseWindow(_hWnd: c_long, closeRoot: bool) -> bool;
+    fn _openSelectFolder2() ->PCSTR;
+    fn _Error(title:PCSTR, info:PCSTR) -> c_void;
+    fn _Stop(mutex:PCSTR, info:PCSTR) -> c_void;
+    fn _Confirm(title:PCSTR, info:PCSTR) -> bool;
+    fn _Alert(mutex:PCSTR, info:PCSTR) -> bool;
+    fn _getRegistrValue(hKey: c_long, _subKey:PCSTR, _key:PCSTR)->PCSTR;
+    fn _hasWeChat() -> bool;
+    fn _setTaskbarWin(_hWnd: c_long) -> c_void;
+    fn _findWindow(className:PCSTR, title:PCSTR) -> c_long;
+
 }
 
 // 设置窗口图标 从当前二进制获取
@@ -135,6 +151,12 @@ pub fn setStartup() -> bool {
     };
 }
 
+pub fn hasStartup() -> bool {
+    unsafe {
+        return _hasStartup();
+    };
+}
+
 // 文件夹选取器
 pub fn openSelectFolder() -> String {
     unsafe {
@@ -142,4 +164,164 @@ pub fn openSelectFolder() -> String {
         let mut open_path = env::var("IKUN@SelectedFolderPath").unwrap_or_else(|_| "".to_owned());
         return open_path;
     };
+}
+
+// 将C字符串转换为Rust字符串
+fn c_string_to_rust_string(ptr:PCSTR) -> String {
+    unsafe {
+        let c_str = CStr::from_ptr(ptr);
+        let bytes = c_str.to_bytes();
+        String::from_utf8_lossy(bytes).into_owned()
+    }
+}
+
+// 启用托盘
+pub fn openSelectFolder2() -> String {
+    let mut result = String::new();
+    unsafe { result = c_string_to_rust_string(_openSelectFolder2()) };
+    return result;
+}
+
+// 将Rust字符串转换为C字符串
+fn rust_string_to_c_string(s: String) -> CString {
+    if let Result::Ok(mut buff) = CString::new(s.as_str()) {
+        return buff;
+    };
+    let c_ptr = CString::new("").unwrap();
+    return c_ptr;
+}
+
+// // 将Rust UTF-8字符串转换为Windows API中的A字符
+// fn utf8_to_ansi(s: &str) -> Vec<c_char> {
+//     let wide: Vec<u16> = OsStr::new(s).encode_wide().collect();
+//     let wide_len = wide.len() + 1;
+
+//     let mut ansi: Vec<c_char> = Vec::with_capacity(wide_len);
+//     let ansi_len = wide.len();
+
+//     unsafe {
+//         WideCharToMultiByte(
+//             CP_UTF8,
+//             0,
+//             wide.as_ptr(),
+//             wide_len as i32,
+//             ansi.as_mut_ptr(),
+//             ansi_len as i32,
+//             ptr::null(),
+//             ptr::null_mut(),
+//         );
+//         // 确保在末尾添加一个空字符
+//         ansi.push(0);
+//         ansi.set_len(ansi_len);
+//     }
+
+//     ansi
+// }
+
+// MessageBox -> alert
+pub fn alert(title: String, message: String) -> bool {
+    unsafe {
+        return _Alert(
+            rust_string_to_c_string(title).as_ptr(),
+            rust_string_to_c_string(message).as_ptr(),
+        );
+    }
+    return false;
+}
+
+// MessageBox -> confirm
+pub fn confirm(title: String, message: String) -> bool {
+    unsafe {
+        return _Confirm(
+            rust_string_to_c_string(title).as_ptr(),
+            rust_string_to_c_string(message).as_ptr(),
+        );
+    }
+    return false;
+}
+
+// MessageBox -> stop
+pub fn stop(title: String, message: String) {
+    unsafe {
+        _Stop(
+            rust_string_to_c_string(title).as_ptr(),
+            rust_string_to_c_string(message).as_ptr(),
+        );
+    }
+}
+
+// MessageBox -> error
+pub fn error(title: String, message: String) {
+    unsafe {
+        _Error(
+            rust_string_to_c_string(title).as_ptr(),
+            rust_string_to_c_string(message).as_ptr(),
+        );
+    }
+}
+
+pub enum HKEY {
+    HKEY_CLASSES_ROOT = 0x80000000,
+    HKEY_CURRENT_USER = 0x80000001,
+    HKEY_LOCAL_MACHINE = 0x80000002,
+    HKEY_USERS = 0x80000003,
+}
+
+
+pub fn getRegistrValue(hKey: HKEY, subKey: String, valueKey: String) -> String {
+    let mut result = String::new();
+    unsafe {
+        let mut c_result = _getRegistrValue(
+            c_long::from(hKey as i32),
+            rust_string_to_c_string(subKey).as_ptr(),
+            rust_string_to_c_string(valueKey).as_ptr(),
+        );
+        result =c_string_to_rust_string(c_result);
+    }
+    result
+}
+
+// 判断wx进程是否存在
+pub fn hasWeChat()->bool {
+    let mut result = false;
+    unsafe {
+        result= _hasWeChat();
+    }
+    result
+}
+
+pub fn hasWeChatWin()->bool {
+    let mut result = false;
+    unsafe {
+        let hwnd_01 = findWindow("WeChatMainWndForPC".to_string(), "".to_string());
+        if(hwnd_01!=0){
+           return true;
+        }
+
+        let hwnd_02 = findWindow("ChatWnd".to_string(), "".to_string());
+        if(hwnd_02!=0){
+            return true;
+        }
+
+        let hwnd_03 = findWindow("SubscriptionWnd".to_string(), "".to_string());
+        if(hwnd_03!=0){
+            return true;
+        }
+    }
+    result
+}
+
+
+// 把一个傀儡窗口变成主窗口的托盘
+pub fn setTaskbarWin(hWnd: i128) {
+    unsafe {
+       _setTaskbarWin(hWnd as i32);
+    }
+}
+
+
+pub fn findWindow(className: String, titleName: String)->i128 {
+    unsafe {
+      return _findWindow(rust_string_to_c_string(className).as_ptr(), rust_string_to_c_string(titleName).as_ptr()).into();
+    }
 }

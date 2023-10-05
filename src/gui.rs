@@ -1,16 +1,18 @@
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_parens,
-    unused_variables,
-    unused_mut,
-    unused_must_use,
-    unused_assignments,
-    non_snake_case,
-    unreachable_code,
-    unused_macros,
-    unused_unsafe
-)]
+// #![allow(
+//     dead_code,
+//     unused_imports,
+//     unused_parens,
+//     unused_variables,
+//     unused_mut,
+//     unused_must_use,
+//     unused_assignments,
+//     non_snake_case,
+//     unreachable_code,
+//     unused_macros,
+//     unused_unsafe
+// )]
+#![allow(warnings, unused)]
+
 // #![windows_subsystem = "windows"]
 
 use chrono::Local;
@@ -60,7 +62,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge};
 use crate::wh_mod::parse_dat_path;
 
 struct MainTheme {
@@ -217,41 +219,43 @@ fn getFormPointSpace(x: i32, y: i32) -> PointExistHasmap {
     return point_exist_hasmap;
 }
 
-// 自启动按钮
-fn setShowBtnEnableStarting(img_frame_open: &mut Frame, show: bool) {
-    let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
-        .expect("set addBtnEnableStarting icon error");
-
-    let background_image_none = image::PngImage::from_data(include_bytes!("./assets/none.png"))
-        .expect("set addBtnEnableStarting icon error");
-
-    if show {
-        img_frame_open.set_image(Some(background_image_off));
-    } else {
-        img_frame_open.set_image(Some(background_image_none));
-    }
-}
 
 // 设置自启动按钮的状态
-fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> Frame {
-    let mut mainTheme: MainTheme = getMainTheme();
-    // 服务正在启用中的按钮
-    let mut img_frame_open = Frame::default().with_size(12, 12).center_of(appMainWin);
+fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_imge::ImgPreview  {
+    let w_h = 20;
+    let mut preview = gui_imge::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
+   
+//    let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
+        // .expect("set addBtnEnableStarting icon error");
 
-    let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
-        .expect("set addBtnEnableStarting icon error");
+    // let background_image_none =
+    //     image::PngImage::from_data(include_bytes!("./assets/un_enable.png"))
+    //         .expect("set addBtnEnableStarting icon error");
 
-    let background_image_none =
-        image::PngImage::from_data(include_bytes!("./assets/un_enable.png"))
-            .expect("set addBtnEnableStarting icon error");
+    if libWxIkunPlus::hasStartup() {
+        preview.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,w_h, w_h);
+    }else{
+        preview.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
+    }
+    
+    // let mut mainTheme: MainTheme = getMainTheme();
+    // // 服务正在启用中的按钮
+    // let mut img_frame_open = Frame::default().with_size(12, 12).center_of(appMainWin);
 
-    img_frame_open.set_frame(FrameType::NoBox);
-    img_frame_open.set_color(Color::from_u32(0));
-    img_frame_open.set_image(Some(background_image_off.clone()));
+    // let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
+    //     .expect("set addBtnEnableStarting icon error");
 
-    img_frame_open.set_id("enableStarting");
-    img_frame_open.set_pos(90, 496);
-    img_frame_open.show();
+    // let background_image_none =
+    //     image::PngImage::from_data(include_bytes!("./assets/un_enable.png"))
+    //         .expect("set addBtnEnableStarting icon error");
+
+    // img_frame_open.set_frame(FrameType::NoBox);
+    // img_frame_open.set_color(Color::from_u32(0));
+    // img_frame_open.set_image(Some(background_image_off.clone()));
+
+    // img_frame_open.set_id("enableStarting");
+    // img_frame_open.set_pos(90, 496);
+    // img_frame_open.show();
     // let mut has_show = util::getVarBooleanValue("BtnEnableStarting".to_owned());
 
     // let mut btn_frame = Button::new(90, 496, 15, 15, "");
@@ -273,7 +277,7 @@ fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> Frame {
     //     }
     // });
 
-    return img_frame_open;
+    return preview;
 }
 
 // dat的路径的输入框
@@ -301,7 +305,12 @@ fn addInput_shellOpenDatDir(appMainWin: &mut window::DoubleWindow) -> ConsoleItm
             usetup.buffer().unwrap().text(),
             usetup.buffer().unwrap().length()
         );
+        let mut buff = usetup.buffer().unwrap();
+        buff.remove(0, buff.length());
+        // libWxIkunPlus::error("警告".to_owned(),"涉及用户隐私，禁止手动编辑".to_owned());
+        console_log!("[错误] 编辑被禁止".to_string());
     });
+  
     // buf.set(true);
 
     txt.show();
@@ -479,13 +488,38 @@ macro_rules! set_theme{
     theme.apply();
     }
 }
+
+
+fn get_window_hwnd(win:&window::Window) -> i128 {
+    let mut xclass = win.xclass().unwrap_or_else(||String::new());
+    let mut xtitle =String::new();// win.label();
+
+    let hwnd = libWxIkunPlus::findWindow(xclass.clone(), xtitle.clone()) ;
+    println!("xclass<{}> xtitle<{}> hwnd<{}>", xclass,xtitle, hwnd);
+    hwnd
+}
+
 // 主界面
 pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
     set_theme!();
 
+
+    // 状态栏用于显示任务图标的傀儡窗口
+    // let mut dock_win = window::Window::default()
+    //     .with_size(1, 1)
+    //     .with_label("微信图片自动备份")
+    //     .center_screen();
+    // dock_win.size_range(0, 0, 0, 0);
+    // dock_win.make_resizable(false);
+    // dock_win.set_xclass("app_main_win_dock_win_wx_dat_viewer_auto_export_rust");
+    // dock_win.show();
+    // dock_win.end();
+    
     let mut mainTheme: MainTheme = getMainTheme();
+
     let mut appMainWin = Window::new(0, 0, 600, 531, "Ikun导出");
+    appMainWin.set_xclass("app_main_win_wx_dat_viewer_auto_export_rust");
 
     app::set_scrollbar_size(3);
 
@@ -603,27 +637,47 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
     });
 
-    let mut copyAppRootView = appRootView.clone();
-    let mut copyappMainWin = appMainWin.clone();
+    let mut copy_AppRootView = appRootView.clone();
+    let mut copy_appMainWin = appMainWin.clone();
+    // let mut copy_dock_win = dock_win.clone();
+
     let mut g_appMainWinHwnd = 0;
+    // let mut g_copy_dock_win_hwnd = 0;
+
+    
+ 
 
     appMainWin.handle({
         let mut x = 0;
         let mut y = 0;
         let mut point_exist_hasmap = getFormPointSpace(x, y);
         let mut has_show = false;
-
+        let mut copy_appMainWin = copy_appMainWin.clone();
+        if(g_appMainWinHwnd.eq(&0)){
+            g_appMainWinHwnd = get_window_hwnd(&copy_appMainWin);
+            }
         move |win, ev| match ev {
+            enums::Event::Focus=>{
+                if(g_appMainWinHwnd.eq(&0)){
+                    g_appMainWinHwnd = get_window_hwnd(&copy_appMainWin);
+                    }
+                true
+            }
             enums::Event::Show => {
-                copyAppRootView.set_visible_focus();
+                copy_AppRootView.set_visible_focus();
 
-                let mut appMainWinHwnd = copyappMainWin.raw_handle() as i128;
-                env::set_var("ikunWinHwnd", format!("{}",appMainWinHwnd).to_string());
+                if(g_appMainWinHwnd.eq(&0)){
+                    g_appMainWinHwnd = get_window_hwnd(&copy_appMainWin);
+                    }
+
+                env::set_var("ikunWinHwnd", format!("{}",g_appMainWinHwnd).to_string());
                 // unsafe { setWinIcon(appMainWinHwnd.try_into().unwrap()) };
-                libWxIkunPlus::setWinIcon(appMainWinHwnd);
+                libWxIkunPlus::setWinIcon(g_appMainWinHwnd);
 
-                g_appMainWinHwnd = appMainWinHwnd;
-                println!("Show => window hwnd:{}",appMainWinHwnd);
+                
+                // libWxIkunPlus::setwinVisible(g_copy_dock_win_hwnd , true);
+
+                println!("Show => window hwnd:{}",g_appMainWinHwnd);
                 true
             }
             enums::Event::Close=>{
@@ -631,11 +685,16 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 println!("Close => window as {}",0);
                 true
             }
+            enums::Event::Focus=>{
+            
+            
+                true
+            }
             enums::Event::Push => {
                 // 关闭按钮
                 if (point_exist_hasmap.quit) {
-                    libWxIkunPlus::setwinVisible(copyappMainWin.raw_handle() as i128 , false);
-
+                    libWxIkunPlus::setwinVisible(g_appMainWinHwnd , false);
+                    // libWxIkunPlus::setwinVisible(g_copy_dock_win_hwnd , false);
                     // unsafe { setShowWindows((copyappMainWin.raw_handle() as i128).try_into().unwrap(), false) };
                 }
                 let mut has_inputPath = false;
@@ -655,13 +714,20 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                     input_Console
                         .buff
                         .set_text("[用户] 打开选取原始文件夹(dat 原目录)");
-                    input_Console.edit.activate();
-                    let path = gui_select_user_base::mian_window();
+                  
+                    // 有wx进程 而且有窗口
+                    if(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin()){
+                       gui_select_user_base::mian_window();
+                    }else{
+                        thread::spawn(||{
+                            libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
+                        });
+                    }
 
                     println!("click => shellOpenDatDir");
                 } else if (point_exist_hasmap.shellOpenExportDir) {
                     input_Console.buff.set_text("[用户] 打开选取导出到的文件夹");
-                    let mut open_path = libWxIkunPlus::openSelectFolder();
+                    let mut open_path = libWxIkunPlus::openSelectFolder2();
 
                     input_Console
                         .buff
@@ -694,6 +760,13 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                         .buff
                       .append(format!("\n[状态] 自启动已被移除").as_str());  
                     }
+                    
+                    if libWxIkunPlus::hasStartup() {
+                        btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
+                    }else{
+                        btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
+                    }
+
                     println!("click => starting");
                 } else if (point_exist_hasmap.test) {
                     input_Console.buff.set_text("[用户] 测试新的配置文件");
@@ -809,35 +882,45 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 // println!("{} , {} , {} , {}",has_name,has_inputPath,has_ouputPath,point_exist_hasmap.create);
 
                 if (has_name&&has_inputPath&&has_ouputPath&&point_exist_hasmap.create){
-                    let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
-
-                    handle_dat::initialize_table(&conn);
-                    match  conn.execute(
-                        "INSERT INTO export_dir_path (name,time,path,ouput) values (?1, ?2, ?3, ?4)",
-                        [input_shellName.buff.text(),Local::now().format("%Y-%m-%d").to_string(),input_shellOpenDatDir.buff.text(),input_shellOpenExportDir.buff.text()],
-                    ) {
-                      Ok(_)=>{
-                        input_Console.buff.append(
-                            format!("\n[存储] 添加成功").as_str(),
-                        );
-                      } 
-                      Err(err)=>{
-                        if(str_eq_ostr(err.to_string(),"UNIQUE constraint failed: export_dir_path.path")){
+                    if(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin()){
+                        let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+                    
+                        handle_dat::initialize_table(&conn);
+                        match  conn.execute(
+                            "INSERT INTO export_dir_path (name,time,path,ouput) values (?1, ?2, ?3, ?4)",
+                            [input_shellName.buff.text(),Local::now().format("%Y-%m-%d").to_string(),input_shellOpenDatDir.buff.text(),input_shellOpenExportDir.buff.text()],
+                        ) {
+                          Ok(_)=>{
                             input_Console.buff.append(
-                                format!("\n[错误] 添加失败 因为-> {}","当前被导出的路径已经存在").as_str(),
+                                format!("\n[存储] 添加成功").as_str(),
                             );
-                        }else
-
-                        {
-                            input_Console.buff.append(
-                                format!("\n[错误] 添加失败 因为-> {}",err.to_string()).as_str(),
-                            );
+                          } 
+                          Err(err)=>{
+                            if(str_eq_ostr(err.to_string(),"UNIQUE constraint failed: export_dir_path.path")){
+                                input_Console.buff.append(
+                                    format!("\n[错误] 添加失败 因为-> {}","当前被导出的路径已经存在").as_str(),
+                                );
+                            }else
+    
+                            {
+                                input_Console.buff.append(
+                                    format!("\n[错误] 添加失败 因为-> {}",err.to_string()).as_str(),
+                                );
+                            }
+                          } 
                         }
-                      } 
-                    }
+    
+                        conn.close();
+                        global_var::update_export_dir_itme_list();
 
-                    conn.close();
-                    global_var::update_export_dir_itme_list();
+                     }else{
+                        //  libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程 拒绝提供选取方案".to_owned())
+                        input_Console.buff.append(
+                            format!("\n[错误] 添加失败 因为-> {}","当前未发现wx进程或者未登录 拒绝提供添加").as_str(),
+                        );
+                       
+                     }
+
                 }
            
 
@@ -875,6 +958,45 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
         }
     });
 
+    // dock_win.handle({
+    //     let mut win = copy_appMainWin.clone();
+    //     let mut dock_win = dock_win.clone();
+
+    //     g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
+
+    //     setTaskbarWin(g_copy_dock_win_hwnd);
+
+    //     move |_wself, event| match event {
+    //         enums::Event::Show=>{
+    //             if(g_copy_dock_win_hwnd.eq(&0)){
+    //             g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
+    //             }
+    //             true
+    //         }
+    //         enums::Event::Focus => {
+               
+    //             if(g_copy_dock_win_hwnd.eq(&0)){
+    //                 g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
+    //                 }
+
+    //             setTaskbarWin(g_copy_dock_win_hwnd);
+    //             libWxIkunPlus::setwinVisible(g_appMainWinHwnd , true);
+    //             // win.show();
+    //             true
+    //         }
+    //         enums::Event::Hide => {
+    //             libWxIkunPlus::setwinVisible(g_appMainWinHwnd, false);
+                
+    //             true
+    //         }
+    //         enums::Event::Close => {
+    //             process::exit(0);
+    //             true
+    //         }
+    //         _ => false,
+    //     }
+    // });
+    
     loop {
         Sleep(200);
         if (util::getVarBooleanValue("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed".to_owned()))
@@ -888,9 +1010,9 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     // appMainWin.hide();
     // let path = gui_select_user_base::mian_window();
 
-
     Ok(MianWindowItme {
         appRootView,
         appMainWin,
     })
 }
+

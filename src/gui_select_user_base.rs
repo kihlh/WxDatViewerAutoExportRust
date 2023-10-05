@@ -1,10 +1,12 @@
 #![allow(warnings, unused)]
 
 use crate::{
-    global_var, gui_detect_config, gui_drag_scan, gui_hotspot, gui_imge, gui_text_control,
-    handle_dat, libWxIkunPlus,
+    get_arc_bind_variable, global_var, gui_detect_config, gui_drag_scan, gui_hotspot, gui_imge,
+    gui_text_control, handle_dat, libWxIkunPlus, read_rw_lazy_lock, read_rw_lock,
+    set_arc_bind_variable, set_arc_bind_variable_insert,
     util::{str_eq_str, Sleep},
-    wh_mod,
+    wh_mod::{self, AttachThumbnail},
+    write_rw_lock, write_rw_lock_insert,
 };
 use chrono::Local;
 use fltk::{
@@ -25,14 +27,16 @@ use fltk::{
 };
 use fltk_table::{SmartTable, TableOpts};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
+use once_cell::sync::Lazy;
 use rusqlite::Connection;
 use std::sync::{mpsc, MutexGuard};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::ops::Deref;
 use std::ptr::null;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::{
     fs,
     hash::{Hash, Hasher},
@@ -45,25 +49,57 @@ use std::{
 use crate::gui_imge::ImgPreview;
 use crate::libWxIkunPlus::closeWindow;
 use crate::watching::insert_watch_path_token;
+use arc_swap::ArcSwap;
 use fltk::draw::{height, width};
 use fltk::image::PngImage;
-use lazy_static::lazy_static;
+// use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
 use winapi::um::winnt::LPWSTR;
 use winapi::um::winuser::{CloseWindow, SetActiveWindow};
 
 static REQUEST_RECV: AtomicUsize = AtomicUsize::new(0);
-// static PREVIEW_MAIN: OnceLock<PreviewMain> = OnceLock::new();
+// static mut static_var:Vec<ImgPreview> = Vec::new();
+// static mut static_atomic :AtomicUsize = AtomicUsize::new(0);
 
-lazy_static! {
-    static ref WX_ID: Mutex<String> = Mutex::new(String::new());
-    // static ref USER_PATH: Mutex<String> = Mutex::new(String::new());
-    static ref USER_PATH : Mutex<String> = Mutex::new(String::new());
-    static ref THUMBNAIL_LIST: Mutex<Vec<wh_mod::AttachThumbnail>> = Mutex::new(Vec::new());
-    static ref IMG_PREVIEW_LIST: Mutex<Vec<ImgPreview>> = Mutex::new(Vec::new());
-    static ref PREVIEW_THUMBNAIL_LIST: Mutex<Vec<wh_mod::AttachThumbnail>> = Mutex::new(Vec::new());
+// 使用原子锁代替线程锁 避免死锁
 
+// 图片预览 全局变量
+static mut IMG_PREVIEW_LIST: Vec<ImgPreview> = Vec::new();
+static IMG_PREVIEW_LIST_BIND: AtomicUsize = AtomicUsize::new(0);
+
+// 缩略图 全局变量
+static mut THUMBNAIL_LIST: Vec<wh_mod::AttachThumbnail> = Vec::new();
+static THUMBNAIL_LIST_BIND: AtomicUsize = AtomicUsize::new(0);
+
+// wxid 全局变量
+static mut WX_ID: String = String::new();
+static WX_ID_BIND: AtomicUsize = AtomicUsize::new(0);
+
+// 用户wx存储位置 全局变量
+static mut USER_PATH: String=String::new();
+static USER_PATH_BIND: AtomicUsize = AtomicUsize::new(0);
+
+// 使用原子锁代替线程锁 避免死锁
+// fn set_IMG_PREVIEW_LIST(value:Vec<ImgPreview>){
+
+//     set_arc_bind_variable!(THUMBNAIL_LIST,THUMBNAIL_LIST_BIND,value);
+
+//     get_arc_bind_variable!(IMG_PREVIEW_LIST,IMG_PREVIEW_LIST_BIND);
+
+// }
+
+// thread_local! {
+// // static WX_ID_ARC: RwLock<Arc<String>> = RwLock::new(Arc::new(String::new()));
+// static USER_PATH_ARC: RwLock<Arc<String>> = RwLock::new(Arc::new(String::new()));
+// // static THUMBNAIL_LIST_ARC: RwLock<Arc<Vec<wh_mod::AttachThumbnail>>> = RwLock::new(Arc::new(Vec::new()));
+// // static IMG_PREVIEW_LIST_ARC: RwLock<Arc<Vec<ImgPreview>>> = RwLock::new(Arc::new(Vec::new()));
+
+
+// }
+
+thread_local! {
+        static IMG_PREVIEW_LIST_ARCLAZY: ArcSwap< Vec<ImgPreview> > = ArcSwap::from_pointee(Vec::new().into());
 }
 
 // 设置背景为图片（主视图）
@@ -75,6 +111,7 @@ fn setInterfaceBackgroundImage(appMainWin: &mut window::DoubleWindow) -> Frame {
     let mut frame = Frame::default().with_size(600, 0).center_of(appMainWin);
     frame.set_frame(FrameType::EngravedBox);
     frame.set_image(Some(background_image));
+
     return frame;
 }
 
@@ -93,7 +130,7 @@ fn getFormPointSpace(x: i32, y: i32) -> PointExistHasmap {
         };
     }
     let existCursor = false;
-
+    // IMG_PREVIEW_LIST_KEEP;
     let mut point_exist_hasmap = PointExistHasmap { existCursor: false };
 
     point_exist_hasmap.existCursor = existCursor;
@@ -147,23 +184,10 @@ struct PicturePreviewItem {
 }
 
 impl PicturePreviewItem {
-    /**
-     * 获取主窗口
-     */
-    // pub fn get_main(&self) -> DoubleWindow {
-    //     let mut main: DoubleWindow = app::widget_from_id(self.main_id.as_str()).unwrap();
-    //     main
-    // }
     pub fn get_picture(&self) -> Frame {
         let mut frame: Frame = app::widget_from_id(self.picture_id.as_str()).unwrap();
         frame
     }
-    // pub fn get_hwnd(&self) -> Result<i128, std::io::Error> {
-    // let mut main:DoubleWindow = app::widget_from_id(self.main_id.as_str()).unwrap();
-    // let mut raw_handle = main.raw_handle() as i128;
-
-    // Ok(raw_handle)
-    // }
 
     // 判断鼠标是否在当前元素
     pub fn existPoint(&self, x: i32, y: i32) -> bool {
@@ -172,46 +196,6 @@ impl PicturePreviewItem {
             && y > self.y.clone()
             && y < self.y.clone() + self.height.clone();
     }
-    // pub fn close(&self)->bool{
-    //     let mut close_exist =false;
-    //     match self.get_hwnd() {
-    //         Ok(hwnd)=>{
-    //             libWxIkunPlus::closeWindow(hwnd,true);
-    //             close_exist = true;
-    //         }
-    //         Err(_)=>{
-    //
-    //         }
-    //     }
-    //     close_exist
-    // }
-    // pub fn updateImages (&self, image_buff: &Vec<u8> ){
-    //     let mut main:DoubleWindow = app::widget_from_id(self.main_id.as_str()).unwrap_or_else(||{
-    //         let mut preview_main = window::Window::new(self.x,self.y,self.width,self.height, "");
-    //         preview_main.set_border(false);
-    //         preview_main.set_color(Color::from_rgb(49, 49, 49));
-    //         preview_main.handle({
-    //             move |win, ev| match ev {
-    //                 enums::Event::Move => {
-    //                     win.set_cursor(Cursor::Hand);
-    //                     true
-    //                 }
-    //                 enums::Event::Leave=>{
-    //                     win.set_cursor(Cursor::Default);
-    //                     true
-    //                 }
-    //                 _ => false,
-    //             }
-    //         });
-    //         preview_main.resize(self.x,self.y,self.width,self.height);
-    //         // preview_main.set_pos(x,y);
-    //         preview_main.end();
-    //         preview_main.show();
-    //         preview_main
-    //     });
-    //     main.clear();
-    //
-    // }
 }
 
 fn get_next_id() -> usize {
@@ -224,223 +208,25 @@ fn get_next_id() -> usize {
     id
 }
 
-// fn create_picture_preview_item(
-//     x: i32,
-//     y: i32,
-//     width: i32,
-//     height: i32,
-//     image_buff: &Vec<u8>,
-// ) -> PicturePreviewItem {
-//     // let mut preview_main = window::Window::new(x,y,width,height, "");
-//     // preview_main.set_border(false);
-//     // preview_main.set_color(Color::from_rgb(49, 49, 49));
-//     let mut frame_width = width - 2;
-//     let mut frame_height = height - 2;
-
-//     let next_id = get_next_id();
-
-//     // 创建不重复的id用来控制
-//     let preview_main_id = format!("preview_main_id@{:?}", next_id);
-//     // preview_main.set_id(preview_main_id.as_str());
-//     let preview_frame_id = format!("preview_frame_id@{:?}", next_id);
-
-//     println!("{} ->{}", preview_main_id, preview_frame_id);
-
-//     let mut frame = Frame::default().with_size(width, height);
-
-//     // frame.set_frame(FrameType::FlatBox);
-//     frame.set_color(Color::from_rgb(81, 82, 81));
-//     frame.set_id(preview_frame_id.as_str());
-
-//     let ext = wh_mod::convert::detect_image_format(image_buff).unwrap_or_else(|| "");
-//     let mut is_preview_ready = false;
-
-//     // 解析格式并创建图像对象
-//     if (ext.as_bytes().eq("png".as_bytes())) {
-//         match image::PngImage::from_data(image_buff) {
-//             Ok(mut images) => {
-//                 images.scale(frame_width, frame_height, true, true);
-//                 frame.set_image(Some(images));
-//                 is_preview_ready = true;
-//             }
-//             Err(_) => {}
-//         }
-//     } else if (ext.as_bytes().eq("jpg".as_bytes())) {
-//         match image::JpegImage::from_data(image_buff) {
-//             Ok(mut images) => {
-//                 images.scale(frame_width, frame_height, true, true);
-//                 frame.set_image(Some(images));
-//                 is_preview_ready = true;
-//             }
-//             Err(_) => {}
-//         }
-//     }
-
-//     if (!is_preview_ready) {
-//         let mut default_image =
-//             image::PngImage::from_data(include_bytes!("./assets/select_user_base/not.png"))
-//                 .unwrap();
-//         default_image.scale(width, height, true, true);
-
-//         frame.set_image(Some(default_image));
-//         is_preview_ready = true;
-//     }
-
-//     frame.show();
-//     // preview_main.resize(x,y,width,height);
-//     // preview_main.set_pos(x,y);
-//     // preview_main.end();
-//     // preview_main.show();
-
-//     // preview_main.set_xclass(preview_main_id.as_str());
-
-//     let picture_preview_item = PicturePreviewItem {
-//         // main_id: preview_main_id,
-//         picture_id: preview_frame_id,
-//         x,
-//         y,
-//         width,
-//         height,
-//     };
-
-//     picture_preview_item
-// }
-
-// struct PreviewMain {
-//     main: DoubleWindow,
-//     main_id: String,
-//     preview_list: Vec<PicturePreviewItem>,
-//     flex: fltk::group::Flex,
-//     flex_id: String,
-// }
-// impl PreviewMain {
-//     fn insertPicture(&mut self, att: wh_mod::AttachThumbnail) {
-//         let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-//         lazy_value.push(att);
-//         drop(lazy_value);
-//         self.updatePicture();
-//     }
-//     fn updatePicture(&mut self) {
-//         self.main.clear();
-//     }
-// }
-// fn _initialize_preview_main() {
-
-//   let mut initialize = false;
-
-//     let mut thumbnail_list = Vec::new();
-//     let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-//     lazy_value.iter().for_each(|value| {
-//         thumbnail_list.push(value.clone());
-//     });
-//     drop(lazy_value);
-
-//     if !thumbnail_list.is_empty() {
-
-//         // let mut preview_frame_id:Frame = app::widget_from_id("preview_frame_id@3").unwrap();
-//         // preview_frame_id.set_image( Some(PngImage::from_data(include_bytes!("./assets/card_ok.png")).unwrap() ));
-//         // preview_frame_id.redraw();
-
-//     }
-//     let mut preview_main =   window::OverlayWindow::new(69, 292, 460, 95, "");
-
-//     /*
-//      app::widget_from_id("gui::preview_main::main")
-//         .unwrap_or_else(|| {
-//             initialize =true;
-//             window::Window::new(69, 292, 460, 95, "")
-//         });
-//     */
-//     if(!initialize){
-//         // preview_main.hide();
-//         // closeWindow(preview_main.raw_handle() as i128, true);
-//         // preview_main = window::Window::new(69, 292, 460, 95, "");
-//     }
-
-//     // preview_main.flush();
-//     // preview_main.clear();
-
-//     // 图片预览组件
-//     // let mut preview_main = window::Window::new(69,292,460,95, "");
-//     preview_main.set_color(Color::from_rgb(24, 24, 24));
-//     preview_main.set_id("gui::preview_main::main");
-//     // 视图
-//     let mut picture_preview_list: Vec<PicturePreviewItem> = Vec::new();
-//     let mut point_list = [
-//         [71, 296, 75, 75],
-//         [167, 296, 75, 75],
-//         [263, 296, 75, 75],
-//         [359, 296, 75, 75],
-//         [455, 296, 75, 75],
-//     ];
-
-//     let mut flex =group::Flex::default()
-//         .with_size(460, 120)
-//         .row()
-//         .center_of_parent()
-//     ;/*app::widget_from_id("gui::preview_main::flex").unwrap_or_else(|| {
-//         group::Flex::default()
-//             .with_size(460, 120)
-//             .row()
-//             .center_of_parent()
-//     });*/
-//     // flex.clear();
-
-//     preview_main.set_id("gui::preview_main::flex");
-
-//     let mut index: usize = 0;
-
-//     for point in point_list {
-//         let [x, y, width, height] = point;
-
-//         let mut buff = &include_bytes!("./assets/select_user_base/not.png").to_vec();
-
-//         if thumbnail_list.len() > index {
-//             // preview_main.clear();
-//             // preview_main.redraw();
-//             // flex.clear();
-//             // flex.redraw();
-//             let mut preview_frame_id:Frame = app::widget_from_id("preview_frame_id@3").unwrap();
-//             preview_frame_id.set_image( Some(PngImage::from_data(include_bytes!("./assets/card_ok.png")).unwrap() ));
-//             preview_frame_id.redraw();
-//             flex.redraw();
-//             preview_main.redraw();
-//             break;
-//             buff = &thumbnail_list[index].thumbnail;
-//             println!("----> {}",thumbnail_list[index].thumbnail_path);
-//         }
-
-//         // buff = &Vec::new();
-
-//         let mut picture_preview = create_picture_preview_item(0, 0, width, height, buff);
-
-//         picture_preview_list.push(picture_preview);
-//         index = index + 1;
-//     }
-
-//     flex.end();
-//     // preview_main.end();
-//     // preview_main.show();
-//     // preview_main.flush();
-//     // PreviewMain {
-//     //     main: preview_main,
-//     //     preview_list: picture_preview_list,
-//     //     flex,
-//     //     flex_id: String::from("gui::preview_main::flex"),
-//     //     main_id: String::from("gui::preview_main::main"),
-//     // };
-// }
-
 fn push_wx_user_table(select_path: String, user_name: String) {
-    let mut lazy_value = USER_PATH.lock().unwrap();
+    // let mut lazy_value = USER_PATH.lock().unwrap();
 
-    if lazy_value.contains(select_path.as_str()) {
+    // if lazy_value.contains(select_path.as_str()) {
+    //     return;
+    // }
+
+    // *lazy_value = select_path.clone();
+    // drop(lazy_value);
+    // if read_rw_lock!(USER_PATH_ARC, String::new()).contains(select_path.as_str()) {
+    //     return;
+    // }
+    if(get_arc_bind_variable!(USER_PATH,USER_PATH_BIND).contains(&select_path)){
         return;
     }
+    // write_rw_lock!(USER_PATH_ARC, select_path.clone());
+    set_arc_bind_variable!(USER_PATH,USER_PATH_BIND,select_path.clone());
 
-    *lazy_value = select_path.clone();
-    drop(lazy_value);
-
+    
     thread::spawn(|| {
         let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
         handle_dat::initialize_table(&conn);
@@ -505,72 +291,152 @@ fn get_wx_user_history_path() -> Result<UserWxRootHistory, rusqlite::Error> {
 }
 
 fn update_preview_main() {
-    // 取出缩略图列表
-    let mut thumbnail_list = Vec::new();
-    let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-    let mut index = 0;
-    lazy_value.iter().for_each(|value| {
+    // println!(
+    //     "[preview_main] IMG_PREVIEW_LIST_ARC-> {}",
+    //     read_rw_lock!(IMG_PREVIEW_LIST_ARC, Vec::new()).len()
+    // );
+    // // println!(
+    // //     "[preview_main] IMG_PREVIEW_LIST_ARCSWAP-> {}",
+    // //     IMG_PREVIEW_LIST_ARCLAZY.with().len()
+    // // );
 
-            thumbnail_list.push(value.clone());
-    });
-    drop(lazy_value);
+    // println!(
+    //     "[preview_main] IMG_PREVIEW_LIST_ARCSWAP-> {}",
+    //     read_rw_lazy_lock!(IMG_PREVIEW_LIST_ARCLAZY).len()
+    // );
 
-    let mut atid_list = HashSet::new();
-    // 只保留最后5条 而且是不同人
-    let thumbnail_list_new = {
-        // let index = thumbnail_list.len();
-        let mut thumbnail_list_new = Vec::new();
-        for for_index in 1..thumbnail_list.len() {
-            if (thumbnail_list.len() - for_index == 0) {
-                break;
-            };
-            let mut thumbnail = thumbnail_list[thumbnail_list.len() - for_index].clone();
+    // println!(
+    //     "[preview_main]THUMBNAIL_LIST-> {}",
+    //     get_arc_bind_variable!(IMG_PREVIEW_LIST,IMG_PREVIEW_LIST_BIND).len()
+    // );
 
-            let atid = thumbnail.attach_id.clone();
-            // let imag_id = thumbnail_list[thumbnail_list.len()-for_index].imag_id.clone();
+    println!(
+        "[preview-main]IMG_PREVIEW_LIST-> {}",
+        get_arc_bind_variable!(IMG_PREVIEW_LIST, IMG_PREVIEW_LIST_BIND).len()
+    );
+    println!(
+        "[preview-main]THUMBNAIL_LIST-> {}",
+        get_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND).len()
+    );
 
-            if (atid_list.insert(atid.clone())) {
-                thumbnail_list_new.push(thumbnail.clone());
-                println!("atid=>>> {}", atid.clone());
-            } else {
-                let mut index: usize = 0;
-                for cthumbnail in thumbnail_list_new.to_vec() {
-                    if (cthumbnail.attach_id.contains(atid.as_str())) {
-                        thumbnail_list_new[index] = thumbnail.clone();
+    // 取出缩略图列表 并将其缩减到5条以内
+    let mut thumbnail_list = {
+        // let mut thumbnail_list = read_rw_lock!(THUMBNAIL_LIST_ARC, Vec::new()).to_vec();
+        let mut thumbnail_list =
+            get_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND).to_vec();
+        let mut atid_list: HashMap<String, AttachThumbnail> = HashMap::new();
+
+        for value in thumbnail_list {
+            let key = value.attach_id.clone();
+            let mut oid_created = UNIX_EPOCH;
+            let mut new_created = UNIX_EPOCH;
+
+            // oid create time
+            if let Some(thumbnail) = atid_list.get(&key) {
+                if let Ok(metadata) = fs::metadata(thumbnail.thumbnail_path.clone()) {
+                    if let Result::Ok(create) = metadata.created() {
+                        oid_created = create;
                     }
-                    index = index + 1;
                 }
             }
 
-            if thumbnail_list_new.len() >= 5 {
-                break;
+            // new create time
+            if let Ok(metadata) = fs::metadata(value.thumbnail_path.clone()) {
+                if let Result::Ok(create) = metadata.created() {
+                    new_created = create;
+                }
+            }
+
+            // 按照创建时间判断是否更新视图
+            if (new_created > oid_created) {
+                atid_list.insert(value.attach_id.clone(), value);
             }
         }
 
-        thumbnail_list_new
+        println!("atid_list size -> {}", atid_list.len());
+
+        let mut thumbnail_list: Vec<AttachThumbnail> = Vec::new();
+
+        for (key, value) in atid_list {
+            thumbnail_list.push(value);
+        }
+
+        thumbnail_list.sort_by(|a, b| {
+            let mut a_created = UNIX_EPOCH;
+            let mut b_created = UNIX_EPOCH;
+
+            if let Ok(metadata) = fs::metadata(a.thumbnail_path.clone()) {
+                if let Result::Ok(create) = metadata.created() {
+                    a_created = create;
+                }
+            }
+
+            if let Ok(metadata) = fs::metadata(b.thumbnail_path.clone()) {
+                if let Result::Ok(create) = metadata.created() {
+                    b_created = create;
+                }
+            }
+
+            a_created.cmp(&b_created)
+        });
+
+        let mut new_thumbnail_list = Vec::new();
+
+        thumbnail_list.reverse();
+        for value in thumbnail_list {
+            if (new_thumbnail_list.len() > 5 - 1) {
+                break;
+            }
+            new_thumbnail_list.push(value);
+        }
+
+        new_thumbnail_list
     };
 
-    drop(thumbnail_list);
+    // println!("[328] thumbnail_list-> {}",thumbnail_list.len());
 
-    // 取出控件绑定
-    let mut lazy_value2 = IMG_PREVIEW_LIST.lock().unwrap();
+    // write_rw_lock!(THUMBNAIL_LIST_ARC, thumbnail_list.to_vec());
+    set_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND, thumbnail_list.to_vec());
 
-    // 获取一共多少个缩略图 不足5个按照实际返回
-    let mut index: usize = 0;
-    let mut bind_thumbnail = Vec::new();
+    // println!(
+    //     "[preview_main_end] IMG_PREVIEW_LIST_ARC-> {}",
+    //     read_rw_lock!(IMG_PREVIEW_LIST_ARC, Vec::new()).len()
+    // );
+    // println!(
+    //     "[preview_main_end] IMG_PREVIEW_LIST_ARCSWAP-> {}",
+    //     read_rw_lazy_lock!(IMG_PREVIEW_LIST_ARCLAZY).len()
+    // );
+    // println!(
+    //     "[preview_main_end]THUMBNAIL_LIST-> {}",
+    //     get_arc_bind_variable!(IMG_PREVIEW_LIST,IMG_PREVIEW_LIST_BIND).len()
+    // );
 
-    for thumbnail in thumbnail_list_new {
-        bind_thumbnail.push(thumbnail.clone());
-        lazy_value2[index].from_data(thumbnail.thumbnail, -1, -1, 75 - 2, 75 - 2);
-        // lazy_value2[index].preview.
-        index = index + 1;
+    // 更新到视图中
+    let thumbnail_list = get_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND);
+
+    // 锁定缩略图更新
+    let mutex = Arc::new(Mutex::new(&THUMBNAIL_LIST_BIND));
+    mutex.lock();
+
+    let img_preview_list = get_arc_bind_variable!(IMG_PREVIEW_LIST, IMG_PREVIEW_LIST_BIND);
+
+    let (width, height) = (75, 75);
+
+    for index in 0..img_preview_list.len() {
+        if let Some(mut img_preview) = img_preview_list.get(index) {
+            if let Some(thumbnail) = thumbnail_list.get(index) {
+                img_preview.clone().from_data(
+                    thumbnail.thumbnail.clone(),
+                    -1,
+                    -1,
+                    width - 2,
+                    height - 2,
+                );
+            } else {
+            }
+        }
     }
-
-    drop(lazy_value2);
-
-    let mut lazy_value2 = PREVIEW_THUMBNAIL_LIST.lock().unwrap();
-    *lazy_value2 = bind_thumbnail;
-    drop(lazy_value2);
+    drop(mutex);
 }
 
 // 开始获取更新
@@ -613,23 +479,38 @@ fn initialize_watch_path_puppet(path: String) {
 
             if file_name.contains("wxid_") {
                 wxid = file_name.clone();
-                let mut lazy_value = WX_ID.lock().unwrap();
-                *lazy_value = file_name.clone();
-                drop(lazy_value);
+                // let mut lazy_value = WX_ID.lock().unwrap();
+                // *lazy_value = file_name.clone();
+                // drop(lazy_value);
 
+                // write_rw_lock!(WX_ID_ARC, file_name.clone());
+                set_arc_bind_variable!(WX_ID,WX_ID_BIND,file_name.clone());
+
+                // let get_wxid_acc = wh_mod::convert::get_wxid_name(format!("{}",for_path.to_str()),wxid.clone());
+                if let Some(get_wxid_acc) = wh_mod::convert::get_wxid_name(
+                    format!("{}", for_path.to_str().unwrap_or_else(|| &"")),
+                    wxid.clone(),
+                ) {
+                    frame.set_label(&format!("{}  [ {} ]", file_name, get_wxid_acc.name));
+                } else {
+                    frame.set_label(
+                        format!("{}  [ {} ]", file_name, wh_mod::wx_account_id(for_path).id)
+                            .as_str(),
+                    );
+                };
                 // 显示到ui
-                frame.set_label(
-                    format!("{}  [ {} ]", file_name, wh_mod::wx_account_id(for_path).id).as_str(),
-                );
+                // frame.set_label(
+                //     format!("{}  [ {} ]", file_name,get_wxid_acc /*wh_mod::wx_account_id(for_path).id).as_str()*/,
+                // );
                 frame.redraw();
                 btn_next.set_label("检测");
                 // btn_next.redraw();
                 // let attach_path = Path::new(copy_path.as_str());
                 push_wx_user_table(path.clone(), file_name);
-                global_var::set_str("user::config::user_select_wxid",wxid.clone());
+                global_var::set_str("user::config::user_select_wxid", wxid.clone());
 
                 let copy_path = format!("{}/{}/FileStorage/MsgAttach", copy_path.as_str(), wxid);
-                let copy_path_wake = format!("{}",watch_path);
+                let copy_path_wake = format!("{}", watch_path);
 
                 // 取得缩略图
                 thread::spawn(move || {
@@ -637,17 +518,31 @@ fn initialize_watch_path_puppet(path: String) {
                     let path = Path::new(copy_path.as_str());
                     let imag = wh_mod::read_attach_buff_thumbnail_list(path, 5, 1);
 
-                    let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-                    let mut data_list = lazy_value.clone();
-                    data_list.clear();
+                    let mut data_list = Vec::new();
 
                     //
                     for imag in imag {
                         println!("{}", imag.thumbnail_path.clone());
                         data_list.push(imag);
                     }
-                    *lazy_value = data_list.clone();
-                    drop(lazy_value);
+                    // *lazy_value = data_list.clone();
+                    // drop(lazy_value);
+
+                    // write_rw_lock_insert!(THUMBNAIL_LIST_ARC, data_list.to_vec());
+                    // let mut oid_thumbnail_list = get_arc_bind_variable!(THUMBNAIL_LIST,THUMBNAIL_LIST_BIND).to_vec();
+
+                    // for value in data_list {
+                    //     oid_thumbnail_list.push(value);
+                    // }
+
+                    set_arc_bind_variable_insert!(
+                        THUMBNAIL_LIST,
+                        THUMBNAIL_LIST_BIND,
+                        data_list.to_vec()
+                    );
+
+                    // println!("read_rw_lock!(THUMBNAIL_LIST_ARC).unwrap().len() ->  {}",read_rw_lock!(THUMBNAIL_LIST_ARC).unwrap().len());
+
                     if (data_list.len() > 0) {
                         update_preview_main();
                     }
@@ -658,18 +553,18 @@ fn initialize_watch_path_puppet(path: String) {
                     let (tx, rx) = std::sync::mpsc::channel();
 
                     let wh_id = wh_mod::watch_path::watch_path_puppet(copy_path_wake.clone(), tx);
-                println!("copy_path_wake-> {}",copy_path_wake.clone());
+                    println!("copy_path_wake-> {}", copy_path_wake.clone());
                     while wh_id == wh_mod::watch_path::get_the_id() {
                         if let Result::Ok(data) = rx.recv() {
                             let path = data.join("..").join("..").join("..");
                             let data_list = wh_mod::read_attach_buff_thumbnail_data(&path, 1);
-                            // global_var::set_str("user::config::user_select_wxid",wxid.clone());
+                            // write_rw_lock_insert!(THUMBNAIL_LIST_ARC, data_list.to_vec());
+                            set_arc_bind_variable_insert!(
+                                THUMBNAIL_LIST,
+                                THUMBNAIL_LIST_BIND,
+                                data_list.to_vec()
+                            );
 
-                            let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-                            for imag in data_list.to_vec() {
-                                lazy_value.push(imag);
-                            }
-                            drop(lazy_value);
                             if (data_list.len() > 0) {
                                 update_preview_main();
                             }
@@ -859,7 +754,18 @@ pub fn mian_window() -> SelectUserBaseMain {
             if (data.is_empty()) {
                 title.set_label("选择最近对象*  （ 如果不存在请随意发送一张的图片给对方 [不能是表情]  更新后约5秒显示 ） ");
             } else {
-                title.set_label(format!("已选定 ：[ {} ] {}  [再次点击取消]",( if id==-2 {"拖拽".to_string()} else {id.to_string()}), data).as_str());
+                title.set_label(
+                    format!(
+                        "已选定 ：[ {} ] {}  [再次点击取消]",
+                        (if id == -2 {
+                            "拖拽".to_string()
+                        } else {
+                            id.to_string()
+                        }),
+                        data
+                    )
+                    .as_str(),
+                );
             }
 
             title.resize(6 + 50, 96 + 70 + 90, 490, 21);
@@ -879,32 +785,18 @@ pub fn mian_window() -> SelectUserBaseMain {
     let mut input_select_dir = input::Input::new(50, 127, 450 - 5, 27, "");
     input_select_dir.set_id("gui::input_select_dir");
 
-    // let mut the_select_preview_point_list = [
-    //     [80,383, 55, 8],
-    //     [178,383, 55, 8],
-    //     [272,383, 55, 8],
-    //     [372,383, 55, 8],
-    //     [467,383, 55, 8],
-    // ];
-    //
-    // let mut the_select_preview_list={
-    //     let mut the_select_preview =Vec::new();
-    //
-    //     for the_select_preview_point in the_select_preview_point_list {
-    //         let [x, y, width, height] = the_select_preview_point;
-    //         let mut vp = ImgPreview::new(x, y, width, height, "gui::preview_main::index::the_select");
-    //         vp.from_data(include_bytes!("./assets/select_user_base/the_select2.png").to_vec(),0,0,55,8);
-    //         the_select_preview.push(vp);
-    //     }
-    //
-    //     the_select_preview
-    // };
-
     if let Ok(history) = get_wx_user_history_path() {
         let paths = history.path;
         input_select_dir.set_value(paths.as_str());
         global_var::set_str("user::config::input_select_dir", paths);
+
         // initialize_watch_path_puppet(paths);
+    }
+    if (input_select_dir.value().is_empty()) {
+        if let Some(paths) = wh_mod::convert::get_user_data_path() {
+            input_select_dir.set_value(paths.as_str());
+            global_var::set_str("user::config::input_select_dir", paths);
+        }
     }
 
     // 输入文件夹路径 的热区
@@ -945,9 +837,43 @@ pub fn mian_window() -> SelectUserBaseMain {
     preview.preview.hide();
     preview_main.push(preview);
 
-    let mut lazy_value = IMG_PREVIEW_LIST.lock().unwrap();
-    *lazy_value = preview_main;
-    drop(lazy_value);
+    println!("preview_main size-> {}", preview_main.len());
+
+    // // 写入到全局变量中
+    // write_rw_lock!(IMG_PREVIEW_LIST_ARC, preview_main.to_vec());
+    // // write_rw_lock!(IMG_PREVIEW_LIST_ARCLAZY,preview_main.to_vec().into());
+
+    // // *IMG_PREVIEW_LIST_ARCLAZY.write().unwrap() = preview_main.to_vec().into();
+    // // IMG_PREVIEW_LIST_ARCLAZY.store(preview_main.to_vec().into());
+
+    set_arc_bind_variable!(
+        IMG_PREVIEW_LIST,
+        IMG_PREVIEW_LIST_BIND,
+        preview_main.to_vec()
+    );
+
+    // // get_arc_bind_variable!(IMG_PREVIEW_LIST,IMG_PREVIEW_LIST_BIND);
+    // println!(
+    //     "[win-main]IMG_PREVIEW_LIST_ARC size-> {}",
+    //     read_rw_lock!(IMG_PREVIEW_LIST_ARC, Vec::new()).len()
+    // );
+    // println!(
+    //     "[win-main]IMG_PREVIEW_LIST_ARCSWAP-> {}",
+    //     read_rw_lazy_lock!(IMG_PREVIEW_LIST_ARCLAZY).len()
+    // );
+    // println!(
+    //     "[win-main]THUMBNAIL_LIST-> {}",
+    //     get_arc_bind_variable!(IMG_PREVIEW_LIST,IMG_PREVIEW_LIST_BIND).len()
+    // );
+
+    println!(
+        "[win-main]IMG_PREVIEW_LIST-> {}",
+        get_arc_bind_variable!(IMG_PREVIEW_LIST, IMG_PREVIEW_LIST_BIND).len()
+    );
+    println!(
+        "[win-main]THUMBNAIL_LIST-> {}",
+        get_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND).len()
+    );
 
     let mut preview_tips = ImgPreview::new(165, 18, 27, 27, "gui::preview_main::next::tips");
     preview_tips.from_data(
@@ -990,7 +916,7 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                 //  打开文件夹选择器
                 if check_select_click!(btn_open_select_dir) {
-                    let user_select_path = libWxIkunPlus::openSelectFolder();
+                    let user_select_path = libWxIkunPlus::openSelectFolder2();
 
                     if user_select_path.len() > 1 {
                         initialize_watch_path_puppet(user_select_path.clone());
@@ -1024,7 +950,6 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                 // 通过拖拽获取
                 if (btn_fall_pictures_path.existPoint(x, y)) {
-
                     let value = input_select_dir.value();
 
                     if (value.len() > 3) {
@@ -1041,14 +966,12 @@ pub fn mian_window() -> SelectUserBaseMain {
                             }
                         }
                         gui_drag_scan::main_window();
-
                     } else {
                         gui_detect_config::main_window();
                         let choice = dialog::alert_default(&*format!(
                             "输入的路径存在错误 错误-> 没有选择WX路径"
                         ));
                     }
-
                 }
 
                 // 选择 或者刷新
@@ -1078,30 +1001,19 @@ pub fn mian_window() -> SelectUserBaseMain {
                 // 关闭
                 if (btn_exit_imag.existPoint(x, y)) {
                     libWxIkunPlus::closeWindow(win.raw_handle() as i128, true);
-                    let mut lazy_value = THUMBNAIL_LIST.lock().unwrap();
-                    lazy_value.clear();
-                    drop(lazy_value);
 
-                    let mut lazy_value2 = IMG_PREVIEW_LIST.lock().unwrap();
-                    lazy_value2.clear();
-                    drop(lazy_value2);
+                    // write_rw_lock!(THUMBNAIL_LIST_ARC, Vec::new());
+                    // write_rw_lock!(IMG_PREVIEW_LIST_ARC,Vec::new());
+                    set_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND, Vec::new());
+                    set_arc_bind_variable!(IMG_PREVIEW_LIST, IMG_PREVIEW_LIST_BIND, Vec::new());
 
                     // 终止更新检测
                     wh_mod::watch_path::un_next_exits();
                     global_var::set_i32("user::config::select_user_thumbnail_obj", -1);
-                    global_var::set_str("user::config::user_select_path",String::new());
-                    global_var::set_str("user::config::user_select_wxid",String::new());
+                    global_var::set_str("user::config::user_select_path", String::new());
+                    global_var::set_str("user::config::user_select_wxid", String::new());
                     global_var::set_bool("gui::open::handle_dat", false);
                 }
-
-                // for mut the_select_preview in the_select_preview_list.to_vec() {
-                //     if(the_select_preview.existPoint(x,y)){
-                //         // the_select_preview.preview.show();
-                //         the_select_preview.from_data(include_bytes!("./assets/select_user_base/the_select.png").to_vec(),0,0,55,8);
-                //     }else{
-                //         the_select_preview.from_data(include_bytes!("./assets/select_user_base/the_select2.png").to_vec(),0,0,55,8);
-                //     }
-                // }
 
                 if preview_tips.existPoint(x, y) {
                     gui_detect_config::main_window();
@@ -1114,32 +1026,30 @@ pub fn mian_window() -> SelectUserBaseMain {
                                 global_var::get_i32("user::config::select_user_thumbnail_obj");
 
                             if (select_id == $id) {
-
                                 global_var::set_str(
                                     "user::config::user_select_path",
                                     "".to_string(),
                                 );
                                 global_var::set_i32("user::config::select_user_thumbnail_obj", -1);
-
                             }
 
                             if (select_id != $id) {
-
                                 let mut str_path = String::new();
-                                let mut lazy_value2 = PREVIEW_THUMBNAIL_LIST.lock().unwrap();
-                                if (lazy_value2.len() >= $id - 1) {
-                                    str_path = lazy_value2[$id - 1].attach_id.clone();
-                                }
-                                drop(lazy_value2);
-
-                                global_var::set_str("user::config::user_select_path", str_path);
-                                global_var::set_i32("user::config::select_user_thumbnail_obj", $id);
+                                let thumbnail_list = get_arc_bind_variable!(THUMBNAIL_LIST,THUMBNAIL_LIST_BIND);
                                 
+                                if let Some(item) = thumbnail_list.get($id - 1) {
+                                    str_path = item.attach_id.clone();
+
+                                    println!("[select_user_preview] -> {} [{}] ",&str_path,&$id);
+
+                                    global_var::set_str("user::config::user_select_path", str_path);
+                                    global_var::set_i32("user::config::select_user_thumbnail_obj", $id);
+                                }
                             }
                         }
                     };
                 }
-
+                // app::grab().expect("msg")
                 select_user_preview!(preview_main_hotspot_01, 1);
                 select_user_preview!(preview_main_hotspot_02, 2);
                 select_user_preview!(preview_main_hotspot_03, 3);

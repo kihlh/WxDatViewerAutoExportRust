@@ -1,14 +1,5 @@
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_parens,
-    unused_variables,
-    unused_mut,
-    unused_must_use,
-    unused_assignments,
-    non_snake_case,
-    unreachable_code
-)]
+#![allow(warnings, unused)]
+
 // #![windows_subsystem = "windows"]
 
 use chrono::Local;
@@ -73,10 +64,26 @@ mod gui_detect_config;
 mod gui_text_control;
 mod atomic_util;
 
+const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
+
 // mod wh_util;
 fn main() -> Result<()> {
     // 处理命令行
     handle_dat::handle_commandLine();
+
+    // 拒绝软件重复启动
+    if(libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())){
+        libWxIkunPlus::error("启动失败".to_owned(), "已经存在了一个 <WxAutoExIm> 进程".to_owned());
+        process::exit(0);
+    }else{
+        libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
+    }
+    
+    // let get_wxid_acc = wh_mod::convert::get_wxid_name(wh_mod::convert::get_user_data_path().unwrap(),wh_mod::convert::get_user_id2());
+    // println!("{:?}",get_wxid_acc);
+    // let get_wxid_acc = wh_mod::convert::get_wxid_name(wh_mod::convert::get_user_data_path().unwrap(),wh_mod::convert::get_user_id1());
+    // println!("{:?}",get_wxid_acc);
+    // println!("hasWeChat->  {:?}",libWxIkunPlus::hasWeChat());
 
     // 窗口部分
     thread::spawn(move || {
@@ -96,12 +103,14 @@ fn main() -> Result<()> {
         }
     
         appMain.run().unwrap();
+
     });
 
     println!("程序初始化成功");
 
     // 用CPP注册托盘
     libWxIkunPlus::set_tray();
+
 
     // 启动文件系统日志模式
     thread::spawn(move || {

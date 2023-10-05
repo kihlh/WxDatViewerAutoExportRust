@@ -1,7 +1,6 @@
 use std::hint;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
-use std::sync::{Arc, Condvar, Mutex};
-static mut DATA_FDD: String = String::new();
+use std::sync::{Arc, Condvar, Mutex,RwLock};
 
 #[macro_export]
 macro_rules! get_bool {
@@ -442,5 +441,246 @@ pub fn add_usize(atomic_bool_static: &AtomicUsize,add_value:usize ) -> usize {
     value_data = atomic_bool_static.load(Ordering::SeqCst);
     drop(mutex);
     value_data
+}
+
+///  写入 RwLock<Arc<any>> 的内容
+///
+/// # 用法
+///
+///
+/// ```
+///  use std::sync::{Arc, RwLock};
+///     thread_local! {
+///     static CURRENT_CONFIG: RwLock<Arc<String>> = RwLock::new(Arc::new(String::new()));
+///     }
+///
+///     write_rw_lock!(CURRENT_CONFIG, "写入的文本".to_string());
+///
+///    // 直接读
+///  if let Option::Some(read_value) = read_rw_lock!(CURRENT_CONFIG) {
+///         println!("Current config: {}", read_value);
+///     }
+///
+///   // 通过设置默认值
+///
+///  println!("Current config: {}", read_rw_lock!( CURRENT_CONFIG , String::fmt("默认值") ));
+/// ```
+
+#[macro_export]
+macro_rules! write_rw_lazy_lock {
+    ($rw_lock_var: expr,$value:expr) => {{
+        let mut result = false;
+        
+        // 写入
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut write_lock) = config.try_write() {
+                *write_lock = Arc::new($value);
+                result = true;
+                // write_lock.clear_poison();
+            }
+
+
+        });
+        result
+    }};
+}
+
+#[macro_export]
+macro_rules! write_rw_lazy_lock_insert {
+    ($rw_lock_var: expr,$value:expr) => {{
+        let mut result = false;
+        let mut oid_value = read_rw_lock!($rw_lock_var, $value).to_vec(); 
+
+        for value in $value {
+            oid_value.push(value);
+        }
+
+        // write_rw_lock!($rw_lock_var,oid_value);
+        
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut write_lock) = config.try_write() {
+                *write_lock = Arc::new(oid_value);
+                result = true;
+                // write_lock.clear_poison();
+            }
+
+
+        });
+
+        result
+    }};
+}
+
+///  读取 RwLock<Arc<any>> 的内容
+///
+/// # 用法
+///
+///
+/// ```
+///  use std::sync::{Arc, RwLock};
+///     thread_local! {
+///     static CURRENT_CONFIG: RwLock<Arc<String>> = RwLock::new(Arc::new(String::new()));
+///     }
+///
+///     write_rw_lock!(CURRENT_CONFIG, "写入的文本".to_string());
+///
+///    // 直接读
+///  if let Option::Some(read_value) = read_rw_lock!(CURRENT_CONFIG) {
+///         println!("Current config: {}", read_value);
+///     }
+///
+///   // 通过设置默认值
+///
+///  println!("Current config: {}", read_rw_lock!( CURRENT_CONFIG , String::fmt("默认值") ));
+/// ```
+/// 
+#[macro_export]
+macro_rules! read_rw_lazy_lock {
+    ($rw_lock_var: expr) => {{
+        let mut read_value = Default::default();
+        IMG_PREVIEW_LIST_ARCLAZY.with(|config| {
+            read_value=  config.load_full()
+        });
+        read_value
+    }};
+}
+
+// // static mut IMG_PREVIEW_LIST_ARC: String =String::from("123");
+// static mut CURRENT_CONFIGC:String = String::new();
+
+// impl<T> Shared<T> {
+//     /// Create a new [`Shared`], backed by an `Arc` and poisoning on panic.
+//     pub fn new(t: T) -> Self {
+//         Self {
+//             atom:AtomicUsize::new(0),
+//             data: t,
+//         }
+//     }
+// }
+
+// pub struct Shared<T> {
+//     atom: AtomicUsize,
+//     data: T,
+// }
+
+#[macro_export]
+macro_rules! write_rw_lock {
+    ($rw_lock_var: expr,$value:expr) => {{
+        let mut result = false;
+        
+        // 写入
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut write_lock) = config.try_write() {
+                *write_lock = Arc::new($value);
+                result = true;
+                // write_lock.clear_poison();
+            }
+
+
+        });
+        result
+    }};
+}
+
+#[macro_export]
+macro_rules! write_rw_lock_insert {
+    ($rw_lock_var: expr,$value:expr) => {{
+        let mut result = false;
+        let mut oid_value = read_rw_lock!($rw_lock_var, $value).to_vec(); 
+
+        for value in $value {
+            oid_value.push(value);
+        }
+
+        // write_rw_lock!($rw_lock_var,oid_value);
+        
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut write_lock) = config.try_write() {
+                *write_lock = Arc::new(oid_value);
+                result = true;
+                // write_lock.clear_poison();
+            }
+
+
+        });
+
+        result
+    }};
+}
+
+#[macro_export]
+macro_rules! read_rw_lock {
+    ($rw_lock_var: expr) => {{
+        let mut read_value = Default::default();
+        // 写入
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut read_data) = config.try_read() {
+                read_value = Some(Arc::clone(&read_data));
+            } else {
+                read_value = None;
+            }
+        });
+        read_value
+    }};
+    ($rw_lock_var: expr,$default: expr) => {{
+        let mut read_value = Arc::new($default);
+        // 写入
+        $rw_lock_var.with(|config| {
+            if let Result::Ok(mut read_data) = config.try_read() {
+               read_value =Arc::clone(&read_data);
+            }
+        });
+        read_value
+    }};
+}
+
+#[macro_export]
+macro_rules! set_arc_bind_variable{
+    ($static_var: expr,$static_atomic: expr,$value:expr)=>{{
+        let mutex = Arc::new(Mutex::new(&$static_atomic));
+        mutex.lock();
+        let the_value:usize = $static_atomic.load(Ordering::SeqCst);
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+    
+        unsafe{
+            $static_var = $value; 
+        }
+        
+        drop(mutex);}
+    }
+}
+
+
+#[macro_export]
+macro_rules! set_arc_bind_variable_insert {
+    ($static_var: expr,$static_atomic: expr,$value:expr)=>{{
+        let mutex = Arc::new(Mutex::new(&$static_atomic));
+        mutex.lock();
+        let the_value:usize = $static_atomic.load(Ordering::SeqCst);
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+    
+        unsafe{
+            // $static_var = $value; 
+            for value in $value {
+                $static_var.push(value);
+            }
+        }
+        
+        drop(mutex);}
+    }
+}
+
+#[macro_export]
+macro_rules! get_arc_bind_variable{
+    ($static_var: expr,$static_atomic: expr)=>{{
+        let mutex = Arc::new(Mutex::new(&$static_atomic));
+        mutex.lock();
+        let the_value:usize = $static_atomic.load(Ordering::SeqCst);
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+    
+        let data = unsafe{&$static_var};
+        drop(mutex);
+        data}
+    }
 }
 
