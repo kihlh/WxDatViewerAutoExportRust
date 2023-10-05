@@ -1,21 +1,22 @@
 #![allow(dropping_references)]
 
 use crate::util::{str_eq_str, Sleep};
-use crate::{console_log, global_var, util};
-use lazy_static::lazy_static;
+use crate::{console_log, global_var, util, get_bool,set_bool};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize,AtomicBool, Ordering};
 use std::sync::{mpsc, OnceLock};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 static WATCH_PATH_ID: AtomicUsize = AtomicUsize::new(0);
 
-lazy_static! {
-    static ref WATCH_NEXT_EXITS: Mutex<bool> = Mutex::new(false);
-}
+// lazy_static! {
+//     static ref WATCH_NEXT_EXITS: Mutex<bool> = Mutex::new(false);
+// }
+
+static WATCH_NEXT_EXITS: AtomicBool = AtomicBool::new(false);
 
 struct TmepMetadata {
     pub metadata: fs::Metadata,
@@ -23,35 +24,15 @@ struct TmepMetadata {
 }
 
 pub fn has_next_exits() -> bool {
-    let mut result: bool = false;
-
-    let mut lazy_value = WATCH_NEXT_EXITS.lock().unwrap();
-
-    result = *lazy_value;
-    drop(lazy_value);
-
-    result
+    get_bool!(WATCH_NEXT_EXITS)
 }
 
 pub fn un_next_exits() -> bool {
-    let mut result: bool = false;
-
-    let mut lazy_value = WATCH_NEXT_EXITS.lock().unwrap();
-
-    *lazy_value = false;
-    drop(lazy_value);
-
-    result
+    set_bool!(WATCH_NEXT_EXITS,false)
 }
+
 pub fn initialize_next_exits() -> bool {
-    let mut result: bool = false;
-
-    let mut lazy_value = WATCH_NEXT_EXITS.lock().unwrap();
-
-    *lazy_value = true;
-    drop(lazy_value);
-
-    result
+    set_bool!(WATCH_NEXT_EXITS,true)
 }
 
 fn get_next_id() -> usize {

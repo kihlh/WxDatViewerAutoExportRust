@@ -509,7 +509,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     input_Console.buff.append("\n");
     input_Console
         .buff
-        .append("软件开源协议 GPL 3.0  (但是并不包含解码算法)  版本：1.0.0 ");
+        .append("软件开源协议 GPL 3.0  (但是并不包含解码算法)  版本：1.0.1 ");
     input_Console.buff.append("\n\n");
     input_Console
         .buff

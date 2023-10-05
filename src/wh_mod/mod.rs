@@ -5,60 +5,90 @@ pub(crate) mod watch_path;
 
 use crate::wh_mod::convert::detect_image_format;
 use chrono::{DateTime, Local};
+// use lazy_static::lazy_static;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
-use std::sync::OnceLock;
+use std::sync::Mutex;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{collections::hash_map::HashMap, ptr};
-use lazy_static::lazy_static;
-use std::collections::HashSet;
-use std::sync::Mutex;
-use std::sync::MutexGuard;
+use std::{
+    sync::atomic::Ordering,
+    sync::Arc,
+    sync::MutexGuard,
+    sync::{atomic::AtomicUsize, OnceLock},
+};
 
-lazy_static! {
-    static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
-}
-//  全局扫描 attach 里面的文件的存放变量 请注意只能初始化一次 （傻逼rust）
-// static WALK_ATTACH_FILE: OnceLock<HashMap<String, Vec<PathBuf>>> = OnceLock::new();
-// static WALK_ATTACH_FILE2: OnceLock<HashMap<String, Vec<PathBuf>>> = OnceLock::new();
-// static WALK_ATTACH_FILE3: OnceLock<HashMap<String, Vec<PathBuf>>> = OnceLock::new();
-// static WALK_ATTACH_FILE4: OnceLock<HashMap<String, Vec<PathBuf>>> = OnceLock::new();
-
-//  写入全局扫描 attach 里面的文件的存放变量 请注意只能初始化一次
-// pub fn set_walk_attach_file(value: HashMap<String, Vec<PathBuf>>) {
-//     macro_rules! set_value {
-//         ($data:expr) => {
-//             if $data.get().is_none() {
-//                 match $data.set(value) {
-//                     Ok(_) => {},
-//                     Err(_) => {},
-//                 }
-//                 return;
-//             }
-//         };
-//     }
-//     set_value!(WALK_ATTACH_FILE);
-//     set_value!(WALK_ATTACH_FILE2);
-//     set_value!(WALK_ATTACH_FILE3);
-//     set_value!(WALK_ATTACH_FILE4);
+// lazy_static! {
+//     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
 // }
 
-pub fn gc_walk_attach_file_list(){
-    let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
-    lazy_value.clear();
-    drop(lazy_value);
+static mut WALK_ATTACH_FILE_LIST: Option<HashMap<String, Vec<PathBuf>>> = Option::None;
+static WALK_ATTACH_FILE_LIST_BIND: AtomicUsize = AtomicUsize::new(0);
+static VARIABLE_INITIALIZE_WALK_ATTACH_FILE_LIST: OnceLock<bool> = OnceLock::new();
+
+fn initialize_watch_path_token() {
+    if *(VARIABLE_INITIALIZE_WALK_ATTACH_FILE_LIST
+        .get()
+        .unwrap_or_else(|| &false))
+    {
+        return;
+    }
+    unsafe {
+        if WALK_ATTACH_FILE_LIST.is_none() {
+            WALK_ATTACH_FILE_LIST.replace(HashMap::new());
+        }
+    }
+    VARIABLE_INITIALIZE_WALK_ATTACH_FILE_LIST.set(true);
+}
+
+pub fn gc_walk_attach_file_list() {
+    initialize_watch_path_token();
+    let mutex = Arc::new(Mutex::new(&WALK_ATTACH_FILE_LIST_BIND));
+    mutex.lock();
+    let the_value: usize = WALK_ATTACH_FILE_LIST_BIND.load(Ordering::SeqCst);
+    unsafe {
+        if let Some(lazy_value) = WALK_ATTACH_FILE_LIST.as_mut() {
+            lazy_value.clear();
+        }
+    }
+
+    WALK_ATTACH_FILE_LIST_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+    // let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
+    // lazy_value.clear();
+    // drop(lazy_value);
 }
 
 pub fn get_walk_attach_file() -> HashMap<String, Vec<PathBuf>> {
+    initialize_watch_path_token();
     let mut result = HashMap::new();
-    let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
-    for (key,value) in lazy_value.iter() {
-        result.insert(key.to_string(), value.clone());
+    // let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
+    // for (key, value) in lazy_value.iter() {
+    //     result.insert(key.to_string(), value.clone());
+    // }
+    // drop(lazy_value);
+
+    let mutex = Arc::new(Mutex::new(&WALK_ATTACH_FILE_LIST_BIND));
+    mutex.lock();
+    let the_value: usize = WALK_ATTACH_FILE_LIST_BIND.load(Ordering::SeqCst);
+    unsafe {
+        println!("get_walk_attach_file -> WALK_ATTACH_FILE_LIST -> {:?}",&WALK_ATTACH_FILE_LIST.as_mut().unwrap().len());
+
+        if let Some(lazy_value) = WALK_ATTACH_FILE_LIST.as_mut() {
+            for (key, value) in lazy_value.iter() {
+                result.insert(key.to_string(), value.clone());
+            }
+        }
+        println!("get_walk_attach_file -> WALK_ATTACH_FILE_LIST -> {:?}",&WALK_ATTACH_FILE_LIST.as_mut().unwrap().len());
+
     }
-    drop(lazy_value);
+
+    WALK_ATTACH_FILE_LIST_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
 
     // macro_rules! get_result_value {
     //     ($data:expr) => {
@@ -119,8 +149,9 @@ pub fn split_path(input_path: String) -> Vec<String> {
     let mut path2arr_filter = Vec::new();
 
     for path2 in path2arr {
-       if(!path2.is_empty()) {path2arr_filter.push(path2);
-    }
+        if (!path2.is_empty()) {
+            path2arr_filter.push(path2);
+        }
     }
 
     path2arr_filter
@@ -315,9 +346,9 @@ pub fn wx_account_id(path: PathBuf) -> AccountItem {
 #[derive(Debug)]
 pub struct WxReadWxid {
     pub account_id: String,
-    pub  wxid: String,
+    pub wxid: String,
     pub update_time: SystemTime,
-    pub  update_time_str: String,
+    pub update_time_str: String,
     pub attach: PathBuf,
     pub user_root: PathBuf,
 }
@@ -709,22 +740,45 @@ pub fn walk_file(
         wk_list.insert(key, data_vec);
     }
 
-    // set_walk_attach_file(wk_list.clone());
-    let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
-    
-    for (key,value) in wk_list.iter() {
-        match  lazy_value.insert(key.to_string(), value.clone()) {
-            std::option::Option::Some(_)=>{
+    // // set_walk_attach_file(wk_list.clone());
+    // let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
 
+    // for (key, value) in wk_list.iter() {
+    //     match lazy_value.insert(key.to_string(), value.clone()) {
+    //         std::option::Option::Some(_) => {}
+    //         // std::option::Option::None()=>{
+
+    //         // }
+    //         _ => {}
+    //     };
+    // }
+
+    // drop(lazy_value);
+    initialize_watch_path_token();
+    let mutex = Arc::new(Mutex::new(&WALK_ATTACH_FILE_LIST_BIND));
+    mutex.lock();
+    let the_value: usize = WALK_ATTACH_FILE_LIST_BIND.load(Ordering::SeqCst);
+    unsafe {
+        println!("walk_file -> WALK_ATTACH_FILE_LIST -> {:?}",&WALK_ATTACH_FILE_LIST.as_mut().unwrap().len());
+        println!("walk_file -> wk_list -> {:?}",wk_list.len());
+
+        if let Some(lazy_value) = &WALK_ATTACH_FILE_LIST {
+            for (key, value) in wk_list.iter() {
+             
+             if let Some(item) = WALK_ATTACH_FILE_LIST.as_mut() {
+                    let key = key.to_string();
+                    let push_value: Vec<PathBuf> = value.clone();
+
+                    item.insert(key, push_value);
+                };
             }
-            // std::option::Option::None()=>{
+        }
+        println!("walk_file -> WALK_ATTACH_FILE_LIST -> {:?}",&WALK_ATTACH_FILE_LIST.as_mut().unwrap().len());
 
-            // }
-            _=>{}
-        };
     }
 
-    drop(lazy_value);
+    WALK_ATTACH_FILE_LIST_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
 
     return wk_list;
 }
@@ -732,53 +786,56 @@ pub fn walk_file(
 #[derive(Debug)]
 pub struct DatParseMeta {
     pub attach_id: String,
-    pub attach_dir : String,
+    pub attach_dir: String,
     // pub format_dir : String,
-    pub is_the_month :bool,
-    pub is_thumbnail:bool,
-    pub is_source:bool,
-    pub is_all :bool,
-    format_path_list:Vec<std::path::PathBuf>
+    pub is_the_month: bool,
+    pub is_thumbnail: bool,
+    pub is_source: bool,
+    pub is_all: bool,
+    format_path_list: Vec<std::path::PathBuf>,
 }
 
 impl DatParseMeta {
     // 获取此可变体格式的格式化后的路径列表
     pub fn format(&mut self) -> Vec<std::path::PathBuf> {
-        if(self.format_path_list.len()!=0){
-            return  self.format_path_list.clone();
+        if (self.format_path_list.len() != 0) {
+            return self.format_path_list.clone();
         }
-        let mut path_list:Vec<std::path::PathBuf> = Vec::new();
+        let mut path_list: Vec<std::path::PathBuf> = Vec::new();
         let attach_dir = Path::new(self.attach_dir.as_str());
         let the_month = chrono::Local::now().format("%Y-%m").to_string();
 
-        if(attach_dir.exists()){
+        if (attach_dir.exists()) {
             // 限定本月
-            if(self.is_the_month){
-                if self.is_thumbnail{
-                    let mut thumbnail_path = Path::new(attach_dir.clone()).join("Thumb").join(the_month.clone());
+            if (self.is_the_month) {
+                if self.is_thumbnail {
+                    let mut thumbnail_path = Path::new(attach_dir.clone())
+                        .join("Thumb")
+                        .join(the_month.clone());
                     path_list.push(thumbnail_path.clone());
                 }
-                if self.is_source{
-                    let mut thumbnail_path = Path::new(attach_dir.clone()).join("Image").join(the_month.clone());
+                if self.is_source {
+                    let mut thumbnail_path = Path::new(attach_dir.clone())
+                        .join("Image")
+                        .join(the_month.clone());
                     path_list.push(thumbnail_path.clone());
                 }
             }
             // 有限定缩略图和原图要求
-            else if self.is_thumbnail||self.is_source{
-                if self.is_thumbnail{
+            else if self.is_thumbnail || self.is_source {
+                if self.is_thumbnail {
                     let mut thumbnail_path = Path::new(attach_dir.clone()).join("Thumb");
                     path_list.push(thumbnail_path.clone());
                 }
-                if self.is_source{
+                if self.is_source {
                     let mut thumbnail_path = Path::new(attach_dir.clone()).join("Image");
                     path_list.push(thumbnail_path.clone());
                 }
             }
             // 没有声明 则全部
-            else{
+            else {
                 path_list.push(attach_dir.to_path_buf());
             }
-
         }
 
         for path in path_list.clone() {
@@ -789,43 +846,45 @@ impl DatParseMeta {
     }
 
     // 判断此路径是否属于此 可变体的路径
-    pub fn exists(&mut self,eq_path:String) -> bool {
+    pub fn exists(&mut self, eq_path: String) -> bool {
         let format_list = self.format();
-        let eq_path =split_path(eq_path);
+        let eq_path = split_path(eq_path);
 
         let mut is_exists = false;
         for format in format_list {
-            let split_format_path =split_path(format.to_string_lossy().to_string());
-            let mut index:usize = 0;
-            let mut match_path:bool = true;
+            let split_format_path = split_path(format.to_string_lossy().to_string());
+            let mut index: usize = 0;
+            let mut match_path: bool = true;
             for eq_path in eq_path.clone() {
-                if (split_format_path.len()<=index){
+                if (split_format_path.len() <= index) {
                     break;
                 }
                 if !split_format_path[index].as_bytes().eq(eq_path.as_bytes()) {
                     match_path = false;
                 }
-                index=index+1;
+                index = index + 1;
             }
-            if match_path{
+            if match_path {
                 is_exists = true;
             }
-            if is_exists {break;}
+            if is_exists {
+                break;
+            }
         }
         is_exists
     }
 }
 
 impl Clone for DatParseMeta {
-     fn clone(&self) -> Self {
+    fn clone(&self) -> Self {
         DatParseMeta {
             attach_id: self.attach_id.clone(),
             attach_dir: self.attach_dir.clone(),
             is_the_month: self.is_the_month.clone(),
             is_thumbnail: self.is_thumbnail.clone(),
             is_source: self.is_source.clone(),
-            format_path_list:self.format_path_list.clone(),
-            is_all:self.is_all.clone()
+            format_path_list: self.format_path_list.clone(),
+            is_all: self.is_all.clone(),
         }
     }
 }
@@ -833,54 +892,57 @@ impl Clone for DatParseMeta {
 /**
  * 解析可变化路径
  */
-pub fn parse_dat_path(path_dir:String) -> DatParseMeta{
+pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
     // D:\usersData\weixin\WeChat Files/wxid_y.....1/FileStorage/MsgAttach/99e.......d..f,the_month,source,thumbnail
-    let mut dat_parse_meta = DatParseMeta{
+    let mut dat_parse_meta = DatParseMeta {
         attach_id: "".to_string(),
         attach_dir: "".to_string(),
         // format_dir: "".to_string(),
         is_the_month: false,
         is_thumbnail: false,
         is_source: false,
-        is_all:false,
-        format_path_list:Vec::new(),
+        is_all: false,
+        format_path_list: Vec::new(),
     };
 
     let mut path_list = Vec::new();
     let binding = split_path(path_dir).join("\\");
-    let lines: Vec<&str> =  binding.split('*').collect();
+    let lines: Vec<&str> = binding.split('*').collect();
 
-    if(lines.is_empty()){
+    if (lines.is_empty()) {
         return dat_parse_meta;
     }
 
     for line in lines {
-        let line_f = format!("{}",line);
-        if(line_f.is_empty()){
+        let line_f = format!("{}", line);
+        if (line_f.is_empty()) {
             continue;
         }
-        if line_f.as_bytes().eq("the_month".as_bytes()){
+        if line_f.as_bytes().eq("the_month".as_bytes()) {
             dat_parse_meta.is_the_month = true;
         }
-        if line_f.as_bytes().eq("source".as_bytes()){
+        if line_f.as_bytes().eq("source".as_bytes()) {
             dat_parse_meta.is_source = true;
         }
-        if line_f.as_bytes().eq("thumbnail".as_bytes()){
+        if line_f.as_bytes().eq("thumbnail".as_bytes()) {
             dat_parse_meta.is_thumbnail = true;
         }
-        dat_parse_meta.is_all = !dat_parse_meta.is_thumbnail.clone()&&dat_parse_meta.is_source.clone()&&dat_parse_meta.is_the_month.clone();
+        dat_parse_meta.is_all = !dat_parse_meta.is_thumbnail.clone()
+            && dat_parse_meta.is_source.clone()
+            && dat_parse_meta.is_the_month.clone();
 
         path_list.push(line_f);
     }
 
-    dat_parse_meta.attach_dir = format!("{}",path_list[0].clone());
-    dat_parse_meta.attach_id = split_path( dat_parse_meta.attach_dir .clone()).first().unwrap().clone();
+    dat_parse_meta.attach_dir = format!("{}", path_list[0].clone());
+    dat_parse_meta.attach_id = split_path(dat_parse_meta.attach_dir.clone())
+        .first()
+        .unwrap()
+        .clone();
 
-
-
-    return  dat_parse_meta;
+    return dat_parse_meta;
 }
 
-pub fn resolve_path(path:String) -> String {
-    return  split_path(path).join("\\");
+pub fn resolve_path(path: String) -> String {
+    return split_path(path).join("\\");
 }

@@ -1,6 +1,10 @@
 #![allow(warnings, unused)]
 
-use crate::{atomic_util, global_var, gui_hotspot, gui_imge, handle_dat, libWxIkunPlus, util::{str_eq_str, Sleep}, wh_mod};
+use crate::{
+    atomic_util, global_var, gui_hotspot, gui_imge, handle_dat, libWxIkunPlus,
+    util::{str_eq_str, Sleep},
+    wh_mod,
+};
 use chrono::Local;
 use fltk::{
     app::{self, handle},
@@ -43,7 +47,6 @@ use crate::watching::insert_watch_path_token;
 use crate::wh_mod::get_walk_attach_file;
 use fltk::draw::{height, width};
 use fltk::image::PngImage;
-use lazy_static::lazy_static;
 use std::hint;
 use std::sync::atomic::{AtomicBool, AtomicI64, AtomicUsize, Ordering};
 use std::sync::OnceLock;
@@ -103,9 +106,9 @@ macro_rules! set_theme {
     };
 }
 fn initialize_watch_attach_puppet(img_path: String) {
-    atomic_util::set_bool(&INITIALIZED_PUPPET,true);
+    atomic_util::set_bool(&INITIALIZED_PUPPET, true);
     thread::spawn(move || {
-        atomic_util::set_bool(&WATCH_PUPPET_ING,true);
+        atomic_util::set_bool(&WATCH_PUPPET_ING, true);
         let file_name = Path::new(img_path.as_str())
             .file_name()
             .unwrap_or_else(|| "".as_ref());
@@ -126,6 +129,7 @@ fn initialize_watch_attach_puppet(img_path: String) {
 
         let history_attach_list = get_walk_attach_file();
         if (history_attach_list.len() != 0) {
+            println!("扫描历史查找... 共-> {} 条",history_attach_list.len());
             text_recent_pictures.set_label("扫描历史查找...");
         }
 
@@ -138,8 +142,11 @@ fn initialize_watch_attach_puppet(img_path: String) {
                     // println!("是 {} 吗", resolve_path.clone());
                     // text_recent_pictures
                     //     .set_label(format!("是 {} 吗", path.to_string_lossy()).as_str());
-                    global_var::set_string("user::config::walk_drag_path",path.to_string_lossy().to_string());
-                    atomic_util::set_bool(&WATCH_PUPPET_ING,false);
+                    global_var::set_string(
+                        "user::config::walk_drag_path",
+                        path.to_string_lossy().to_string(),
+                    );
+                    atomic_util::set_bool(&WATCH_PUPPET_ING, false);
                     return;
                 }
             }
@@ -190,7 +197,10 @@ fn initialize_watch_attach_puppet(img_path: String) {
                         // println!("是 {} 吗", resolve_path.clone());
                         // text_recent_pictures
                         //     .set_label(format!("是 {} 吗", path.to_string_lossy()).as_str());
-                        global_var::set_string("user::config::walk_drag_path",path.to_string_lossy().to_string());
+                        global_var::set_string(
+                            "user::config::walk_drag_path",
+                            path.to_string_lossy().to_string(),
+                        );
                         walk_next = false;
                     }
                 }
@@ -202,7 +212,7 @@ fn initialize_watch_attach_puppet(img_path: String) {
                 // println!("没有消息");
             }
         }
-        atomic_util::set_bool(&WATCH_PUPPET_ING,false);
+        atomic_util::set_bool(&WATCH_PUPPET_ING, false);
         // if let Some(mut next_scan_ing_gui) = app::widget_from_id("gui::gui_drag_scan::next_scan_ing_gui") as Option<DoubleWindow>{
         //     next_scan_ing_gui.hide();
         //
@@ -216,10 +226,10 @@ fn initialize_watch_attach_puppet(img_path: String) {
 }
 
 pub fn main_window() {
-    atomic_util::set_bool(&INITIALIZED_PUPPET,false);
-    atomic_util::set_bool(&WINDOW_STATE_AVAILABLE,true);
-    atomic_util::set_i64(&WINDOW_HWND,0);
-    global_var::set_string("user::config::walk_drag_path",String::new());
+    atomic_util::set_bool(&INITIALIZED_PUPPET, false);
+    atomic_util::set_bool(&WINDOW_STATE_AVAILABLE, true);
+    atomic_util::set_i64(&WINDOW_HWND, 0);
+    global_var::set_string("user::config::walk_drag_path", String::new());
 
     if (global_var::get_bool_default("gui::open::gui_drag_scan")) {
         if let Some(mut wins) =
@@ -310,53 +320,53 @@ pub fn main_window() {
     let mut state_info = text_recent_pictures_info.clone();
     let mut btn_text = btn_text_next.clone();
 
-    thread::spawn(move||{
-        let mut window_state_available =  atomic_util::get_bool(&WINDOW_STATE_AVAILABLE);
+    thread::spawn(move || {
+        let mut window_state_available = atomic_util::get_bool(&WINDOW_STATE_AVAILABLE);
 
         while window_state_available {
-
             Sleep(300);
 
             if atomic_util::get_bool(&INITIALIZED_PUPPET) {
-
                 if atomic_util::get_bool(&WATCH_PUPPET_ING) {
                     println!("开始扫描了-> ");
                     state_info.set_label("正在扫描中...");
                     btn_text.set_label("取消任务");
-                }else{
-                    let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
+                } else {
+                    let walk_drag_path =
+                        global_var::get_string_default("user::config::walk_drag_path");
 
                     state_title.set_label("扫描已结束");
-                    println!("walk_drag_path-> {}",walk_drag_path.as_str());
-                    if(walk_drag_path.len()<3){
+                    println!("walk_drag_path-> {}", walk_drag_path.as_str());
+                    if (walk_drag_path.len() < 3) {
                         state_info.set_label("未扫描到此文件");
                         btn_text.set_label("关闭窗口");
-                    }else{
+                    } else {
                         state_info.set_label("已经获取到此文件");
                         btn_text.set_label("完成选定");
                         // atomic_util::set_bool(&WINDOW_STATE_AVAILABLE,false);pr
                         // println!("user_select_path-> {}",global_var::get_str("user::config::user_select_path"));
 
-                       global_var::set_string("user::config::user_select_path",wh_mod::wx_parse_path(walk_drag_path.clone()).attach_id);
-                       global_var::set_i32("user::config::select_user_thumbnail_obj",-2);
-
+                        global_var::set_string(
+                            "user::config::user_select_path",
+                            wh_mod::wx_parse_path(walk_drag_path.clone()).attach_id,
+                        );
+                        global_var::set_i32("user::config::select_user_thumbnail_obj", -2);
                     }
                     return;
                 }
-
             }
-            window_state_available =  atomic_util::get_bool(&WINDOW_STATE_AVAILABLE);
+            window_state_available = atomic_util::get_bool(&WINDOW_STATE_AVAILABLE);
         }
         println!("gui_drag_scan 窗口关闭了-> ");
     });
 
     macro_rules! is_closeWindow {
-        ()=>{
-               if !atomic_util::get_bool(&WINDOW_STATE_AVAILABLE) {
-                    closeWindow(atomic_util::get_i64(&WINDOW_HWND) as i128, true);
-                    global_var::set_bool("gui::open::gui_drag_scan", false);
-                }
-        }
+        () => {
+            if !atomic_util::get_bool(&WINDOW_STATE_AVAILABLE) {
+                closeWindow(atomic_util::get_i64(&WINDOW_HWND) as i128, true);
+                global_var::set_bool("gui::open::gui_drag_scan", false);
+            }
+        };
     }
     win.handle({
         let mut x = 0;
@@ -367,26 +377,24 @@ pub fn main_window() {
 
         // let mut move_
         move |win, ev| match ev {
-
             enums::Event::Show => {
                 win.set_visible_focus();
                 let hwnd = win.raw_handle() as i128;
                 libWxIkunPlus::setwinVisible(hwnd.clone(), true);
-                atomic_util::set_i64(&WINDOW_HWND,hwnd as i64);
+                atomic_util::set_i64(&WINDOW_HWND, hwnd as i64);
                 println!("walk_drag_page hwnd -> :  {}", hwnd.clone());
                 true
             }
-            enums::Event::Hide=>{
+            enums::Event::Hide => {
                 is_closeWindow!();
                 false
             }
             enums::Event::Push => {
-                if (next_btn.existPoint(x, y))
-                    {
-                        atomic_util::set_bool(&WINDOW_STATE_AVAILABLE,false);
-                        closeWindow(win.raw_handle() as i128, true);
-                        global_var::set_bool("gui::open::gui_drag_scan", false);
-                        atomic_util::set_i64(&WINDOW_HWND,0);
+                if (next_btn.existPoint(x, y)) {
+                    atomic_util::set_bool(&WINDOW_STATE_AVAILABLE, false);
+                    closeWindow(win.raw_handle() as i128, true);
+                    global_var::set_bool("gui::open::gui_drag_scan", false);
+                    atomic_util::set_i64(&WINDOW_HWND, 0);
                 }
                 true
             }
@@ -412,15 +420,9 @@ pub fn main_window() {
                 released = true;
                 true
             }
-            Event::Unfocus=>{
-                true
-            }
-            Event::Leave=>{
-                true
-            }
-            Event::NoEvent=>{
-                true
-            }
+            Event::Unfocus => true,
+            Event::Leave => true,
+            Event::NoEvent => true,
             Event::Paste => {
                 if dnd && released {
                     let mut path_list = Vec::new();
@@ -439,16 +441,26 @@ pub fn main_window() {
                         path_list.push(line_f);
                     }
 
-                    if(!atomic_util::get_bool(&INITIALIZED_PUPPET)){
+                    if (!atomic_util::get_bool(&INITIALIZED_PUPPET)) {
                         if !path_list.is_empty() {
-                            let path = Path::new(path_list.first().unwrap()).to_path_buf();
-                            drag_path = path.clone();
+                            path_list.reverse();
+                            for for_path in path_list {
+                                // if wh_mod::convert::is_developer()||(for_path.contains("wxid_")&&(for_path.contains("FileStorage\\MsgAttach")||for_path.contains("FileStorage/MsgAttach"))){
 
-                            next_scan_ing_gui.show();
-                            btn_text_next.set_label("结束任务");
-                            initialize_watch_attach_puppet(drag_path.to_string_lossy().to_string());
+                                if PathBuf::from(for_path.clone()).exists() {
+                                    let path = Path::new(&for_path.clone()).to_path_buf();
+                                    drag_path = path.clone();
+
+                                    next_scan_ing_gui.show();
+                                    btn_text_next.set_label("结束任务");
+                                    initialize_watch_attach_puppet(
+                                        drag_path.to_string_lossy().to_string(),
+                                    );
+                                    break;
+                                }
+                                
+                            }
                         }
-
                     }
 
                     dnd = false;
@@ -472,13 +484,10 @@ pub fn main_window() {
 
                 true
             }
-            _ => {
-                false },
+            _ => false,
         }
     });
 
     win.end();
     win.show();
-
-
 }

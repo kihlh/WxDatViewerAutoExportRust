@@ -149,6 +149,7 @@ pub fn has_u64(key: &str) -> bool {
 }
 
 // 设置值的宏
+#[macro_export]
 macro_rules! set_map_bind_variable {
     ($variable_mut_static: expr,$variable_atomic_bind: expr,$key:expr ,$value:expr) => {{
         initialize();
@@ -166,6 +167,7 @@ macro_rules! set_map_bind_variable {
 }
 
 // 获取值的宏
+#[macro_export]
 macro_rules! get_map_bind_variable {
     ($variable_mut_static: expr,$variable_atomic_bind: expr,$key:expr ) => {{
         initialize();
@@ -186,6 +188,7 @@ macro_rules! get_map_bind_variable {
 }
 
 // 判断键的宏
+#[macro_export]
 macro_rules! has_map_bind_variable {
     ($variable_mut_static: expr,$variable_atomic_bind: expr,$key:expr ) => {{
         initialize();
@@ -536,6 +539,7 @@ macro_rules! insert_map_vec_bind_variable {
     }};
 }
 
+#[macro_export]
 macro_rules! push_map_vec_bind_variable {
     ($variable_mut_static:expr,$variable_atomic_bind:expr,$key:expr, $value:expr) => {{
         initialize();
@@ -557,6 +561,7 @@ macro_rules! push_map_vec_bind_variable {
     }};
 }
 
+#[macro_export]
 macro_rules! retrieve_map_vec_bind_variable {
     ($variable_mut_static:expr,$variable_atomic_bind:expr,$key: expr) => {{
         let mut result = Vec::new();
@@ -583,6 +588,7 @@ macro_rules! retrieve_map_vec_bind_variable {
     }};
 }
 
+#[macro_export]
 macro_rules! from_index_map_vec_bind_variable {
     ($variable_mut_static:expr,$variable_atomic_bind:expr,$key: expr, $index: expr) => {{
         let mut result = Option::None;
@@ -608,6 +614,7 @@ macro_rules! from_index_map_vec_bind_variable {
     }};
 }
 
+#[macro_export]
 macro_rules! len_map_vec_bind_variable {
     ($variable_mut_static:expr,$variable_atomic_bind:expr,$key:expr) => {{
         let mut result: usize = 0;

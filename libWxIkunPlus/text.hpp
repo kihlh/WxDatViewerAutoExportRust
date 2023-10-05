@@ -9,7 +9,14 @@
 #include <cstddef> // For byte (C++17 or later)
 
 using namespace std;
+#define MALLOC(variable) HeapAlloc(GetProcessHeap(), 0, (variable))
+#define FREE(variable) HeapFree(GetProcessHeap(), 0, (variable))
+#define HMC_CHECK_CATCH catch (char *err){};
 
+#define HMC_VirtualAlloc(Type, leng) (Type) VirtualAlloc((LPVOID)NULL, (DWORD)(leng), MEM_COMMIT, PAGE_READWRITE);
+#define HMC_VirtualFree(Virtua) \
+    if (Virtua != NULL)         \
+        VirtualFree(Virtua, 0, MEM_RELEASE);
 
 // 文本工具
 namespace hmc_text_util
@@ -29,6 +36,9 @@ namespace hmc_text_util
     string W2B64A(const wstring &paText);
     wstring W2B64W(const wstring &paText);
     wstring A2B64W(const string &paText);
+    const char* A2U8P(const string& pText);
+    const char* W2U8P(wstring pwText);
+
 
     /**
      * @brief 将A转为bs64
@@ -254,6 +264,31 @@ namespace hmc_text_util
         return strResult;
     }
 
+   const char* W2U8P(wstring pwText)
+    {
+        string result = W2U8(pwText);
+
+        char* pUTF8 = new char[result.size() + 1];
+
+        for (size_t i = 0; i < result.size(); i++)
+        {
+            char data = result[i];
+
+            if (data == *"\0") {
+                pUTF8[i] = data;
+                return pUTF8;
+            }
+
+            pUTF8[i] = data;
+            if (i > result.size()) {
+                char end_char = *"\0";
+                pUTF8[result.size()] = end_char;
+            }
+        }
+
+        return pUTF8;
+    }
+    
     // UTF-8字符串转宽字符
     wstring U82W(const string &pszText)
     {
@@ -285,6 +320,31 @@ namespace hmc_text_util
     string A2U8(const string &pText)
     {
         return W2U8(A2W(pText));
+    }
+
+    const char* A2U8P(const string& pText)
+    {
+        string result = A2U8(pText);
+
+        char* pUTF8 = new char[result.size() + 1];
+
+        for (size_t i = 0; i < result.size(); i++)
+        {
+            char data = result[i];
+
+            if (data == *"\0") {
+                pUTF8[i] = data;
+                return pUTF8;
+            }
+
+            pUTF8[i] = data;
+            if (i > result.size()) {
+                char end_char = *"\0";
+                pUTF8[result.size()] = end_char;
+            }
+        }
+     
+        return pUTF8;
     }
 
     // UTF-8字符串转多字节字符串

@@ -1,24 +1,8 @@
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_parens,
-    unused_variables,
-    unused_mut,
-    unused_must_use,
-    unused_assignments,
-    non_snake_case,
-    unreachable_code
-)]
-// #![windows_subsystem = "windows"]
+#![allow(warnings, unused)]
 
+use crate::set_bool;
 use chrono::Local;
-use glob::glob;
-use hotwatch::{
-    blocking::{Flow, Hotwatch},
-    EventKind,
-};
-use rusqlite::{params, Connection, Result};
-
+use core::sync::atomic::Ordering;
 use fltk::app::handle;
 use fltk::button::Button;
 use fltk::draw::font;
@@ -29,11 +13,19 @@ use fltk::input::{InputType, IntInput};
 use fltk::text::TextDisplay;
 use fltk::{enums::Color, enums::FrameType};
 use fltk::{prelude::*, window::Window, *};
+use glob::glob;
+use hotwatch::{
+    blocking::{Flow, Hotwatch},
+    EventKind,
+};
 use magic_crypt::MagicCryptTrait;
 use msgbox::IconType;
+use rusqlite::{params, Connection, Result};
 use serde_json::json;
 use std::collections::hash_map::DefaultHasher;
 use std::mem::transmute;
+use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, Arc};
 use std::{
     env,
     ffi::{c_int, c_long, OsStr},
@@ -47,7 +39,12 @@ use std::{
     time::Duration,
 };
 
-use crate::{console_log, global_var, util::{self, str_eq_str, Sleep}, wh_mod, global_var_util};
+use crate::{
+    console_log, get_bool, global_var, global_var_util,
+    util::{self, str_eq_str, Sleep},
+    wh_mod, SYNC_TOKEN,
+};
+static HANDLE_DAT_ING: AtomicBool = AtomicBool::new(false);
 
 // 初始化数据库表头
 pub fn initialize_table(conn: &Connection) {
@@ -115,7 +112,6 @@ pub fn initialize_table(conn: &Connection) {
         Err(err) => eprint!("{}", err),
     };
 
-
     match conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS 'attach_export_ok' ON 'msg_attach_export' ('input');",
         (), // empty list of parameters.
@@ -124,13 +120,12 @@ pub fn initialize_table(conn: &Connection) {
         Err(err) => eprint!("{}", err),
     };
 
-    if let Ok(_) =conn.execute(
+    if let Ok(_) = conn.execute(
         "ALTER TABLE 'export_dir_path' ADD COLUMN 'rename' TEXT;",
         (), // empty list of parameters.
     ) {
-      console_log!(format!("[update] {}","表头 'rename' 已经成功添加"));  
+        console_log!(format!("[update] {}", "表头 'rename' 已经成功添加"));
     };
-
 }
 
 #[derive(Debug)]
@@ -146,22 +141,22 @@ struct MsgAttachExport {
 }
 
 // 向log台发送信息
-pub fn push_console_message(message: String) {
-    let mut user_key = "ikun_user_auto_console_info";
+// pub fn push_console_message(message: String) {
+//     let mut user_key = "ikun_user_auto_console_info";
 
-    match env::var(user_key) {
-        Ok(varStr) => {
-            let mut new_value = String::new();
-            new_value.push_str(&varStr);
-            new_value.push_str(";;;");
-            new_value.push_str(&message);
-            env::set_var(user_key, new_value);
-        }
-        Err(_) => {
-            env::set_var(user_key, message);
-        }
-    }
-}
+//     match env::var(user_key) {
+//         Ok(varStr) => {
+//             let mut new_value = String::new();
+//             new_value.push_str(&varStr);
+//             new_value.push_str(";;;");
+//             new_value.push_str(&message);
+//             env::set_var(user_key, new_value);
+//         }
+//         Err(_) => {
+//             env::set_var(user_key, message);
+//         }
+//     }
+// }
 
 // 获取log数据
 pub fn get_console_message() -> String {
@@ -183,127 +178,151 @@ pub fn get_console_message() -> String {
 
 // 处理图像 (所有)
 pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
-    if (!util::getVarBooleanValue("ikun_user_auto_disable_sync".to_owned())) {
-        let mut items_dir_list: Vec<global_var_util::ExportDirItme> =
+    //*println!*("handle [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
+    //*println!*("handle [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
+
+    if get_bool!(HANDLE_DAT_ING) {
+        console_log!(format!("[处理]  取消处理 -> 任务重复"));
+        return Ok(());
+    }
+
+    if !get_bool!(SYNC_TOKEN) {
+        console_log!(format!("[处理]  取消处理 -> 已被禁用"));
+        return Ok(());
+    }
+
+    set_bool!(HANDLE_DAT_ING, true);
+
+    //*println!*("handle2 [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
+    //*println!*("handle2 [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
+
+    let mut items_dir_list: Vec<global_var_util::ExportDirItme> =
         global_var_util::update_export_dir_itme_list();
-        let mut handle_end_size = 0;
-        let mut handle_all_size = 0;
+    let mut handle_end_size = 0;
+    let mut handle_all_size = 0;
 
-        console_log!(format!(
-            "开始全量扫描 -> 需要处理的文件夹有:{}",
-            items_dir_list.len()
-        ));
+    console_log!(format!(
+        "开始全量扫描 -> 需要处理的文件夹有:{}",
+        items_dir_list.len()
+    ));
 
-        for item_path in items_dir_list.iter() {
-            let mut path_item = wh_mod::parse_dat_path(item_path.path.clone());
+    for item_path in items_dir_list.iter() {
+        let mut path_item = wh_mod::parse_dat_path(item_path.path.clone());
 
-            // 深度枚举
-            let pattern = format!(
-                "{}",
-                Path::new(&path_item.attach_dir)
-                    .join("**/*.dat")
-                    .display()
-                    .to_string()
+        // 深度枚举
+        let pattern = format!(
+            "{}",
+            Path::new(&path_item.attach_dir)
+                .join("**/*.dat")
+                .display()
+                .to_string()
+        );
+
+        if (!get_bool!(SYNC_TOKEN)) {
+            console_log!("[跳出] 因为用户关闭自动同步 已经退出扫描".to_string());
+
+            break;
+        };
+
+        // 处理路径
+        for entry in glob(&pattern).unwrap() {
+            let path = entry.unwrap().display().to_string();
+            let base = Path::new(&path).file_name().unwrap().to_str().unwrap();
+
+            let ouput_path = format!(
+                "{}\\{}@{}",
+                &item_path.ouput.as_str(),
+                Local::now().format("%Y-%m-%d_%H_%M_%S_%3f").to_string(),
+                base
             );
 
-            if (util::getVarBooleanValue("ikun_user_auto_disable_sync".to_owned())) {
+            let contains_value = conn.query_row(
+                &format!(
+                    "SELECT 1 FROM msg_attach_export WHERE input LIKE '%{}%';",
+                    path
+                ),
+                [],
+                |row| row.get::<_, i32>(0),
+            );
+
+            let mut has_push = false;
+
+            Sleep(150);
+
+            match contains_value {
+                Ok(1) => has_push = false,
+                Ok(_) => has_push = true,
+                Err(err) => {
+                    if util::str_eq_str(format!("{}", err), "Query returned no rows".to_string()) {
+                        has_push = true;
+                        // //*eprintln!*("{}", "已存在");
+                    } else {
+                        has_push = false;
+                    }
+
+                    // //*eprintln!*("{}", err)
+                }
+            }
+            handle_all_size = handle_all_size + 1;
+
+            if (!get_bool!(SYNC_TOKEN)) {
+                console_log!("[跳出] 因为用户关闭自动同步 已经退出扫描".to_string());
                 break;
             };
 
-            // 处理路径
-            for entry in glob(&pattern).unwrap() {
-                let path = entry.unwrap().display().to_string();
-                let base = Path::new(&path).file_name().unwrap().to_str().unwrap();
+            if has_push {
+                let bat_path = path.clone();
+                if path_item.exists(bat_path.clone()) {
+                    match wh_mod::convert::convert_bat_images(
+                        (&bat_path.clone()).into(),
+                        ouput_path.clone().into(),
+                    ) {
+                        Ok(path2) => {
+                            // //*println!*("{}", path);
+                            // //*println!*("{}", &ouputPath);
+                            let itme: MsgAttachExport = MsgAttachExport {
+                                id: 0,
+                                time: Local::now().format("%Y-%m-%d").to_string(),
+                                name: base.to_owned(),
+                                user_name: item_path.name.to_owned(),
+                                ouput: path2.clone(),
+                                ext: util::path_extension_str(&path2),
+                                input: path.to_owned(),
+                                message: "successful".to_owned(),
+                            };
 
-                let ouput_path = format!(
-                    "{}\\{}@{}",
-                    &item_path.ouput.as_str(),
-                    Local::now().format("%Y-%m-%d_%H_%M_%S_%3f").to_string(),
-                    base
-                );
-
-                let contains_value = conn.query_row(
-                    &format!(
-                        "SELECT 1 FROM msg_attach_export WHERE input LIKE '%{}%';",
-                        path
-                    ),
-                    [],
-                    |row| row.get::<_, i32>(0),
-                );
-
-                let mut has_push = false;
-
-                Sleep(150);
-
-                match contains_value {
-                    Ok(1) => has_push = false,
-                    Ok(_) => has_push = true,
-                    Err(err) => {
-                        if util::str_eq_str(
-                            format!("{}", err),
-                            "Query returned no rows".to_string(),
-                        ) {
-                            has_push = true;
-                            // eprintln!("{}", "已存在");
-                        } else {
-                            has_push = false;
-                        }
-
-                        // eprintln!("{}", err)
-                    }
-                }
-                handle_all_size = handle_all_size + 1;
-                if has_push {
-                    let bat_path =  path.clone();
-                    if path_item.exists(bat_path.clone()) {
-                        match wh_mod::convert::convert_bat_images((&bat_path.clone()).into(), ouput_path.clone().into()) {
-                            Ok(path2) => {
-                                // println!("{}", path);
-                                // println!("{}", &ouputPath);
-                                let itme: MsgAttachExport = MsgAttachExport {
-                                    id: 0,
-                                    time: Local::now().format("%Y-%m-%d").to_string(),
-                                    name: base.to_owned(),
-                                    user_name: item_path.name.to_owned(),
-                                    ouput: path2.clone(),
-                                    ext: util::path_extension_str(&path2),
-                                    input: path.to_owned(),
-                                    message: "successful".to_owned(),
-                                };
-
-                                console_log!(format!(
+                            console_log!(format!(
                                 "[已处理]  {:?} -> {}",
                                 itme.user_name, itme.input
                             ));
-                                handle_end_size = handle_end_size + 1;
-                                // push_console_message(format!(
-                                //     "[已处理]  {:?} -> {}",
-                                //     itme.user_name, itme.input
-                                // ));
-                                // println!("[push]  {:?} -> {}", itme.user_name, itme.input);
+                            handle_end_size = handle_end_size + 1;
+                            // push_console_message(format!(
+                            //     "[已处理]  {:?} -> {}",
+                            //     itme.user_name, itme.input
+                            // ));
+                            // //*println!*("[push]  {:?} -> {}", itme.user_name, itme.input);
 
-                                let _ = &conn.execute(
+                            let _ = &conn.execute(
                                     "INSERT INTO msg_attach_export (time,name,ext,input,ouput,message,user_name) values (?1, ?2, ?3, ?4 ,?5, ?6, ?7)",
                                     [itme.time,itme.name,itme.ext,itme.input,itme.ouput,itme.message,itme.user_name],
                                 )?;
-                            }
-                            Err(err) => {
-                                let itme: MsgAttachExport = MsgAttachExport {
-                                    id: 0,
-                                    time: Local::now().format("%Y-%m-%d").to_string(),
-                                    user_name: item_path.name.to_owned(),
-                                    name: base.to_owned(),
-                                    ouput: "".to_owned(),
-                                    ext: "".to_owned(),
-                                    input: path.to_owned(),
-                                    message: err.to_string().to_owned(),
-                                };
-                                console_log!(format!("[失败]  {:?} -> {}", itme.user_name, itme.input));
-                                let _ = &conn.execute(
+                        }
+                        Err(err) => {
+                            let itme: MsgAttachExport = MsgAttachExport {
+                                id: 0,
+                                time: Local::now().format("%Y-%m-%d").to_string(),
+                                user_name: item_path.name.to_owned(),
+                                name: base.to_owned(),
+                                ouput: "".to_owned(),
+                                ext: "".to_owned(),
+                                input: path.to_owned(),
+                                message: err.to_string().to_owned(),
+                            };
+                            console_log!(format!("[失败]  {:?} -> {}", itme.user_name, itme.input));
+                            let _ = &conn.execute(
                                     "INSERT INTO msg_attach_failure (time,name,ext,input,ouput,message,user_name) values (?1, ?2, ?3, ?4 ,?5, ?6, ?7)",
                                     [itme.time,itme.name,itme.ext,itme.input,itme.ouput,itme.message,itme.user_name],
                                 )?;
-                            }
                         }
                     }
                 }
@@ -311,13 +330,16 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
         }
 
         console_log!(format!(
-            "[全量扫描] 处理完成共计{}条 本次添加了-> [{}]",
+            "[扫描] 当前步骤完成共计{}条 本次添加了-> [{}]",
             handle_all_size, handle_end_size
         ));
-    } else {
-        push_console_message(format!("[处理]  取消处理 -> 已被禁用"));
-        println!("取消处理 -> 已被禁用");
-    };
+    }
+
+    set_bool!(HANDLE_DAT_ING, false);
+
+    //*println!*("handle3 [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
+    //*println!*("handle3 [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
+
     Ok(())
 }
 
@@ -356,20 +378,20 @@ pub fn handle_pictures_itme(
         Err(err) => {
             if util::str_eq_str(format!("{}", err), "Query returned no rows".to_string()) {
                 has_push = true;
-                // eprintln!("{}", "已存在");
+                // //*eprintln!*("{}", "已存在");
             } else {
                 has_push = false;
             }
 
-            // eprintln!("{}", err)
+            // //*eprintln!*("{}", err)
         }
     }
 
     Ok(if has_push {
         match wh_mod::convert::convert_bat_images((&pic_path).into(), ouput_path.clone().into()) {
             Ok(path2) => {
-                // println!("{}", path);
-                // println!("{}", &ouputPath);
+                // //*println!*("{}", path);
+                // //*println!*("{}", &ouputPath);
                 let itme: MsgAttachExport = MsgAttachExport {
                     id: 0,
                     time: Local::now().format("%Y-%m-%d").to_string(),
@@ -449,10 +471,10 @@ pub fn handle_commandLine() -> Result<()> {
             [itme.name, itme.time, itme.path, itme.ouput],
         ) {
             Ok(_) => {
-                eprintln!("创建成功");
+                //*eprintln!*("创建成功");
             }
             Err(err) => {
-                eprintln!("创建失败 因为=> {} ", err)
+                //*eprintln!*("创建失败 因为=> {} ", err)
             }
         }
         process::exit(0);

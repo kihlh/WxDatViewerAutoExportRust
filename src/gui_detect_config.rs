@@ -42,7 +42,6 @@ use crate::libWxIkunPlus::closeWindow;
 use crate::watching::insert_watch_path_token;
 use fltk::draw::{height, width};
 use fltk::image::PngImage;
-use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
 use winapi::um::winnt::LPWSTR;

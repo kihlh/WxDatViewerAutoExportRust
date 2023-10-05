@@ -430,11 +430,12 @@ bool SelectFolder(wstring &folderPath)
 
                 LPWSTR folderW = NULL;
                 psiResult->GetDisplayName(SIGDN_FILESYSPATH, &folderW);
-                if (sizeof(folderW) > 2) {
+                if (folderW != NULL) {
                     folderPath.clear();
                     folderPath.append(folderW);
+                    wcout << L"folderPath -> " << folderPath << endl;
                 }
-
+                
                 result = true;
                 ::CoTaskMemFree(folderW);
                 psiResult->Release();
@@ -453,14 +454,29 @@ const char* _openSelectFolder2()
     {
         wstring temp_buf = wstring();
         if (SelectFolder(temp_buf)) {
-            if (temp_buf.size() > 2) {
-                result.append(hmc_text_util::W2U8(temp_buf));
-            }
+            result.append(hmc_text_util::W2U8(temp_buf));
+
         }
     }
     HMC_CHECK_CATCH;
+    if (result.empty()) {
+        return "\0";
+    }
+    else {
+        char* pUTF8 = new char[result.size() + 1];
 
-    return result.c_str();
+        for (size_t i = 0; i < result.size(); i++)
+        {
+            char data = result[i];
+            pUTF8[i] = data;
+        }
+        const int end = result.size() ;
+
+        pUTF8[end] = *"\0";
+
+        return pUTF8;
+    }
+    
 }
 
 const char* _getRegistrValue(long hKey, const char* _subKey, const char* _key)
@@ -470,7 +486,19 @@ const char* _getRegistrValue(long hKey, const char* _subKey, const char* _key)
 
     string result = hmc_registr::getRegistrValue<string>((HKEY)hKey, subKey, key);
   
-    return result.c_str();
+    char* pUTF8 = new char[result.size() + 1];
+
+    for (size_t i = 0; i < result.size(); i++)
+    {
+        char data = result[i];
+        pUTF8[i] = data;
+    }
+    const int end = result.size();
+
+    pUTF8[end] = *"\0";
+
+    return pUTF8;
+
 }
 
 struct ProcessEnumDetailsCont
