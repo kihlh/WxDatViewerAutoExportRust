@@ -1,3 +1,7 @@
+The MIT License (MIT)
+
+Copyright (c) 2017 Joshua Wise
+
 《特例许可》
 代码引用不超过70%以上（计算方式为此源代码存储库对比 但是不包含新增的代码内容）可以授权为MIT2.0
 
@@ -9,10 +13,6 @@ If the code quotation does not exceed 70% (calculated by comparing this source c
 
 If the code quotation exceeds 70%, the licensing agreement will be GPL 3.0, and the code quoted must be open-sourced using the GPL 3.0 license.
 
-
-The MIT License (MIT)
-
-Copyright (c) 2017 Joshua Wise
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
