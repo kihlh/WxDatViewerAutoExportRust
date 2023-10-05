@@ -98,9 +98,9 @@ static USER_PATH_BIND: AtomicUsize = AtomicUsize::new(0);
 
 // }
 
-thread_local! {
-        static IMG_PREVIEW_LIST_ARCLAZY: ArcSwap< Vec<ImgPreview> > = ArcSwap::from_pointee(Vec::new().into());
-}
+// thread_local! {
+//         static IMG_PREVIEW_LIST_ARCLAZY: ArcSwap< Vec<ImgPreview> > = ArcSwap::from_pointee(Vec::new().into());
+// }
 
 // 设置背景为图片（主视图）
 fn setInterfaceBackgroundImage(appMainWin: &mut window::DoubleWindow) -> Frame {
@@ -507,7 +507,7 @@ fn initialize_watch_path_puppet(path: String) {
                 // btn_next.redraw();
                 // let attach_path = Path::new(copy_path.as_str());
                 push_wx_user_table(path.clone(), file_name);
-                global_var::set_str("user::config::user_select_wxid", wxid.clone());
+                global_var::set_string("user::config::user_select_wxid", wxid.clone());
 
                 let copy_path = format!("{}/{}/FileStorage/MsgAttach", copy_path.as_str(), wxid);
                 let copy_path_wake = format!("{}", watch_path);
@@ -601,7 +601,7 @@ fn wx_ready_initialize_open_preview_main_up(path: String) {
 
 // 创建选择的窗口
 pub fn mian_window() -> SelectUserBaseMain {
-    if (global_var::get_bool("gui::open::handle_dat")) {
+    if (global_var::get_bool_default("gui::open::handle_dat")) {
         if let Some(mut wins) =
             app::widget_from_id("gui::DoubleWindow::handle_dat::main") as Option<DoubleWindow>
         {
@@ -746,10 +746,10 @@ pub fn mian_window() -> SelectUserBaseMain {
 
     thread::spawn(move || {
         let mut title = text_title03.clone();
-        while global_var::get_bool("gui::open::handle_dat") {
+        while global_var::get_bool_default("gui::open::handle_dat") {
             // if let Some (mut title) = app::widget_from_id("gui::gui_select_user_base::text_title03") as  Option<Frame> {
-            let data = global_var::get_str("user::config::user_select_path");
-            let id = global_var::get_i32("user::config::select_user_thumbnail_obj");
+            let data = global_var::get_string_default("user::config::user_select_path");
+            let id = global_var::get_i32_default("user::config::select_user_thumbnail_obj");
 
             if (data.is_empty()) {
                 title.set_label("选择最近对象*  （ 如果不存在请随意发送一张的图片给对方 [不能是表情]  更新后约5秒显示 ） ");
@@ -788,14 +788,14 @@ pub fn mian_window() -> SelectUserBaseMain {
     if let Ok(history) = get_wx_user_history_path() {
         let paths = history.path;
         input_select_dir.set_value(paths.as_str());
-        global_var::set_str("user::config::input_select_dir", paths);
+        global_var::set_string("user::config::input_select_dir", paths);
 
         // initialize_watch_path_puppet(paths);
     }
     if (input_select_dir.value().is_empty()) {
         if let Some(paths) = wh_mod::convert::get_user_data_path() {
             input_select_dir.set_value(paths.as_str());
-            global_var::set_str("user::config::input_select_dir", paths);
+            global_var::set_string("user::config::input_select_dir", paths);
         }
     }
 
@@ -924,7 +924,7 @@ pub fn mian_window() -> SelectUserBaseMain {
                         input_select_dir
                             .clone()
                             .set_value(user_select_path.clone().as_str());
-                        global_var::set_str(
+                        global_var::set_string(
                             "user::config::input_select_dir",
                             user_select_path.clone(),
                         );
@@ -939,7 +939,7 @@ pub fn mian_window() -> SelectUserBaseMain {
                         if (check_button_the_month.is_checked()
                             || check_button_source.is_checked()
                             || check_button_thumbnail.is_checked())
-                            && global_var::get_i32("user::config::select_user_thumbnail_obj") != -1
+                            && global_var::get_i32_or("user::config::select_user_thumbnail_obj",-1) != -1
                         {
                         } else {
                             gui_detect_config::main_window();
@@ -979,7 +979,7 @@ pub fn mian_window() -> SelectUserBaseMain {
                     && !text_recent_pictures.label().contains("检测"))
                 {
                     let value = input_select_dir.value();
-                    global_var::set_str("user::config::input_select_dir", value.clone());
+                    global_var::set_string("user::config::input_select_dir", value.clone());
                     if (value.len() > 3) {
                         match fs::metadata(Path::new(value.as_str())) {
                             Ok(meta) => {
@@ -1010,8 +1010,8 @@ pub fn mian_window() -> SelectUserBaseMain {
                     // 终止更新检测
                     wh_mod::watch_path::un_next_exits();
                     global_var::set_i32("user::config::select_user_thumbnail_obj", -1);
-                    global_var::set_str("user::config::user_select_path", String::new());
-                    global_var::set_str("user::config::user_select_wxid", String::new());
+                    global_var::set_string("user::config::user_select_path", String::new());
+                    global_var::set_string("user::config::user_select_wxid", String::new());
                     global_var::set_bool("gui::open::handle_dat", false);
                 }
 
@@ -1023,10 +1023,10 @@ pub fn mian_window() -> SelectUserBaseMain {
                     ($select_user_preview:expr,$id:expr) => {
                         if ($select_user_preview.existPoint(x, y)) {
                             let select_id =
-                                global_var::get_i32("user::config::select_user_thumbnail_obj");
+                                global_var::get_i32_or("user::config::select_user_thumbnail_obj",-1);
 
                             if (select_id == $id) {
-                                global_var::set_str(
+                                global_var::set_string(
                                     "user::config::user_select_path",
                                     "".to_string(),
                                 );
@@ -1042,7 +1042,7 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                                     println!("[select_user_preview] -> {} [{}] ",&str_path,&$id);
 
-                                    global_var::set_str("user::config::user_select_path", str_path);
+                                    global_var::set_string("user::config::user_select_path", str_path);
                                     global_var::set_i32("user::config::select_user_thumbnail_obj", $id);
                                 }
                             }

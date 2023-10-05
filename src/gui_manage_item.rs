@@ -1,18 +1,9 @@
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_parens,
-    unused_variables,
-    unused_mut,
-    unused_must_use,
-    unused_assignments,
-    non_snake_case,
-    non_camel_case_types
-)]
+#![allow(warnings, unused)]
+
 
 use crate::{
     global_var, handle_dat, libWxIkunPlus,
-    util::{str_eq_str, Sleep},
+    util::{str_eq_str, Sleep}, global_var_util,
 };
 use fltk::{
     app::{self, handle},
@@ -250,14 +241,14 @@ fn create_card(x: i32, y: i32, name: String, path: String, ouput: String) -> Car
 macro_rules! console_log {
     ($message:expr) => {
         println!("{}", $message);
-        global_var::insert_vec_str("console_log", &[$message]);
+        global_var::push_vec_string("console_log", $message);
         // handle_dat::push_console_message($message);
     };
 }
 
 // 主窗口
 pub fn ManageItmeMain() {
-    if (global_var::get_bool("gui::open::manage_item")) {
+    if (global_var::get_bool_default("gui::open::manage_item")) {
         if let Some(mut wins) =
             app::widget_from_id("gui::DoubleWindow::manage_item::main") as Option<DoubleWindow>
         {
@@ -275,8 +266,8 @@ pub fn ManageItmeMain() {
     win.set_border(false);
     win.set_id ("gui::DoubleWindow::manage_item::main");
 
-    let mut export_dir_path_list: Vec<global_var::ExportDirItme> =
-        global_var::get_export_dir_itme_list();
+    let mut export_dir_path_list: Vec<global_var_util::ExportDirItme> =
+    global_var_util::get_export_dir_itme_list();
 
     // 偏移量
     let mut offset = 0;
@@ -518,7 +509,7 @@ pub fn ManageItmeMain() {
                                     ));
 
                                     export_dir_path_list.clear();
-                                    for cat in global_var::update_export_dir_itme_list() {
+                                    for cat in global_var_util::update_export_dir_itme_list() {
                                         export_dir_path_list.push(cat);
                                     }
 

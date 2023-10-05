@@ -47,7 +47,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{console_log, global_var, util::{self, str_eq_str, Sleep}, wh_mod};
+use crate::{console_log, global_var, util::{self, str_eq_str, Sleep}, wh_mod, global_var_util};
 
 // 初始化数据库表头
 pub fn initialize_table(conn: &Connection) {
@@ -86,13 +86,15 @@ pub fn initialize_table(conn: &Connection) {
         Ok(_) => {}
         Err(err) => eprint!("{}", err),
     };
+
     match conn.execute(
         "CREATE TABLE IF NOT EXISTS export_dir_path (
             id    INTEGER PRIMARY KEY,
             time  TEXT NOT NULL,
             name  TEXT NOT NULL,
             path TEXT NOT NULL UNIQUE,
-            ouput TEXT NOT NULL
+            ouput TEXT NOT NULL,
+            rename	TEXT
         );
         ",
         (), // empty list of parameters.
@@ -121,6 +123,14 @@ pub fn initialize_table(conn: &Connection) {
         Ok(_) => {}
         Err(err) => eprint!("{}", err),
     };
+
+    if let Ok(_) =conn.execute(
+        "ALTER TABLE 'export_dir_path' ADD COLUMN 'rename' TEXT;",
+        (), // empty list of parameters.
+    ) {
+      console_log!(format!("[update] {}","表头 'rename' 已经成功添加"));  
+    };
+
 }
 
 #[derive(Debug)]
@@ -168,14 +178,14 @@ pub fn get_console_message() -> String {
     //     }
     // }
 
-    global_var::retrieve_vec_str("console_log").join("\n")
+    global_var::retrieve_vec_string("console_log").join("\n")
 }
 
 // 处理图像 (所有)
 pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
     if (!util::getVarBooleanValue("ikun_user_auto_disable_sync".to_owned())) {
-        let mut items_dir_list: Vec<global_var::ExportDirItme> =
-            global_var::update_export_dir_itme_list();
+        let mut items_dir_list: Vec<global_var_util::ExportDirItme> =
+        global_var_util::update_export_dir_itme_list();
         let mut handle_end_size = 0;
         let mut handle_all_size = 0;
 
@@ -314,7 +324,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
 pub fn handle_pictures_itme(
     pic_path: String,
     ouput_dir: String,
-    expor_itme: global_var::ExportDirItme,
+    expor_itme: global_var_util::ExportDirItme,
 ) -> Result<()> {
     let mut buf = false;
 
@@ -426,7 +436,7 @@ pub fn handle_commandLine() -> Result<()> {
             Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
         initialize_table(&conn);
 
-        let itme: global_var::ExportDirItme = global_var::ExportDirItme {
+        let itme: global_var_util::ExportDirItme = global_var_util::ExportDirItme {
             name: args[1].to_owned(),
             id: 0,
             time: Local::now().format("%Y-%m-%d").to_string(),

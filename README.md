@@ -50,7 +50,7 @@ cd WxDatViewerAutoExportRust
 
 2.解决作者留下的小彩蛋
 
-src/wh_mod/convert.rs 中的  `convert_dat_images_buff`  `convert_bat_images` 异或解码函数被破坏 因为这个不属于开源的部分
+src/wh_mod/convert.rs 中的 部分函数被破坏 因为这个不属于开源的部分 开源的版本为： src/wh_mod/convert_source.rs
 
 这也是更好筛选开发者的方式，**我不希望程序会被作为非法用途使用**，所以作者在工作模式做了严格限制，既然您决定二次开发此功能 您一定有相关的知识
 

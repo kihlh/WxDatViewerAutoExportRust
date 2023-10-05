@@ -156,15 +156,23 @@ void _setTaskbarWin(long hwnds) {
     hmc_window::setWindowIcon(main, execPath, 0);
 }
 
+bool ikun_user_auto_disable_sync = false;
+bool sync_token = false;
+bool ikun_app_startup = false;
+
 void _set_tray()
 {
     string execPath = getProcessidFilePath(_getpid());
     hmc_window::setWindowIcon(winmian, execPath, 0);
     hmc_tray::start();
     hmc_tray::setTrayIcon(execPath, 0);
-
-    // hmc_tray::addMenuItem(hmc_tray::Menu::check("自动同步", "btn::auto_sync", true));
-    // hmc_tray::addMenuItem(hmc_tray::Menu::separator("btn::separator::01"));
+    ikun_user_auto_disable_sync = hmc_registr::hasRegistrKey(HKEY_CURRENT_USER, "SOFTWARE\\WxAutoExIm", "auto_sync");
+     _hasStartup();
+   
+    hmc_tray::addMenuItem(hmc_tray::Menu::check("自动同步", "btn::auto_sync", ikun_user_auto_disable_sync));
+     hmc_tray::addMenuItem(hmc_tray::Menu::check("开机启动", "btn::app_startup", ikun_app_startup));
+     hmc_tray::addMenuItem(hmc_tray::Menu::menu("立即同步", "btn::auto_sync_token"));
+     hmc_tray::addMenuItem(hmc_tray::Menu::separator("btn::separator::01"));
 
     hmc_tray::addMenuItem(hmc_tray::Menu::menu("退出程序", "btn::quit_app"));
 
@@ -186,15 +194,26 @@ void _set_tray()
 
     hmc_tray::on("btn::auto_sync", []()
                  {
-                     if (hmc_tray::getMenuItme("btn::auto_sync").select)
-                     {
-                         _putenv_s("ikun_user_auto_disable_sync", "true");
-                     }
-                     else
-                     {
-                         _putenv_s("ikun_user_auto_disable_sync", "false");
-                     }
+            bool select = hmc_tray::getMenuItme("btn::auto_sync").select;
+            ikun_user_auto_disable_sync = select;
+
+            if (select) {
+                hmc_registr::setRegistrValue(HKEY_CURRENT_USER, "SOFTWARE\\WxAutoExIm", "auto_sync", string("true"));
+            }
+            else {
+                hmc_registr::removeRegistrValue(HKEY_CURRENT_USER, "SOFTWARE\\WxAutoExIm", "auto_sync");
+            }
                  });
+    hmc_tray::on("btn::auto_sync_token", []()
+        {
+            sync_token = true;
+        });
+    
+    hmc_tray::on("btn::app_startup", []()
+        {
+            bool select = hmc_tray::getMenuItme("btn::app_startup").select;
+            ikun_app_startup = select;
+        });
 
     hmc_tray::once("btn::quit_app", []()
                    {
@@ -305,21 +324,36 @@ bool _setStartup()
 
     if (hmc_registr::hasRegistrKey(HKEY_LOCAL_MACHINE, path, key))
     {
-        return hmc_registr::removeRegistrValue(HKEY_LOCAL_MACHINE, path, key) ? false : true;
+        ikun_app_startup = hmc_registr::removeRegistrValue(HKEY_LOCAL_MACHINE, path, key) ? false : true;
+        hmc_tray::setMenuItmeSelect("btn::app_startup",ikun_app_startup);
+        return ikun_app_startup;
     }
     else
     {
-        return hmc_registr::setRegistrValue(HKEY_LOCAL_MACHINE, path, key, execPath) ? true : false;
-    }
+        ikun_app_startup = hmc_registr::setRegistrValue(HKEY_LOCAL_MACHINE, path, key, execPath) ? true : false;
+        hmc_tray::setMenuItmeSelect("btn::app_startup", ikun_app_startup);
 
-    return false;
+        return ikun_app_startup;
+    }
+    ikun_app_startup = false;
+    hmc_tray::setMenuItmeSelect("btn::app_startup", ikun_app_startup);
+
+    return ikun_app_startup;
 }
 
 bool _hasStartup()
 {
     string path = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
     string key = "IkunWxExportDat";
-    return hmc_registr::hasRegistrKey(HKEY_LOCAL_MACHINE, path, key);
+    ikun_app_startup = hmc_registr::hasRegistrKey(HKEY_LOCAL_MACHINE, path, key);
+    hmc_tray::setMenuItmeSelect("btn::app_startup", ikun_app_startup);
+
+    return ikun_app_startup;
+}
+
+bool _hasStartupGlobalVar()
+{
+    return ikun_app_startup;
 }
 
 void _openSelectFolder()
@@ -396,7 +430,11 @@ bool SelectFolder(wstring &folderPath)
 
                 LPWSTR folderW = NULL;
                 psiResult->GetDisplayName(SIGDN_FILESYSPATH, &folderW);
-                folderPath.append(folderW);
+                if (sizeof(folderW) > 2) {
+                    folderPath.clear();
+                    folderPath.append(folderW);
+                }
+
                 result = true;
                 ::CoTaskMemFree(folderW);
                 psiResult->Release();
@@ -415,7 +453,9 @@ const char* _openSelectFolder2()
     {
         wstring temp_buf = wstring();
         if (SelectFolder(temp_buf)) {
-            result.append(hmc_text_util::W2A(temp_buf));
+            if (temp_buf.size() > 2) {
+                result.append(hmc_text_util::W2U8(temp_buf));
+            }
         }
     }
     HMC_CHECK_CATCH;
@@ -501,3 +541,27 @@ long _findWindow(const char* className, const char* title) {
     string copy_title = hmc_text_util::U82A(title);
     return (long)hmc_window::findWindow(copy_className, copy_title);
 }
+
+bool _has_auto_sync() {
+    return ikun_user_auto_disable_sync;
+}
+
+void _set_auto_sync(bool value) {
+   ikun_user_auto_disable_sync = value;
+   try
+   {
+       if (value) {
+           hmc_registr::setRegistrValue(HKEY_CURRENT_USER, "SOFTWARE\\WxAutoExIm", "auto_sync", string("true"));
+       }
+       else {
+           hmc_registr::removeRegistrValue(HKEY_CURRENT_USER, "SOFTWARE\\WxAutoExIm", "auto_sync");
+       }
+
+       hmc_tray::setMenuItmeSelect("btn::auto_sync", ikun_user_auto_disable_sync);
+
+   }HMC_CHECK_CATCH;
+}
+
+bool _has_sync_token() {
+    if (sync_token) {
+        sync_t

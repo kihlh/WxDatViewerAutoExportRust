@@ -138,7 +138,7 @@ fn initialize_watch_attach_puppet(img_path: String) {
                     // println!("是 {} 吗", resolve_path.clone());
                     // text_recent_pictures
                     //     .set_label(format!("是 {} 吗", path.to_string_lossy()).as_str());
-                    global_var::set_str("user::config::walk_drag_path",path.to_string_lossy().to_string());
+                    global_var::set_string("user::config::walk_drag_path",path.to_string_lossy().to_string());
                     atomic_util::set_bool(&WATCH_PUPPET_ING,false);
                     return;
                 }
@@ -152,8 +152,8 @@ fn initialize_watch_attach_puppet(img_path: String) {
         thread::spawn(move || {
             // 启动扫描线程
             let mut set_map = HashSet::new();
-            let input_select_dir = global_var::get_str("user::config::input_select_dir");
-            let user_select_wxid = global_var::get_str("user::config::user_select_wxid");
+            let input_select_dir = global_var::get_string_default("user::config::input_select_dir");
+            let user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
             // 优先考虑当前已选用户
             set_map.insert(wh_mod::resolve_path(format!(
                 "{}\\{}\\FileStorage\\MsgAttach",
@@ -190,7 +190,7 @@ fn initialize_watch_attach_puppet(img_path: String) {
                         // println!("是 {} 吗", resolve_path.clone());
                         // text_recent_pictures
                         //     .set_label(format!("是 {} 吗", path.to_string_lossy()).as_str());
-                        global_var::set_str("user::config::walk_drag_path",path.to_string_lossy().to_string());
+                        global_var::set_string("user::config::walk_drag_path",path.to_string_lossy().to_string());
                         walk_next = false;
                     }
                 }
@@ -219,9 +219,9 @@ pub fn main_window() {
     atomic_util::set_bool(&INITIALIZED_PUPPET,false);
     atomic_util::set_bool(&WINDOW_STATE_AVAILABLE,true);
     atomic_util::set_i64(&WINDOW_HWND,0);
-    global_var::set_str("user::config::walk_drag_path",String::new());
+    global_var::set_string("user::config::walk_drag_path",String::new());
 
-    if (global_var::get_bool("gui::open::gui_drag_scan")) {
+    if (global_var::get_bool_default("gui::open::gui_drag_scan")) {
         if let Some(mut wins) =
             app::widget_from_id("gui::DoubleWindow::gui_drag_scan::main") as Option<DoubleWindow>
         {
@@ -324,7 +324,7 @@ pub fn main_window() {
                     state_info.set_label("正在扫描中...");
                     btn_text.set_label("取消任务");
                 }else{
-                    let walk_drag_path = global_var::get_str("user::config::walk_drag_path");
+                    let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
 
                     state_title.set_label("扫描已结束");
                     println!("walk_drag_path-> {}",walk_drag_path.as_str());
@@ -337,7 +337,7 @@ pub fn main_window() {
                         // atomic_util::set_bool(&WINDOW_STATE_AVAILABLE,false);pr
                         // println!("user_select_path-> {}",global_var::get_str("user::config::user_select_path"));
 
-                       global_var::set_str("user::config::user_select_path",wh_mod::wx_parse_path(walk_drag_path.clone()).attach_id);
+                       global_var::set_string("user::config::user_select_path",wh_mod::wx_parse_path(walk_drag_path.clone()).attach_id);
                        global_var::set_i32("user::config::select_user_thumbnail_obj",-2);
 
                     }

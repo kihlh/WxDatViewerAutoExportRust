@@ -62,8 +62,11 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP};
 use crate::wh_mod::parse_dat_path;
+
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
+use std::sync::{Arc, Condvar, Mutex,RwLock};
 
 struct MainTheme {
     /**主背景颜色 */
@@ -224,13 +227,6 @@ fn getFormPointSpace(x: i32, y: i32) -> PointExistHasmap {
 fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_imge::ImgPreview  {
     let w_h = 20;
     let mut preview = gui_imge::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
-   
-//    let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
-        // .expect("set addBtnEnableStarting icon error");
-
-    // let background_image_none =
-    //     image::PngImage::from_data(include_bytes!("./assets/un_enable.png"))
-    //         .expect("set addBtnEnableStarting icon error");
 
     if libWxIkunPlus::hasStartup() {
         preview.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,w_h, w_h);
@@ -238,44 +234,7 @@ fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_imge::ImgP
         preview.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
     }
     
-    // let mut mainTheme: MainTheme = getMainTheme();
-    // // 服务正在启用中的按钮
-    // let mut img_frame_open = Frame::default().with_size(12, 12).center_of(appMainWin);
-
-    // let background_image_off = image::PngImage::from_data(include_bytes!("./assets/enable.png"))
-    //     .expect("set addBtnEnableStarting icon error");
-
-    // let background_image_none =
-    //     image::PngImage::from_data(include_bytes!("./assets/un_enable.png"))
-    //         .expect("set addBtnEnableStarting icon error");
-
-    // img_frame_open.set_frame(FrameType::NoBox);
-    // img_frame_open.set_color(Color::from_u32(0));
-    // img_frame_open.set_image(Some(background_image_off.clone()));
-
-    // img_frame_open.set_id("enableStarting");
-    // img_frame_open.set_pos(90, 496);
-    // img_frame_open.show();
-    // let mut has_show = util::getVarBooleanValue("BtnEnableStarting".to_owned());
-
-    // let mut btn_frame = Button::new(90, 496, 15, 15, "");
-    // btn_frame.set_color(Color::from_u32(0));
-    // btn_frame.set_frame(FrameType::NoBox);
-    // btn_frame.set_down_frame(FrameType::NoBox);
-    // btn_frame.set_selection_color(Color::from_u32(0));
-    // btn_frame.clear_visible_focus();
-
-    // let mut asf = img_frame_open.clone();
-    // btn_frame.set_callback(move |btn_frame| {
-    //     has_show = !util::getVarBooleanValue("BtnEnableStarting".to_owned());
-
-    //     util::setVarBooleanValue("BtnEnableStarting".to_owned(), has_show);
-    //     if (has_show) {
-    //         asf.set_image(Some(background_image_off.clone()));
-    //     } else {
-    //         asf.set_image(Some(background_image_none.clone()));
-    //     }
-    // });
+   
 
     return preview;
 }
@@ -305,10 +264,11 @@ fn addInput_shellOpenDatDir(appMainWin: &mut window::DoubleWindow) -> ConsoleItm
             usetup.buffer().unwrap().text(),
             usetup.buffer().unwrap().length()
         );
+        if !wh_mod::convert::is_developer(){
         let mut buff = usetup.buffer().unwrap();
         buff.remove(0, buff.length());
-        // libWxIkunPlus::error("警告".to_owned(),"涉及用户隐私，禁止手动编辑".to_owned());
         console_log!("[错误] 编辑被禁止".to_string());
+        }
     });
   
     // buf.set(true);
@@ -541,22 +501,27 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     let mut input_shellOpenDatDir = addInput_shellOpenDatDir(&mut appRootView);
     let mut input_Console = addConsole(&mut appRootView);
     let mut input_shellName = addInput_shellName(&mut appRootView);
-    input_Console.buff.set_text(("初始化成功"));
     // "\n      _~^~^~_\n    \\) /  o o  \\ (/\n      '_   -   _'\n      / '-----' \\"
 
-    // input_Console.buff.set_text("作者 @Ikun  ");
-    // input_Console.buff.append("\n");
-    // input_Console
-    //     .buff
-    //     .append("软件开源协议 GPL 3.0  (但是并不包含解码算法)  版本：1.0.0 ");
-    // input_Console.buff.append("\n\n");
-    // input_Console
-    //     .buff
-    //     .append("本软件 是免费的自由软件 如果付费请维权退款");
-    // input_Console.buff.append("\n");
-    // input_Console
-    //     .buff
-    //     .append("在此 @Ikun 向所有引用的开源项目表示感谢");
+    if !wh_mod::convert::is_developer(){
+    input_Console.buff.set_text(("初始化成功！"));
+    input_Console.buff.set_text("作者 @Ikun  ");
+    input_Console.buff.append("\n");
+    input_Console
+        .buff
+        .append("软件开源协议 GPL 3.0  (但是并不包含解码算法)  版本：1.0.0 ");
+    input_Console.buff.append("\n\n");
+    input_Console
+        .buff
+        .append("本软件 是免费的自由软件 如果付费请维权退款");
+    input_Console.buff.append("\n");
+    input_Console
+        .buff
+        .append("在此 @Ikun 向所有引用的开源项目表示感谢");
+
+    }else {
+        input_Console.buff.set_text(("初始化成功 [开发者模式]"));
+    }
 
     // 界面
     appRootView.end();
@@ -595,14 +560,25 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     });
 
     let mut dat_buff_move= input_shellOpenDatDir.buff.clone();
+    let mut copy_btnEnableStarting = btnEnableStarting.clone();
     thread::spawn(move || loop {
+        let mut oid_app_start = false;
+
+        if get_bool!(APP_STARTUP)!=oid_app_start{
+            oid_app_start = true;
+            copy_btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
+        }else{
+            oid_app_start = false;
+            copy_btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
+        }
+
         Sleep(550);
 
-        let input_select_dir = global_var::get_str("user::config::input_select_dir");
-        let user_select_path = global_var::get_str("user::config::user_select_path");
-        let user_select_wxid = global_var::get_str("user::config::user_select_wxid");
+        let input_select_dir = global_var::get_string_default("user::config::input_select_dir");
+        let user_select_path = global_var::get_string_default("user::config::user_select_path");
+        let user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
 
-        if !user_select_path.is_empty()&&!input_select_dir.is_empty()&&global_var::get_bool("gui::open::handle_dat") {
+        if !user_select_path.is_empty()&&!input_select_dir.is_empty()&&global_var::get_bool_default("gui::open::handle_dat") {
 
 
             let mut new_buff = format!("{}/{}/FileStorage/MsgAttach/{}",input_select_dir,user_select_wxid,user_select_path);
@@ -618,13 +594,13 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 }
             }
 
-            if(global_var::get_bool("user::config::check_button_the_month")){
+            if(global_var::get_bool_default("user::config::check_button_the_month")){
                 new_buff = new_buff+"*the_month";
             }
-            if(global_var::get_bool("user::config::check_button_source")){
+            if(global_var::get_bool_default("user::config::check_button_source")){
                 new_buff = new_buff+"*source";
             }
-            if(global_var::get_bool("user::config::check_button_thumbnail")){
+            if(global_var::get_bool_default("user::config::check_button_thumbnail")){
                 new_buff = new_buff+"*thumbnail";
             }
 
@@ -716,7 +692,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                         .set_text("[用户] 打开选取原始文件夹(dat 原目录)");
                   
                     // 有wx进程 而且有窗口
-                    if(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin()){
+                    if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
                        gui_select_user_base::mian_window();
                     }else{
                         thread::spawn(||{
@@ -761,11 +737,11 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                       .append(format!("\n[状态] 自启动已被移除").as_str());  
                     }
                     
-                    if libWxIkunPlus::hasStartup() {
-                        btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
-                    }else{
-                        btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
-                    }
+                    // if libWxIkunPlus::hasStartup() {
+                    //     btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
+                    // }else{
+                    //     btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
+                    // }
 
                     println!("click => starting");
                 } else if (point_exist_hasmap.test) {
@@ -882,7 +858,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 // println!("{} , {} , {} , {}",has_name,has_inputPath,has_ouputPath,point_exist_hasmap.create);
 
                 if (has_name&&has_inputPath&&has_ouputPath&&point_exist_hasmap.create){
-                    if(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin()){
+                    if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
                         let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
                     
                         handle_dat::initialize_table(&conn);
@@ -911,7 +887,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                         }
     
                         conn.close();
-                        global_var::update_export_dir_itme_list();
+                        global_var_util::update_export_dir_itme_list();
 
                      }else{
                         //  libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程 拒绝提供选取方案".to_owned())

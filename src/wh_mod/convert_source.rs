@@ -183,6 +183,27 @@ pub fn get_user_id2() -> String {
     return String::new();
 }
 
+// 获取活动用户信息
+#[derive(Debug)]
+pub struct WxActiveUser {
+    // 获取用户名
+    pub accinfo: Option<WxidNameAccinfo>,
+    // wxid
+    pub user_wxid: String,
+    // 根数据目录 D:\...\WeChat Files
+    pub user_root: String,
+    // 数据目录 D:\...\WeChat Files\%wxid%
+    pub user_data: String
+}
+
+// 获取活动用户的路径
+pub fn get_active_user() -> Vec<WxActiveUser>{
+    let mut active_users = Vec::new();
+    // ! 这部分也是不开源的部分
+
+    active_users
+}
+
 // 判断当前是否处于开发者模式
 pub fn is_developer() -> bool {
     // ! 这部分也是不开源的部分

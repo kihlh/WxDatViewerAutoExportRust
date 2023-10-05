@@ -1,7 +1,7 @@
 #![allow(warnings, unused)]
 
 use std::env;
-use std::ffi::{c_int, c_long, c_void, OsStr,c_uint};
+use std::ffi::{c_int, c_long, c_void, OsStr,c_uint,};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 // use libc::{c_void, c_uint};
@@ -31,6 +31,10 @@ extern "C" {
     fn _hasWeChat() -> bool;
     fn _setTaskbarWin(_hWnd: c_long) -> c_void;
     fn _findWindow(className:PCSTR, title:PCSTR) -> c_long;
+    fn _has_auto_sync() -> bool;
+    fn _set_auto_sync(value:bool);
+    fn _has_sync_token()-> bool;
+    fn _hasStartupGlobalVar()-> bool;
 
 }
 
@@ -311,7 +315,6 @@ pub fn hasWeChatWin()->bool {
     result
 }
 
-
 // 把一个傀儡窗口变成主窗口的托盘
 pub fn setTaskbarWin(hWnd: i128) {
     unsafe {
@@ -319,9 +322,50 @@ pub fn setTaskbarWin(hWnd: i128) {
     }
 }
 
-
+// 搜索窗口
 pub fn findWindow(className: String, titleName: String)->i128 {
     unsafe {
       return _findWindow(rust_string_to_c_string(className).as_ptr(), rust_string_to_c_string(titleName).as_ptr()).into();
+    }
+}
+
+// 判断是否启用了自动更新（如果wx进程不存在也会返回false）
+pub fn has_auto_sync() -> bool{
+    let mut result = false;
+    unsafe {
+        result =_has_auto_sync();
+    }
+
+    result
+}
+
+// 判断是否启用了自动更新（如果wx进程不存在也会返回false）
+pub fn has_auto_sync_all() -> bool{
+    let mut result = false;
+    unsafe {
+        result = hasWeChat()&&hasWeChatWin()&&_has_auto_sync();
+    }
+    println!("has_auto_sync-> {}",&result);
+    result
+}
+
+// 设置自动更新
+pub fn set_auto_sync(value: bool){
+    unsafe {
+       _set_auto_sync(value);
+    }
+}
+
+// 是否立即同步
+pub fn has_sync_token()->bool{
+    unsafe{
+        _has_sync_token()
+    }
+}
+
+// 是否立即同步
+pub fn hasStartupGlobalVar()->bool{
+    unsafe{
+        _hasStartupGlobalVar()
     }
 }

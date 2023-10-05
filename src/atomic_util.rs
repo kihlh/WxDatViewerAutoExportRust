@@ -17,13 +17,19 @@ macro_rules! get_bool {
 #[macro_export]
 macro_rules! set_bool {
     ($atomic_bool_static:expr,$value:expr) => {{
+        let mut oid_data: bool = false;
         let mut value_data: bool = false;
         let mutex = Arc::new(Mutex::new(&$atomic_bool_static));
         mutex.lock();
+        
+        oid_data = $atomic_bool_static.load(Ordering::SeqCst);
+        
         $atomic_bool_static.store($value, Ordering::SeqCst);
+        
         value_data = $atomic_bool_static.load(Ordering::SeqCst);
         drop(mutex);
-        value_data
+
+        value_data!=oid_data
     }};
 }
 

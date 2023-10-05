@@ -1,7 +1,9 @@
+#![allow(warnings, unused)]
+
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::{path::Path, thread};
 
-use crate::{console_log, global_var::{self, ExportDirItme}, handle_dat::{self, push_console_message}, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod};
+use crate::{console_log, handle_dat::{self, push_console_message},global_var, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod,global_var_util};
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -62,8 +64,8 @@ fn get_all_watch_token_path() -> Vec<String> {
 
 // 更新路径令牌
 fn update_watch_path_token(initialize: bool) {
-    let export_dir_itme_list: Vec<global_var::ExportDirItme> =
-        global_var::get_export_dir_itme_list();
+    let export_dir_itme_list: Vec<global_var_util::ExportDirItme> =
+    global_var_util::get_export_dir_itme_list();
 
     // 添加新的已有token
     if (initialize) {
@@ -125,7 +127,7 @@ fn update_watch_path_token(initialize: bool) {
 }
 
 // 处理更新的文件的路径
-fn change_watch_path(path: String, exp_itme: global_var::ExportDirItme) {
+fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
     let mut lazy_value = WARCHER_CHANGE_LIST.lock().unwrap();
 
     if (lazy_value.insert(path.clone())) {
@@ -163,7 +165,7 @@ fn change_watch_path(path: String, exp_itme: global_var::ExportDirItme) {
 // 启动文件系统日志模式
 pub fn initialize_file_system_Change() {
     let mut warcher_len = 0;
-    let mut itme_list = global_var::update_export_dir_itme_list();
+    let mut itme_list = global_var_util::update_export_dir_itme_list();
 
     update_watch_path_token(true);
     for value in itme_list.clone() {
@@ -190,7 +192,8 @@ pub fn initialize_file_system_Change() {
 }
 
 // 对文件夹个体进行处理
-pub fn watch<P: AsRef<Path>>(path: P, exp_item: global_var::ExportDirItme) -> notify::Result<()> {
+pub fn watch<P: AsRef<Path>>(path: P, exp_item: global_var_util::ExportDirItme) -> notify::Result<()> {
+    
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
     let dir_path = path.as_ref().display().to_string();

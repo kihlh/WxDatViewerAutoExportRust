@@ -73,7 +73,7 @@ macro_rules! set_theme{
 }
 pub fn main_window() {
 
-    if( global_var::get_bool("gui::open::gui_detect_config")){
+    if( global_var::get_bool_default("gui::open::gui_detect_config")){
         if let Some (mut wins) = app::widget_from_id("gui::DoubleWindow::gui_detect_config::main") as Option<DoubleWindow> {
             wins.show();
             wins.set_visible_focus();
@@ -137,7 +137,7 @@ pub fn main_window() {
     // global_var::set_i32("user::config::select_user_thumbnail_obj",-1);
     macro_rules! update_gui_state {
                     () => {
-               if(!global_var::get_bool("user::config::check_button_the_month")&&!global_var::get_bool("user::config::check_button_source")&&!global_var::get_bool("user::config::check_button_thumbnail")){
+               if(!global_var::get_bool_default("user::config::check_button_the_month")&&!global_var::get_bool_default("user::config::check_button_source")&&!global_var::get_bool_default("user::config::check_button_thumbnail")){
         gui_text_form03_state.set_label("尚未选择".to_string());
         gui_text_form03_state.set_color(215, 97, 97);
         gui_imag_from03_state.from_data(include_bytes!("./assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
@@ -147,7 +147,7 @@ pub fn main_window() {
         gui_imag_from03_state.from_data(include_bytes!("./assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
 
-    if(global_var::get_i32("user::config::select_user_thumbnail_obj")==-1){
+    if(global_var::get_i32_or("user::config::select_user_thumbnail_obj",-1)==-1){
         gui_text_form02_state.set_label("尚未选择".to_string());
         gui_text_form02_state.set_color(215, 97, 97);
         gui_imag_from02_state.from_data(include_bytes!("./assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
@@ -158,7 +158,7 @@ pub fn main_window() {
         gui_imag_from02_state.from_data(include_bytes!("./assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
 
-    if(global_var::get_str("user::config::input_select_dir").is_empty()){
+    if(global_var::get_string_default("user::config::input_select_dir").is_empty()){
         gui_text_form01_state.set_label("尚未选择".to_string());
         gui_text_form01_state.set_color(215, 97, 97);
         gui_imag_from01_state.from_data(include_bytes!("./assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
@@ -171,7 +171,7 @@ pub fn main_window() {
                 }
 
     thread::spawn(move||{
-        let mut is_open_win  = global_var::get_bool("gui::open::gui_detect_config");
+        let mut is_open_win  = global_var::get_bool_default("gui::open::gui_detect_config");
         loop{
             if !is_open_win {
 
