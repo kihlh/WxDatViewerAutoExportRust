@@ -564,4 +564,9 @@ void _set_auto_sync(bool value) {
 
 bool _has_sync_token() {
     if (sync_token) {
-        sync_t
+        sync_token = false;
+        //cout << "_has_sync_token" << endl;
+        return true;
+    }
+    return false;
+}
