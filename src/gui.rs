@@ -21,6 +21,14 @@ use hotwatch::{
     blocking::{Flow, Hotwatch},
     EventKind,
 };
+// GleamThinDownBox -> 53
+// GtkRoundUpFrame -> 46
+// RoundDownBox -> 23
+// RoundUpBox -> 22
+// RShadowBox -> 19
+// EngravedFrame -> 12
+// 12 19 22 23 46 53(buj)
+
 use libc::c_void;
 use rusqlite::{params, Connection, Result};
 
@@ -501,7 +509,6 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     let mut input_shellOpenDatDir = addInput_shellOpenDatDir(&mut appRootView);
     let mut input_Console = addConsole(&mut appRootView);
     let mut input_shellName = addInput_shellName(&mut appRootView);
-    // "\n      _~^~^~_\n    \\) /  o o  \\ (/\n      '_   -   _'\n      / '-----' \\"
 
     if !wh_mod::convert::is_developer(){
     input_Console.buff.set_text(("初始化成功！"));
@@ -513,9 +520,13 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     input_Console.buff.append("\n\n");
     input_Console
         .buff
-        .append("本软件 是免费的自由软件 如果付费请维权退款");
-    input_Console.buff.append("\n");
+        .append("本软件 是免费软件 如果付费请维权退款\n");
+    
     input_Console
+    .buff
+    .append("本软件只供备份自己的图片禁止用于其他用途\n");
+
+        input_Console
         .buff
         .append("在此 @Ikun 向所有引用的开源项目表示感谢");
 

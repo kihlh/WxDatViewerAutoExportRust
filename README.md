@@ -11,6 +11,7 @@
 * 视图框架：fltk
 * 内存预计：后台3M  视图模式 20M(主界面)   视图全开(极限)60M-120M(动态释放)  
 * CPU用量：0%-5%(MAX)
+* 原型设计稿：[figma](https://www.figma.com/file/P8N6kkSalILa1jWpLUE2gi/WxAutoExIm?type=design&node-id=0%3A1&mode=design&t=RlcMyPrXu9xlDL5p-1)
 
 
 
@@ -29,9 +30,11 @@
 
 主界面截图
 ------------------------------
-![img](assets/main.png)
-![img](assets/util.png)
+![img](assets/all_main.png)
+![img](assets/all_manage_main.png)
 ![img](assets/all_sub_main.png)
+
+
 
 ----------------------------------------------------------
 ### 二次开发
