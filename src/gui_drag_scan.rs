@@ -147,6 +147,8 @@ fn initialize_watch_attach_puppet(img_path: String) {
                         path.to_string_lossy().to_string(),
                     );
                     atomic_util::set_bool(&WATCH_PUPPET_ING, false);
+              
+              
                     return;
                 }
             }
@@ -351,6 +353,17 @@ pub fn main_window() {
                             wh_mod::wx_parse_path(walk_drag_path.clone()).attach_id,
                         );
                         global_var::set_i32("user::config::select_user_thumbnail_obj", -2);
+                        
+                        // atomic_util::set_bool(&WINDOW_STATE_AVAILABLE, false);
+                        // global_var::set_bool("gui::open::gui_drag_scan", false);
+                        // atomic_util::set_i64(&WINDOW_HWND, 0);
+                        // if let Some(mut win) = fltk::app::widget_from_id("gui::DoubleWindow::gui_drag_scan::main") as Option<DoubleWindow> {
+                        //     win.hide();
+                        //     win.clear();
+                            
+                        //     fltk::window::Window::delete(win.clone());
+                        // }
+
                     }
                     return;
                 }
@@ -392,7 +405,8 @@ pub fn main_window() {
             enums::Event::Push => {
                 if (next_btn.existPoint(x, y)) {
                     atomic_util::set_bool(&WINDOW_STATE_AVAILABLE, false);
-                    closeWindow(win.raw_handle() as i128, true);
+                    // closeWindow(win.raw_handle() as i128, true);
+                    fltk::window::Window::delete(win.clone());
                     global_var::set_bool("gui::open::gui_drag_scan", false);
                     atomic_util::set_i64(&WINDOW_HWND, 0);
                 }
@@ -474,6 +488,13 @@ pub fn main_window() {
             Event::DndLeave => {
                 dnd = false;
                 released = false;
+                true
+            }
+            enums::Event::Close=>{
+                atomic_util::set_bool(&WINDOW_STATE_AVAILABLE, false);
+                global_var::set_bool("gui::open::gui_drag_scan", false);
+                atomic_util::set_i64(&WINDOW_HWND, 0);
+                // fltk::window::Window::delete(win.clone());
                 true
             }
             enums::Event::Drag => {

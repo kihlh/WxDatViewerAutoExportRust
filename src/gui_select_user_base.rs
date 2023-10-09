@@ -1000,8 +1000,7 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                 // 关闭
                 if (btn_exit_imag.existPoint(x, y)) {
-                    libWxIkunPlus::closeWindow(win.raw_handle() as i128, true);
-
+                    // libWxIkunPlus::closeWindow(win.raw_handle() as i128, true);
                     // write_rw_lock!(THUMBNAIL_LIST_ARC, Vec::new());
                     // write_rw_lock!(IMG_PREVIEW_LIST_ARC,Vec::new());
                     set_arc_bind_variable!(THUMBNAIL_LIST, THUMBNAIL_LIST_BIND, Vec::new());
@@ -1013,6 +1012,8 @@ pub fn mian_window() -> SelectUserBaseMain {
                     global_var::set_string("user::config::user_select_path", String::new());
                     global_var::set_string("user::config::user_select_wxid", String::new());
                     global_var::set_bool("gui::open::handle_dat", false);
+                    fltk::window::Window::delete(win.clone());
+
                 }
 
                 if preview_tips.existPoint(x, y) {

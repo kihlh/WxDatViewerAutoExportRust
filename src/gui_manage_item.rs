@@ -476,7 +476,8 @@ pub fn ManageItmeMain() {
                     global_var::set_bool("gui::open::manage_item", false);
                     libWxIkunPlus::setwinVisible(hwnd, false);                  
                     libWxIkunPlus::closeWindow(hwnd, true);
-                    
+                    fltk::window::Window::delete(win.clone());
+                    // fltk::window::Window::
                     println!("closeWindow hwnd -> :  {}",hwnd);
                 }
 
