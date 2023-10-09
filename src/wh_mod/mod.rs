@@ -946,3 +946,11 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
 pub fn resolve_path(path: String) -> String {
     return split_path(path).join("\\");
 }
+
+pub fn get_text_len(input:String)->usize{
+    let mut len = 0;
+    for char in input.chars() {
+        len+=1;
+    }
+    len
+}

@@ -47,8 +47,12 @@ IMPORT_DLL const char* _getRegistrValue(long hKey, const char* _subKey, const ch
 IMPORT_DLL bool _hasWeChat();
 IMPORT_DLL void _setTaskbarWin(long hwnds);
 IMPORT_DLL long _findWindow(const char* className, const char* title);
+IMPORT_DLL long _findWindowW(const char* className, const char* title);
+IMPORT_DLL long _findWindowU8(const char* className, const char* title);
 IMPORT_DLL bool _hasStartup();
 IMPORT_DLL bool _has_auto_sync();
 IMPORT_DLL void _set_auto_sync(bool value);
 IMPORT_DLL bool _has_sync_token();
 IMPORT_DLL bool _hasStartupGlobalVar();
+IMPORT_DLL long _getFocusWindow();
+IMPORT_DLL long _getFocusTopWindow();

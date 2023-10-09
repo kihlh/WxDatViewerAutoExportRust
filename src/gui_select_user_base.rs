@@ -2,7 +2,7 @@
 
 use crate::{
     get_arc_bind_variable, global_var, gui_detect_config, gui_drag_scan, gui_hotspot, gui_imge,
-    gui_text_control, handle_dat, libWxIkunPlus, read_rw_lazy_lock, read_rw_lock,
+    gui_text_control, handle_dat, libWxIkunPlus::{self, getFocusTopWindow}, read_rw_lazy_lock, read_rw_lock,
     set_arc_bind_variable, set_arc_bind_variable_insert,
     util::{str_eq_str, Sleep},
     wh_mod::{self, AttachThumbnail},
@@ -896,12 +896,14 @@ pub fn mian_window() -> SelectUserBaseMain {
         let mut y = 0;
         let mut point_exist_hasmap = getFormPointSpace(x, y);
         let mut has_show = false;
+        let mut hwnd = 0;
         // let mut move_
         move |win, ev| match ev {
             enums::Event::Show => {
                 win.set_visible_focus();
-                libWxIkunPlus::setwinVisible(win.raw_handle() as i128, true);
-                println!("hwnd -> :  {}", win.raw_handle() as i128);
+                hwnd = win.raw_handle() as i128;
+                libWxIkunPlus::setwinVisible(hwnd.clone(), true);
+                println!("hwnd -> :  {}", &hwnd);
                 true
             }
 
@@ -916,7 +918,13 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                 //  打开文件夹选择器
                 if check_select_click!(btn_open_select_dir) {
+
+                    let the_win = libWxIkunPlus::getFocusWindow();
+                    
+                    libWxIkunPlus::setwinVisible(the_win.clone(), false);
                     let user_select_path = libWxIkunPlus::openSelectFolder2();
+                    libWxIkunPlus::setwinVisible(the_win.clone(), true);
+
 
                     if user_select_path.len() > 1 {
                         initialize_watch_path_puppet(user_select_path.clone());

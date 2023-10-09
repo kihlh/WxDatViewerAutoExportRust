@@ -327,7 +327,7 @@ fn addInput_shellName(appMainWin: &mut window::DoubleWindow) -> ConsoleItme {
 
     let mut buf = fltk::text::TextBuffer::default();
     let mut txt = fltk::text::TextEditor::default()
-        .with_size(180, 27)
+        .with_size(180+8, 27)
         .center_of_parent();
     txt.set_buffer(buf.clone());
     txt.set_frame(FrameType::NoBox);
@@ -462,7 +462,7 @@ fn get_window_hwnd(win:&window::Window) -> i128 {
     let mut xclass = win.xclass().unwrap_or_else(||String::new());
     let mut xtitle =String::new();// win.label();
 
-    let hwnd = libWxIkunPlus::findWindow(xclass.clone(), xtitle.clone()) ;
+    let hwnd = libWxIkunPlus::findWindow(xclass.as_str(), xtitle.as_str()) ;
     println!("xclass<{}> xtitle<{}> hwnd<{}>", xclass,xtitle, hwnd);
     hwnd
 }
@@ -706,16 +706,23 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                     if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
                        gui_select_user_base::mian_window();
                     }else{
-                        thread::spawn(||{
-                            libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
-                        });
+                        // thread::spawn(||{
+                        //     // libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
+                        //     dialog::alert_default(format!("\n[错误] {}","当前未发现wx进程或者未登录 拒绝提供选取方案").as_str());
+
+                        // });
+                        libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
+                        // dialog::alert_default(format!("\n[错误] {}","当前未发现wx进程或者未登录 拒绝提供选取方案").as_str());
                     }
 
                     println!("click => shellOpenDatDir");
                 } else if (point_exist_hasmap.shellOpenExportDir) {
                     input_Console.buff.set_text("[用户] 打开选取导出到的文件夹");
+                    
+                    libWxIkunPlus::setwinVisible(g_appMainWinHwnd, false);
                     let mut open_path = libWxIkunPlus::openSelectFolder2();
-
+                    libWxIkunPlus::setwinVisible(g_appMainWinHwnd, true);
+                    
                     input_Console
                         .buff
                         .append(format!("\n[选取器] 用户输入的文件路径为: {}",open_path).as_str());
@@ -902,9 +909,12 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
                      }else{
                         //  libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程 拒绝提供选取方案".to_owned())
-                        input_Console.buff.append(
-                            format!("\n[错误] 添加失败 因为-> {}","当前未发现wx进程或者未登录 拒绝提供添加").as_str(),
-                        );
+                        // dialog::alert_default(format!("\n[错误] {}","当前未发现wx进程或者未登录 拒绝提供添加").as_str());
+                        libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供添加".to_owned());
+
+                        // input_Console.buff.append(
+                        //     format!("\n[错误] 添加失败 因为-> {}","当前未发现wx进程或者未登录 拒绝提供添加").as_str(),
+                        // );
                        
                      }
 

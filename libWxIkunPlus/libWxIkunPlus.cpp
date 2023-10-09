@@ -253,26 +253,26 @@ bool _setWindowsTop(long hwnds, bool visible)
 
 bool _createMutex(const char* MutexName)
 {
-    string copy_MutexName = hmc_text_util::U82A(MutexName);
+    string copy_MutexName = (MutexName);
     return Mutex::create(copy_MutexName);
 }
 
 bool _hasMutex(const char* MutexName)
 {
-    string copy_MutexName = hmc_text_util::U82A(MutexName);
+    string copy_MutexName = (MutexName);
     return Mutex::has(copy_MutexName);
 }
 
 bool _removeMutex(const char* MutexName)
 {
-    string copy_MutexName = hmc_text_util::U82A(MutexName);
+    string copy_MutexName = (MutexName);
 
     return Mutex::remove(copy_MutexName);
 }
 
 bool _Alert(const char* title ,const char* info) {
-    string copy_title = hmc_text_util::U82A(title);
-    string copy_info = hmc_text_util::U82A(info);
+    string copy_title = (title);
+    string copy_info = (info);
 
     int To_MessageBoxA = MessageBoxA(NULL, copy_info.c_str() , copy_title.c_str(),MB_OK);
     if (To_MessageBoxA == 1 || To_MessageBoxA == 6)
@@ -286,8 +286,8 @@ bool _Alert(const char* title ,const char* info) {
 }
 
 bool _Confirm(const char* title, const char* info) {
-    string copy_title = hmc_text_util::U82A(title);
-    string copy_info = hmc_text_util::U82A(info);
+    string copy_title = (title);
+    string copy_info = (info);
 
     int To_MessageBoxA = MessageBoxA(NULL, copy_info.c_str(), copy_title.c_str(), MB_OKCANCEL);
     if (To_MessageBoxA == 1 || To_MessageBoxA == 6)
@@ -301,15 +301,15 @@ bool _Confirm(const char* title, const char* info) {
 }
 
 void _Stop(const char* title, const char* info) {
-    string copy_title = hmc_text_util::U82A(title);
-    string copy_info = hmc_text_util::U82A(info);
+    string copy_title = (title);
+    string copy_info = (info);
 
     int To_MessageBoxA = MessageBoxA(NULL, copy_info.c_str(), copy_title.c_str(), MB_ICONERROR);
 }
 
 void _Error(const char* title, const char* info) {
-    string copy_title = hmc_text_util::U82A(title);
-    string copy_info = hmc_text_util::U82A(info);
+    string copy_title = (title);
+    string copy_info = (info);
 
     int To_MessageBoxA = MessageBoxA(NULL, copy_info.c_str(), copy_title.c_str(), MB_ICONEXCLAMATION);
 }
@@ -481,8 +481,8 @@ const char* _openSelectFolder2()
 
 const char* _getRegistrValue(long hKey, const char* _subKey, const char* _key)
 {
-    string subKey = hmc_text_util::U82A(_subKey);
-    string key = hmc_text_util::U82A(_key);
+    string subKey = (_subKey);
+    string key = (_key);
 
     string result = hmc_registr::getRegistrValue<string>((HKEY)hKey, subKey, key);
   
@@ -563,11 +563,47 @@ const char* _enum_file_open_path () {
     return result.c_str();
 }
 
+string get_utf8_str(const char* input, int inputLen = 0) {
+    string ouput = string();
+    if (inputLen > 0) {
+        ouput.resize(inputLen);
+        for (size_t i = 0; i < inputLen; i++)
+        {
+            char data = input[i];
+            if (data == (char)"\0") {
+                break;
+            }
+            ouput[i] = input[i];
+        }
+        //ouput.append("\0");
+    }
+    else {
+        ouput.append(input);
+    }
 
-long _findWindow(const char* className, const char* title) {
+    ouput = hmc_text_util::U82A(ouput);
+
+    return ouput;
+}
+
+long _findWindowU8(const char* className, const char* title) {
+
     string copy_className = hmc_text_util::U82A(className);
     string copy_title = hmc_text_util::U82A(title);
     return (long)hmc_window::findWindow(copy_className, copy_title);
+
+}
+
+long _findWindowW(const wchar_t* className, const wchar_t* title) {
+
+    return (long)hmc_window::findWindowW(className, title);
+
+}
+
+long _findWindow(const char* className, const char* title) {
+ 
+    return (long)hmc_window::findWindow(className, title);
+
 }
 
 bool _has_auto_sync() {
@@ -597,4 +633,12 @@ bool _has_sync_token() {
         return true;
     }
     return false;
+}
+
+long _getFocusWindow() {
+   return (long) hmc_window::getFocusWindow();
+}
+
+long _getFocusTopWindow() {
+    return (long)hmc_window::getParentWindow(hmc_window::getFocusWindow())|| hmc_window::getFocusWindow();
 }
