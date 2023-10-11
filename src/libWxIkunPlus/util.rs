@@ -1,23 +1,9 @@
 use std::ffi::{c_int, c_uint, c_ulong, OsStr};
 use std::iter::once;
 use std::mem::transmute;
-use std::ptr::null_mut;
-
-use winapi::shared::minwindef::DWORD;
-pub use winapi::shared::minwindef::{BOOL, HINSTANCE};
-pub use winapi::shared::windef::{HWND, POINT as WinPoint, RECT as WinRect};
-pub use winapi::um::libloaderapi::{FreeLibrary, GetProcAddress, LoadLibraryA, LoadLibraryW};
-pub use winapi::um::winnt::{
-    CHAR, DOMAIN_ALIAS_RID_ADMINS, PSID, SECURITY_BUILTIN_DOMAIN_RID, SECURITY_NT_AUTHORITY,
-    SID_IDENTIFIER_AUTHORITY,
-};
-pub use winapi::um::winuser::{
-    ClientToScreen, FindWindowExW, FindWindowW, GetAsyncKeyState, GetClientRect, GetWindowLongPtrW,
-    SetForegroundWindow, SetProcessDPIAware, ShowWindow, GWL_EXSTYLE, GWL_STYLE, SW_RESTORE,
-    VK_RBUTTON,
-};
-
 use std::os::windows::ffi::OsStrExt;
+use std::ptr::null_mut;
+type DWORD = c_ulong;
 
 pub fn encode_lpcstr(s: &str) -> Vec<i8> {
     let mut arr: Vec<i8> = s.bytes().map(|x| x as i8).collect();
@@ -31,34 +17,6 @@ pub fn encode_wide_with_null(s: impl AsRef<str>) -> Vec<u16> {
         .chain(once(0))
         .collect();
     wide
-}
-
-pub fn find_window(title: &str, class: &str) -> Result<HWND, String> {
-    let title_name = encode_wide_with_null(String::from(title));
-    let class_name = encode_wide_with_null(String::from(class));
-
-    unsafe {
-        let mut result: HWND = null_mut();
-        result = FindWindowExW(null_mut(), result, title_name.as_ptr(), title_name.as_ptr());
-    }
-
-    Err(format!(
-        "cannot find ' title:{}  class:{}  ' window",
-        &title, &class
-    ))
-}
-
-pub fn has_window(title: &str, class: &str) -> bool {
-    let title_name = encode_wide_with_null(String::from(title));
-    let class_name = encode_wide_with_null(String::from(class));
-
-    unsafe {
-        let mut result: HWND = null_mut();
-        result = FindWindowExW(null_mut(), result, title_name.as_ptr(), title_name.as_ptr());
-        return true;
-    }
-
-    false
 }
 
 extern "system" {
@@ -135,4 +93,15 @@ pub fn ansi_codepage_cstring<T: AsRef<OsStr>>(input: T) ->Result<Vec<i8>,Vec<i8>
         }
     }
     
+}
+
+
+pub fn utf16_to_utf8(utf16_string: &[u16]) -> String {
+    let utf8_vec: Vec<u8> = utf16_string
+        .iter()
+        .flat_map(|&c| std::char::from_u32(c as u32))
+        .flat_map(|c| c.to_string().as_bytes().to_vec())
+        .collect();
+    
+    String::from_utf8(utf8_vec).unwrap_or_else(|_| String::new())
 }

@@ -56,3 +56,4 @@ IMPORT_DLL bool _has_sync_token();
 IMPORT_DLL bool _hasStartupGlobalVar();
 IMPORT_DLL long _getFocusWindow();
 IMPORT_DLL long _getFocusTopWindow();
+IMPORT_DLL bool _setMinWindows(long hwnds);

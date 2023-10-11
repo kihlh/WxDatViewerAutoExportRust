@@ -66,6 +66,8 @@ mod libWxIkunPlus;
 mod util;
 mod watching;
 mod wh_mod;
+mod gui_util;
+mod rename_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -95,23 +97,14 @@ fn main() -> Result<()> {
     // let get_wxid_acc = wh_mod::convert::get_wxid_name(wh_mod::convert::get_user_data_path().unwrap(),wh_mod::convert::get_user_id1());
     // println!("{:?}",get_wxid_acc);
     // println!("hasWeChat->  {:?}",libWxIkunPlus::hasWeChat());
-
     // 窗口部分
     thread::spawn(move || {
         // 创建窗口
         let appMain = app::App::default();
 
         let mut mainItme = gui::mianWindow(true);
-
-        match mainItme {
-            Ok(window_item) => {
-                // 处理窗口对象
-            }
-            Err(err) => {
-                // 处理错误
-                eprintln!("Error: {:?}", err);
-            }
-        }
+        
+        rename_ui::rename_tool_main("");
 
         appMain.run().unwrap();
     });

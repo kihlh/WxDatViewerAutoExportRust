@@ -792,6 +792,9 @@ pub struct DatParseMeta {
     pub is_thumbnail: bool,
     pub is_source: bool,
     pub is_all: bool,
+    pub is_sync:bool,
+    pub is_video:bool,
+    pub rename_rule: String,
     format_path_list: Vec<std::path::PathBuf>,
 }
 
@@ -885,6 +888,9 @@ impl Clone for DatParseMeta {
             is_source: self.is_source.clone(),
             format_path_list: self.format_path_list.clone(),
             is_all: self.is_all.clone(),
+            is_video:self.is_video.clone(),
+            is_sync: self.is_sync.clone(),
+            rename_rule:self.rename_rule.clone(),
         }
     }
 }
@@ -897,9 +903,12 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
     let mut dat_parse_meta = DatParseMeta {
         attach_id: "".to_string(),
         attach_dir: "".to_string(),
+        rename_rule:"".to_string(),
         // format_dir: "".to_string(),
         is_the_month: false,
         is_thumbnail: false,
+        is_sync:false,
+        is_video:false,
         is_source: false,
         is_all: false,
         format_path_list: Vec::new(),
@@ -927,19 +936,32 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
         if line_f.as_bytes().eq("thumbnail".as_bytes()) {
             dat_parse_meta.is_thumbnail = true;
         }
+        
+        if line_f.as_bytes().eq("video".as_bytes()) {
+            dat_parse_meta.is_video = true;
+        }
+
+        if line_f.as_bytes().eq("Sync".as_bytes()) {
+            dat_parse_meta.is_sync = true;
+        }
+        
+        if line_f.contains("rename_rule=") {
+            dat_parse_meta.rename_rule = line_f.to_string().replace("rename_rule=","");
+        }
+
         dat_parse_meta.is_all = !dat_parse_meta.is_thumbnail.clone()
             && dat_parse_meta.is_source.clone()
-            && dat_parse_meta.is_the_month.clone();
+            && dat_parse_meta.is_the_month.clone()&& dat_parse_meta.is_video.clone();
 
         path_list.push(line_f);
     }
 
     dat_parse_meta.attach_dir = format!("{}", path_list[0].clone());
-    dat_parse_meta.attach_id = split_path(dat_parse_meta.attach_dir.clone())
-        .first()
-        .unwrap()
-        .clone();
 
+    if let Some(attach_id) = split_path(dat_parse_meta.attach_dir.clone()).pop() {
+        dat_parse_meta.attach_id=attach_id;
+    }
+    
     return dat_parse_meta;
 }
 

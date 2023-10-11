@@ -5,7 +5,11 @@ use std::ffi::{c_int, c_long, c_void, OsStr,c_uint,};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 pub type PCSTR =*const c_char;
-use winapi::um::winnt::LPCWCHAR;
+
+type wchar_t = u16;
+type WCHAR = wchar_t;
+
+type LPCWCHAR = *const WCHAR;
 
 use self::util::{encode_lpcstr, ansi_codepage_cstring};
 pub mod util;
@@ -33,6 +37,7 @@ extern "C" {
     fn _getRegistrValue(hKey: c_long, _subKey:PCSTR, _key:PCSTR)->PCSTR;
     fn _hasWeChat() -> bool;
     fn _setTaskbarWin(_hWnd: c_long) -> c_void;
+    fn _setMinWindows(_hWnd: c_long) -> bool;
     fn _findWindow(className:PCSTR, title:PCSTR) -> c_long;
     // fn _findWindowW(className:LPCWCHAR, title:LPCWCHAR) -> c_long;
     // fn _findWindowU8(className:PCSTR, title:PCSTR) -> c_long;
@@ -189,7 +194,15 @@ fn c_string_to_rust_string(ptr:PCSTR) -> String {
 // 启用托盘
 pub fn openSelectFolder2() -> String {
     let mut result = String::new();
+    
+    let the_win = getFocusWindow();
+
+    setwinVisible(the_win.clone(), false);
+    
     unsafe { result = c_string_to_rust_string(_openSelectFolder2()) };
+    
+    setwinVisible(the_win.clone(), true);
+    
     return result;
 }
 
@@ -356,6 +369,11 @@ pub fn setTaskbarWin(hWnd: i128) {
     }
 }
 
+pub fn setMinWindows(hWnd: i128) -> bool {
+    unsafe {
+        _setMinWindows(hWnd as i32)
+    }
+}
 
 
 // 搜索窗口

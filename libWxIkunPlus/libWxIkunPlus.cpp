@@ -246,6 +246,13 @@ bool _setShowWindows(long hwnds, bool visible)
     return true;
 }
 
+bool _setMinWindows(long hwnds)
+{
+    HWND hwnd = (HWND)hwnds;
+    return ShowWindow(hwnd, SW_MINIMIZE);
+}
+
+
 bool _setWindowsTop(long hwnds, bool visible)
 {
     return hmc_window::setWindowTop((HWND)hwnds, visible);

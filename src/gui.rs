@@ -719,10 +719,8 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 } else if (point_exist_hasmap.shellOpenExportDir) {
                     input_Console.buff.set_text("[用户] 打开选取导出到的文件夹");
                     
-                    libWxIkunPlus::setwinVisible(g_appMainWinHwnd, false);
                     let mut open_path = libWxIkunPlus::openSelectFolder2();
-                    libWxIkunPlus::setwinVisible(g_appMainWinHwnd, true);
-                    
+
                     input_Console
                         .buff
                         .append(format!("\n[选取器] 用户输入的文件路径为: {}",open_path).as_str());

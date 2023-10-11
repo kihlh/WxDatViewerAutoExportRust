@@ -921,9 +921,7 @@ pub fn mian_window() -> SelectUserBaseMain {
 
                     let the_win = libWxIkunPlus::getFocusWindow();
                     
-                    libWxIkunPlus::setwinVisible(the_win.clone(), false);
                     let user_select_path = libWxIkunPlus::openSelectFolder2();
-                    libWxIkunPlus::setwinVisible(the_win.clone(), true);
 
 
                     if user_select_path.len() > 1 {
