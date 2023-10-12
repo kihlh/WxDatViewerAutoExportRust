@@ -643,14 +643,18 @@ macro_rules! read_rw_lock {
 #[macro_export]
 macro_rules! set_arc_bind_variable{
     ($static_var: expr,$static_atomic: expr,$value:expr)=>{{
+        use std::sync::{Arc, Condvar, Mutex, RwLock};
+
         let mutex = Arc::new(Mutex::new(&$static_atomic));
         mutex.lock();
         let the_value:usize = $static_atomic.load(Ordering::SeqCst);
-        $static_atomic.store(the_value+1, Ordering::SeqCst);
     
         unsafe{
             $static_var = $value; 
         }
+        
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+
         
         drop(mutex);}
     }
@@ -663,7 +667,6 @@ macro_rules! set_arc_bind_variable_insert {
         let mutex = Arc::new(Mutex::new(&$static_atomic));
         mutex.lock();
         let the_value:usize = $static_atomic.load(Ordering::SeqCst);
-        $static_atomic.store(the_value+1, Ordering::SeqCst);
     
         unsafe{
             // $static_var = $value; 
@@ -671,7 +674,9 @@ macro_rules! set_arc_bind_variable_insert {
                 $static_var.push(value);
             }
         }
-        
+
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+
         drop(mutex);}
     }
 }
@@ -679,12 +684,16 @@ macro_rules! set_arc_bind_variable_insert {
 #[macro_export]
 macro_rules! get_arc_bind_variable{
     ($static_var: expr,$static_atomic: expr)=>{{
+        use std::sync::{Arc, Condvar, Mutex, RwLock};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
         let mutex = Arc::new(Mutex::new(&$static_atomic));
         mutex.lock();
         let the_value:usize = $static_atomic.load(Ordering::SeqCst);
-        $static_atomic.store(the_value+1, Ordering::SeqCst);
     
         let data = unsafe{&$static_var};
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+
         drop(mutex);
         data}
     }

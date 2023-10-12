@@ -19,6 +19,7 @@ pub mod util;
 #[link(name = "libWxIkunPlus", kind = "static")]
 extern "C" {
     fn _setWinIcon(_hWnd: c_long) -> c_void;
+    fn _setWinIconMain(_hWnd: c_long) -> c_void;
     fn _setShowWindows(_hWnd: c_long, visible: bool) -> bool;
     fn _set_tray() -> c_void;
     fn _createMutex(mutex:PCSTR) -> bool;
@@ -47,7 +48,22 @@ extern "C" {
     fn _hasStartupGlobalVar()-> bool;
     fn _getFocusTopWindow()->c_long;
     fn _getFocusWindow()->c_long;
+    fn _findAllWindow(className:PCSTR, title:PCSTR) -> PCSTR;
+    fn _isWindow(_hWnd: c_long) -> bool;
+    fn _setWindowShake(hWnd: c_long);
 
+}
+
+// 设置主窗口图标 从当前二进制获取
+pub fn setWinIconMain(hWnd: i128) {
+    unsafe {
+        match hWnd.try_into() {
+            Ok(hwnds) => {
+                _setWinIconMain(hwnds);
+            }
+            Err(_) => {}
+        }
+    };
 }
 
 // 设置窗口图标 从当前二进制获取
@@ -61,6 +77,7 @@ pub fn setWinIcon(hWnd: i128) {
         }
     };
 }
+
 
 // 关闭窗口
 pub fn closeWindow(hWnd: i128, destroy: bool) {
@@ -375,6 +392,17 @@ pub fn setMinWindows(hWnd: i128) -> bool {
     }
 }
 
+pub fn isWindow(hWnd: i128) -> bool {
+    unsafe {
+        _isWindow(hWnd as i32)
+    }
+}
+
+pub fn setWindowShake(hWnd: i128)  {
+    unsafe {
+        _setWindowShake(hWnd as i32)
+    }
+}
 
 // 搜索窗口
 pub fn findWindow(className: &str, titleName: &str)->i128 {
@@ -449,5 +477,49 @@ pub fn getFocusWindow()->i128{
 pub fn getFocusTopWindow()->i128{
     unsafe{
         _getFocusTopWindow() as i128
+    }
+}
+
+fn get_str_to_long_vec(c_result:PCSTR)->Vec<i128>{
+    let mut list:Vec<i128> = Vec::new();
+    let result =c_string_to_rust_string(c_result);
+
+    let long_str = String::from("1234567890");
+    let mut the_data = String::new();
+
+    for char in result.chars() {
+        if(long_str.contains(char)){
+            the_data.push(char);
+        }else{
+            if !the_data.is_empty() {
+
+                let parsed_number: Result<i32, _> = the_data.parse();
+                if let Ok(parsed_number) = parsed_number {
+                    list.push(parsed_number as i128);
+                }
+                the_data.clear();
+            }
+
+        }
+    }
+
+    if !the_data.is_empty() {
+        let parsed_number: Result<i32, _> = the_data.parse();
+        if let Ok(parsed_number) = parsed_number {
+            list.push(parsed_number as i128);
+        }
+        the_data.clear();
+    }
+
+    list
+}
+
+
+pub fn findAllWindow(className: &str, titleName: &str)->Vec<i128>{
+    unsafe{
+        let mut className = rust_string_to_ansi_str(className.to_string());
+        let mut titleName = rust_string_to_ansi_str(titleName.to_string());
+        let c_result = _findAllWindow(className.as_ptr(),titleName.as_ptr());
+        get_str_to_long_vec(c_result)
     }
 }

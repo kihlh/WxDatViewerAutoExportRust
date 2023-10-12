@@ -80,5 +80,6 @@ pub static systemRedColor: Lazy<Color> = Lazy::new(|| Color::from_rgba_tuple((25
 pub static systemTealColor: Lazy<Color> = Lazy::new(|| Color::from_rgba_tuple((76, 187, 242, 255)));
 pub static systemYellowColor: Lazy<Color> =
     Lazy::new(|| Color::from_rgba_tuple((254, 207, 14, 255)));
-pub static systemBlueColor: Lazy<Color> = Lazy::new(|| Color::from_rgba_tuple((16, 106, 254, 255)));
+    // 选项高亮  例如 标签选择器
+pub static systemBlueColor: Lazy<Color> = Lazy::new(|| Color::from_rgba_tuple((16, 34, 34, 34)));
 pub static systemCyanColor: Lazy<Color> = Lazy::new(|| Color::from_rgba_tuple((90, 200, 245, 255)));

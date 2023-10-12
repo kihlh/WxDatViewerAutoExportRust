@@ -120,12 +120,28 @@ pub fn initialize_table(conn: &Connection) {
         Err(err) => eprint!("{}", err),
     };
 
-    if let Ok(_) = conn.execute(
-        "ALTER TABLE 'export_dir_path' ADD COLUMN 'rename' TEXT;",
+
+    match conn.execute(
+        "CREATE TABLE IF NOT EXISTS 'user_remark' (
+            time	TEXT,
+            wxid	TEXT,
+            attach_id	TEXT,
+            remark_name TEXT
+         );",
         (), // empty list of parameters.
     ) {
-        console_log!(format!("[update] {}", "表头 'rename' 已经成功添加"));
+        Ok(_) => {}
+        Err(err) => eprint!("{}", err),
     };
+    
+    // if let Ok(_) = conn.execute(
+    //     "ALTER TABLE 'export_dir_path' ADD COLUMN 'rename' TEXT;",
+    //     (), // empty list of parameters.
+    // ) {
+    //     console_log!(format!("[update] {}", "表头 'rename' 已经成功添加"));
+    // };
+
+    
 }
 
 #[derive(Debug)]
@@ -454,6 +470,7 @@ pub fn handle_commandLine() -> Result<()> {
     // push export_dir_path
 
     if args.len() == 4 {
+        process::exit(0);
         let conn: Connection =
             Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
         initialize_table(&conn);

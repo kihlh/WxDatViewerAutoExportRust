@@ -68,6 +68,7 @@ mod watching;
 mod wh_mod;
 mod gui_util;
 mod rename_ui;
+mod select_user_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -82,6 +83,8 @@ fn main() -> Result<()> {
     handle_dat::handle_commandLine();
 
     // 拒绝软件重复启动
+    if (!wh_mod::convert::is_developer()){ 
+        
     if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
         libWxIkunPlus::error(
             "启动失败".to_owned(),
@@ -91,12 +94,10 @@ fn main() -> Result<()> {
     } else {
         libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
     }
+    
+   }
 
-    // let get_wxid_acc = wh_mod::convert::get_wxid_name(wh_mod::convert::get_user_data_path().unwrap(),wh_mod::convert::get_user_id2());
-    // println!("{:?}",get_wxid_acc);
-    // let get_wxid_acc = wh_mod::convert::get_wxid_name(wh_mod::convert::get_user_data_path().unwrap(),wh_mod::convert::get_user_id1());
-    // println!("{:?}",get_wxid_acc);
-    // println!("hasWeChat->  {:?}",libWxIkunPlus::hasWeChat());
+
     // 窗口部分
     thread::spawn(move || {
         // 创建窗口
@@ -104,7 +105,7 @@ fn main() -> Result<()> {
 
         let mut mainItme = gui::mianWindow(true);
         
-        rename_ui::rename_tool_main("");
+        
 
         appMain.run().unwrap();
     });

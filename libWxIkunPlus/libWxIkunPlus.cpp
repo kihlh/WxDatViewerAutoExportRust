@@ -132,20 +132,42 @@ string getProcessidFilePath(int ProcessID)
 }
 
 
-void _setWinIcon(long hwnds)
-{
 
-    if (IsWindow(winmian))
+void _setWinIconMain(long hwnds)
+{
+    winmian = (HWND)hwnds;
+
+    if (!IsWindow(winmian))
     {
         return;
     }
-    winmian = (HWND)hwnds;
     // setWindowTop(winmian,true);
     string execPath = getProcessidFilePath(_getpid());
     hmc_window::setWindowIcon(winmian, execPath, 0);
 }
 
+void _setWinIcon(long hwnds)
+{
+    HWND hwnd = (HWND)hwnds;
+    if (!IsWindow(hwnd))
+    {
+        return;
+    }
+    // setWindowTop(winmian,true);
+    string execPath = getProcessidFilePath(_getpid());
+    hmc_window::setWindowIcon(hwnd, execPath, 0);
+}
 
+bool _isWindow(long hwnds)
+{
+    HWND hwnd = (HWND)hwnds;
+    return ::IsWindow(hwnd);
+}
+
+void _setWindowShake(long hwnds) {
+    HWND hwnd = (HWND)hwnds;
+    hmc_window::setWindowShake(hwnd);
+}
 void _setTaskbarWin(long hwnds) {
     HWND main = HWND(hwnds);
     hmc_window::removeWindowFrame(main);
@@ -649,3 +671,130 @@ long _getFocusWindow() {
 long _getFocusTopWindow() {
     return (long)hmc_window::getParentWindow(hmc_window::getFocusWindow())|| hmc_window::getFocusWindow();
 }
+
+const char* hwnd_list2_long_list(vector<HWND> &hwnd_list) {
+
+    string _hwnd_list = string();
+    for (size_t i = 0; i < hwnd_list.size(); i++)
+    {
+        HWND hwnd = hwnd_list[i];
+        _hwnd_list.append(to_string((int)hwnd));
+        _hwnd_list.append(",");
+
+    }
+
+    if (!_hwnd_list.empty()) {
+        _hwnd_list.pop_back();
+    }
+
+    //cout << "_hwnd_list->" << _hwnd_list << endl;
+
+    char* pUTF8 = new char[_hwnd_list.size() + 1];
+
+    for (size_t i = 0; i < _hwnd_list.size(); i++)
+    {
+        char data = _hwnd_list[i];
+        pUTF8[i] = data;
+    }
+    const int end = _hwnd_list.size();
+
+    pUTF8[end] = *"\0";
+
+    //cout << "pUTF8->" << pUTF8 << endl;
+
+    return pUTF8;
+}
+
+std::string removeNullCharacters(std::string str) {
+
+    string data = string();
+    data.append(str);
+
+    // 移除开头的空字符
+    while (!data.empty() && data.front() == '\0') {
+        data.erase(0, 1);
+    }
+
+    // 移除末尾的空字符
+    while (!data.empty() && data.back() == '\0') {
+        data.pop_back();
+    }
+
+    return data;
+}
+
+const char* _findAllWindow(const char* className, const char* title) {
+    vector<HWND> hwnd_list ;
+
+    string _hwnd_list = string();
+    string _className = hmc_window::removeNullCharacters(string(className));
+    string _titleName = hmc_window::removeNullCharacters(string(title));
+
+    HWND winEnumerable = GetTopWindow(0);
+   
+    while (winEnumerable)
+    {
+        if (::IsWindow(winEnumerable)) {
+
+        string the_class = string();
+        string the_titleName = string();
+
+        if (!_className.empty()) {
+            the_class = hmc_window::getClassName(winEnumerable);
+            
+            if (the_class == _className) {
+
+                if (_titleName.empty()) {
+
+                    hwnd_list.push_back(winEnumerable);
+
+                }
+            }
+        }
+
+
+        if (!_titleName.empty()) {
+            
+            the_titleName = hmc_window::getWindowText(winEnumerable);
+            if (the_titleName == _titleName) {
+
+                if (_className.empty()) {
+                    hwnd_list.push_back(winEnumerable);
+                }
+
+            }
+        }
+
+        if (!_className.empty()&& !the_titleName.empty()) {
+            if (the_titleName == _titleName&& the_class == _className) {
+                hwnd_list.push_back(winEnumerable);
+            }
+        }
+
+        }
+
+        winEnumerable = GetNextWindow(winEnumerable, GW_HWNDNEXT);
+    }
+
+    for (size_t i = 0; i < hwnd_list.size(); i++)
+    {
+        HWND hwnd = hwnd_list[i];
+        _hwnd_list.append(to_string((int)hwnd));
+        _hwnd_list.append(",");
+
+    }
+
+    if (!_hwnd_list.empty()) {
+        _hwnd_list.pop_back();
+    }
+
+    //cout << "_hwnd_list->" << _hwnd_list << endl;
+
+    char* pUTF8 = new char[_hwnd_list.size() + 1];
+
+    for (size_t i = 0; i < _hwnd_list.size(); i++)
+    {
+        char data = _hwnd_list[i];
+        pUTF8[i] = data;
+    }
+    const int end = _hwnd_li

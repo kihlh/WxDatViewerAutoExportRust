@@ -464,6 +464,8 @@ pub fn ManageItmeMain() {
             enums::Event::Show => {
                 win.set_visible_focus();
                 libWxIkunPlus::setwinVisible(win.raw_handle() as i128 , true);
+                // libWxIkunPlus::setWinIcon(win.raw_handle() as i128);
+
                 println!("hwnd -> :  {}",win.raw_handle() as i128);
                 true
             }
@@ -672,6 +674,6 @@ pub fn ManageItmeMain() {
         }
     });
 
-    libWxIkunPlus::setWinIcon(win.raw_handle() as i128);
+    // libWxIkunPlus::setWinIcon(win.raw_handle() as i128);
     // libWxIkunPlus::setWinTop(win.raw_handle() as i128, true);
 }

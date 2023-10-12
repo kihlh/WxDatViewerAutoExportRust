@@ -70,7 +70,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui};
 use crate::wh_mod::parse_dat_path;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
@@ -659,7 +659,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
                 env::set_var("ikunWinHwnd", format!("{}",g_appMainWinHwnd).to_string());
                 // unsafe { setWinIcon(appMainWinHwnd.try_into().unwrap()) };
-                libWxIkunPlus::setWinIcon(g_appMainWinHwnd);
+                libWxIkunPlus::setWinIconMain(g_appMainWinHwnd);
 
                 
                 // libWxIkunPlus::setwinVisible(g_copy_dock_win_hwnd , true);
@@ -704,7 +704,8 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                   
                     // 有wx进程 而且有窗口
                     if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
-                       gui_select_user_base::mian_window();
+                    select_user_ui::manage_tool_main();
+                    // gui_select_user_base::mian_window();
                     }else{
                         // thread::spawn(||{
                         //     // libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());

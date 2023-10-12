@@ -1,3 +1,5 @@
+#![allow(warnings, unused)]
+
 use fltk::{
     app::{self, handle},
     button::{self, Button},

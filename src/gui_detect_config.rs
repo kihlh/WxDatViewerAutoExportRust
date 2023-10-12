@@ -20,7 +20,7 @@ use fltk::{
 };
 use fltk_table::{SmartTable, TableOpts};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
-use rusqlite::Connection;
+use rusqlite::{Connection};
 use std::sync::{mpsc, MutexGuard};
 
 use std::collections::{HashMap, HashSet};
@@ -136,7 +136,14 @@ pub fn main_window() {
     // global_var::set_i32("user::config::select_user_thumbnail_obj",-1);
     macro_rules! update_gui_state {
                     () => {
-               if(!global_var::get_bool_default("user::config::check_button_the_month")&&!global_var::get_bool_default("user::config::check_button_source")&&!global_var::get_bool_default("user::config::check_button_thumbnail")){
+        
+        if(
+            // !global_var::get_bool_default("user::config::check_button_sync")&&
+            !global_var::get_bool_default("user::config::check_button_video")&&
+            !global_var::get_bool_default("user::config::check_button_thumbnail")&&
+            !global_var::get_bool_default("user::config::check_button_source")&&
+            !global_var::get_bool_default("user::config::check_button_the_month")
+        ){
         gui_text_form03_state.set_label("尚未选择".to_string());
         gui_text_form03_state.set_color(215, 97, 97);
         gui_imag_from03_state.from_data(include_bytes!("./assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
@@ -157,7 +164,7 @@ pub fn main_window() {
         gui_imag_from02_state.from_data(include_bytes!("./assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
 
-    if(global_var::get_string_default("user::config::input_select_dir").is_empty()){
+    if(global_var::get_string_default("user::config::user_select_path").is_empty()){
         gui_text_form01_state.set_label("尚未选择".to_string());
         gui_text_form01_state.set_color(215, 97, 97);
         gui_imag_from01_state.from_data(include_bytes!("./assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);

@@ -197,12 +197,115 @@ pub struct WxActiveUser {
 }
 
 // 获取活动用户的路径
-pub fn get_active_user() -> Vec<WxActiveUser>{
+pub fn get_active_user(user_root: &str) -> Vec<WxActiveUser> {
     let mut active_users = Vec::new();
-    // ! 这部分也是不开源的部分
+    let mut get_size = libWxIkunPlus::findAllWindow("WeChatMainWndForPC", "").len();
+    let mut read_dir_list: Vec<fs::DirEntry> = Vec::new();
+
+    // 读取包含 wxid_ 的文件夹
+    if let Ok(read_dir) = fs::read_dir(user_root) {
+        for dir in read_dir {
+            if let Ok(dir) = dir {
+                let string_lossy = format!("{:?}", dir.file_name());
+
+                if string_lossy.contains("wxid_") {
+                    read_dir_list.push(dir);
+                }
+            }
+        }
+    }
+    
+    let mut vec_wxid_list:Vec<PathBuf> = Vec::new();
+    
+    for value in read_dir_list {
+        // 通过高更新率的文件判断出最后修改时间
+        let config_path = value.path().join("config");
+
+        let mut read_file_list = Vec::new();
+
+        if let Ok(read_dir) = fs::read_dir(config_path) {
+            for dir in read_dir {
+                if let Ok(read_file) = dir {
+                    read_file_list.push(read_file);
+                }
+            }
+        }
+
+        //按照修改时间排序
+        read_file_list.sort_by(|a, b| {
+            let mut a_created = std::time::UNIX_EPOCH;
+            let mut b_created = std::time::UNIX_EPOCH;
+
+            if let Ok(metadata) = a.metadata() {
+                if let Result::Ok(create) = metadata.modified() {
+                    a_created = create;
+                }
+            }
+
+            if let Ok(metadata) = b.metadata() {
+                if let Result::Ok(create) = metadata.modified() {
+                    b_created = create;
+                }
+            }
+
+            a_created.cmp(&b_created)
+        });
+        read_file_list.reverse();
+
+        if !read_file_list.is_empty() {
+            vec_wxid_list.push(read_file_list[0].path());
+        }   
+
+    }
+
+    // 排序出根目录的路径
+    vec_wxid_list.sort_by(|a, b| {
+        let mut a_created = std::time::UNIX_EPOCH;
+        let mut b_created = std::time::UNIX_EPOCH;
+
+        if let Ok(metadata) = a.metadata() {
+            if let Result::Ok(create) = metadata.modified() {
+                a_created = create;
+            }
+        }
+
+        if let Ok(metadata) = b.metadata() {
+            if let Result::Ok(create) = metadata.modified() {
+                b_created = create;
+            }
+        }
+
+        a_created.cmp(&b_created)
+    });
+
+    vec_wxid_list.reverse();
+
+    for value in vec_wxid_list.to_vec() {
+        if active_users.len() >= get_size &&!is_developer(){
+            break;
+        }
+     
+       let parse_path = wh_mod::wx_parse_path(format!("{}",value.to_str().unwrap()));
+        
+        if !parse_path.user_data.is_empty()&&!parse_path.wxid.is_empty() {
+            active_users.push(WxActiveUser{
+                accinfo: get_wxid_name(parse_path.user_data.clone(),parse_path.wxid.clone()),
+                user_wxid: parse_path.wxid.clone(),
+                user_root: parse_path.user_data.clone(),
+                user_data: format!("{}\\{}",parse_path.user_data.clone(),parse_path.wxid.clone()),
+            });  
+        }
+        
+      
+
+    //    println!("parse_path-> {:?}",&parse_path);
+    }
+   
+    // println!("read_file_list ->  {:?}",&vec_wxid_list);
 
     active_users
 }
+
 
 // 判断当前是否处于开发者模式
 pub fn is_developer() -> bool {
