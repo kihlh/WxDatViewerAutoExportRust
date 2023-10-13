@@ -60,4 +60,5 @@ IMPORT_DLL bool _setMinWindows(long hwnds);
 IMPORT_DLL const char* _findAllWindow(const char* className, const char* title);
 IMPORT_DLL void _setWinIconMain(long hwnds);
 IMPORT_DLL bool _isWindow(long hwnds);
-IMPORT_DLL void _setWindowShake(long hwnds
+IMPORT_DLL void _setWindowShake(long hwnds);
+

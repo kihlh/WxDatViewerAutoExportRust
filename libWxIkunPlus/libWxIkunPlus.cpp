@@ -797,4 +797,12 @@ const char* _findAllWindow(const char* className, const char* title) {
         char data = _hwnd_list[i];
         pUTF8[i] = data;
     }
-    const int end = _hwnd_li
+    const int end = _hwnd_list.size();
+
+    pUTF8[end] = *"\0";
+
+    //cout << "pUTF8->" << pUTF8 << endl;
+
+    return pUTF8;
+
+}
