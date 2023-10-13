@@ -10,6 +10,7 @@
 #include <ShlObj.h>
 #include <Psapi.h>
 #include <Shellapi.h>
+#include <random>
 
 #include <map>
 #include <thread>
@@ -61,4 +62,5 @@ IMPORT_DLL const char* _findAllWindow(const char* className, const char* title);
 IMPORT_DLL void _setWinIconMain(long hwnds);
 IMPORT_DLL bool _isWindow(long hwnds);
 IMPORT_DLL void _setWindowShake(long hwnds);
-
+IMPORT_DLL const char* _getWindowRect(long hwnds);
+IMPORT_DLL long long _randomNum();

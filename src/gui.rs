@@ -70,7 +70,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui, gui_util};
 use crate::wh_mod::parse_dat_path;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
@@ -631,9 +631,6 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     let mut g_appMainWinHwnd = 0;
     // let mut g_copy_dock_win_hwnd = 0;
 
-    
- 
-
     appMainWin.handle({
         let mut x = 0;
         let mut y = 0;
@@ -953,6 +950,8 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
             _ => false,
         }
     });
+
+
 
     // dock_win.handle({
     //     let mut win = copy_appMainWin.clone();

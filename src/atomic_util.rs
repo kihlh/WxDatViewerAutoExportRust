@@ -660,6 +660,49 @@ macro_rules! set_arc_bind_variable{
     }
 }
 
+#[macro_export]
+macro_rules! set_arc_bind_variable_vec_clear{
+    ($static_var: expr,$static_atomic: expr)=>{{
+        use std::sync::{Arc, Condvar, Mutex, RwLock};
+
+        let mutex = Arc::new(Mutex::new(&$static_atomic));
+        mutex.lock();
+        let the_value:usize = $static_atomic.load(Ordering::SeqCst);
+
+        unsafe{
+            $static_var .clear();
+        }
+
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+
+
+        drop(mutex);}
+    }
+}
+
+#[macro_export]
+macro_rules! set_arc_bind_variable_vec_replace_data{
+    ($static_var: expr,$static_atomic: expr,$value:expr)=>{{
+        use std::sync::{Arc, Condvar, Mutex, RwLock};
+
+        let mutex = Arc::new(Mutex::new(&$static_atomic));
+        mutex.lock();
+        let the_value:usize = $static_atomic.load(Ordering::SeqCst);
+
+        unsafe{
+            $static_var .clear();
+            for value in $value {
+                $static_var.push(value)
+            }
+        }
+
+        $static_atomic.store(the_value+1, Ordering::SeqCst);
+
+
+        drop(mutex);}
+    }
+}
+
 
 #[macro_export]
 macro_rules! set_arc_bind_variable_insert {

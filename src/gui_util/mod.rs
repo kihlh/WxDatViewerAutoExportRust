@@ -9,6 +9,8 @@ pub mod img;
 pub mod text;
 pub mod hotspot;
 pub mod variable_tag_control;
+pub(crate) mod message;
+
 #[macro_export]
 macro_rules! inject_fltk_theme {
     () => {

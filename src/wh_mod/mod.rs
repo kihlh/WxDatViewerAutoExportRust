@@ -551,14 +551,12 @@ impl Clone for AttachThumbnail {
         }
     }
 }
+
 /**
  * 获取指定 id 下的按照修改时间排序的 缩略图
  * path : D:\...\weixin\WeChat Files\wxid_...\FileStorage\MsgAttach\AttachID\
  */
-pub fn read_attach_buff_thumbnail_data(
-    dir_path: &PathBuf,
-    thumbnail_len: usize,
-) -> Vec<AttachThumbnail> {
+pub fn read_attach_buff_thumbnail_data(dir_path: &PathBuf, thumbnail_len: usize,) -> Vec<AttachThumbnail> {
     let mut attach_thumbnail_list: Vec<AttachThumbnail> = Vec::new();
     let mut new_path = Path::new(dir_path).join("Thumb");
     let mut new_path_images = Path::new(dir_path).join("Image");
@@ -634,11 +632,7 @@ pub fn read_attach_buff_thumbnail_data(
  * 读取attach 下的最后更新N个 thumbnail (与read_attach_buff_thumbnail_data 不一样的是此函数一次性获取的是多个人的)
  * path : D:\...\weixin\WeChat Files\wxid_...\FileStorage\MsgAttach
  */
-pub fn read_attach_buff_thumbnail_list(
-    dir_path: &Path,
-    len: usize,
-    extract_len: usize,
-) -> Vec<AttachThumbnail> {
+pub fn read_attach_buff_thumbnail_list(dir_path: &Path, len: usize, extract_len: usize, ) -> Vec<AttachThumbnail> {
     let mut attach_thumbnail_list: Vec<AttachThumbnail> = Vec::new();
 
     let sort_modified_list = sort_modified_dir_meta(dir_path);
@@ -664,6 +658,82 @@ pub fn read_attach_buff_thumbnail_list(
     attach_thumbnail_list
 }
 
+/**
+ * v2 版本将排序所有文件 而不是文件夹
+ * 读取attach 下的最后更新N个 thumbnail (与read_attach_buff_thumbnail_data 不一样的是此函数一次性获取的是多个人的)
+ * path : D:\...\weixin\WeChat Files\wxid_...\FileStorage\MsgAttach
+ */
+pub fn read_attach_buff_thumbnail_list_v2(dir_path: &Path, len: usize, extract_len: usize, ) -> Vec<AttachThumbnail> {
+    let mut attach_thumbnail_list: Vec<AttachThumbnail> = Vec::new();
+
+    let modified_datetime: DateTime<Local> = SystemTime::now().into();
+    let formatted_time: String = modified_datetime.format("%Y-%m").to_string();
+
+    let mut all_tmp_meta_data_file = Vec::new();
+
+    if let Ok(dir_dir) = fs::read_dir(dir_path) {
+
+        // D:\...\weixin\WeChat Files\wxid_...\FileStorage\MsgAttach\{attid}
+
+        for dir_entry in dir_dir {
+            if let Ok(entry) = dir_entry {
+
+                // D:\...\weixin\WeChat Files\wxid_...\FileStorage\MsgAttach\{attid}\Thumb\2023-10
+
+                let for_path = entry.path().join("Thumb").join(formatted_time.as_str());
+                if for_path.is_dir() {
+                    let mut c = sort_modified_file_meta(for_path.as_path());
+                    if let Some(c) = c.pop() {
+                        all_tmp_meta_data_file.push(c);
+                    }
+                }
+
+            }
+        }
+    }
+
+    // 排序创建时间
+    all_tmp_meta_data_file.sort_by(|a, b| {
+        let mut a_created = UNIX_EPOCH;
+        let mut b_created = UNIX_EPOCH;
+
+        if let Result::Ok(create) = a.metadata.created() {
+            a_created = create;
+        }
+
+        if let Result::Ok(create) = b.metadata.created() {
+            b_created = create;
+        }
+
+        a_created.cmp(&b_created)
+    });
+
+    all_tmp_meta_data_file.reverse();
+
+    println!("all_tmp_meta_data_file-->{}",all_tmp_meta_data_file.len());
+    // 取出五个任务
+    for index in 0..len {
+        if let Some(meta) = all_tmp_meta_data_file.get(index) {
+            if let Some(str) = meta.file.to_str() {
+                let dir_path = wx_parse_path(str.to_string());
+                // println!("dir_path-> {:?}",&dir_path);
+
+                let read_attach_list = read_attach_buff_thumbnail_data(&PathBuf::from(dir_path.attach_path.as_str()).join(dir_path.attach_id.as_str()), extract_len);
+
+                println!("read_attach_list ->[{}] {}",dir_path.attach_path,read_attach_list.len(),);
+
+                for read_attach in read_attach_list {
+                    attach_thumbnail_list.push(read_attach);
+                }
+            }
+        }
+
+    }
+
+    attach_thumbnail_list
+}
+
+
 fn visit_dirs(dir: &Path) -> Vec<PathBuf> {
     let mut path_list: Vec<PathBuf> = Vec::new();
     if let Ok(entries) = fs::read_dir(dir) {
@@ -686,11 +756,7 @@ fn visit_dirs(dir: &Path) -> Vec<PathBuf> {
 /**
  * 匹配出 imag id
  */
-pub fn walk_file(
-    dir_path: &Path,
-    run_tx: mpsc::Sender<(String, Vec<PathBuf>)>,
-    img_id: String,
-) -> HashMap<String, Vec<PathBuf>> {
+pub fn walk_file(dir_path: &Path,run_tx: mpsc::Sender<(String, Vec<PathBuf>)>,img_id: String,) -> HashMap<String, Vec<PathBuf>> {
     // let mut file_list: Vec<PathBuf> = Vec::new();
     let mut wk_list: HashMap<String, Vec<PathBuf>> = HashMap::new();
 

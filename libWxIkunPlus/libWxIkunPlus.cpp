@@ -168,6 +168,7 @@ void _setWindowShake(long hwnds) {
     HWND hwnd = (HWND)hwnds;
     hmc_window::setWindowShake(hwnd);
 }
+
 void _setTaskbarWin(long hwnds) {
     HWND main = HWND(hwnds);
     hmc_window::removeWindowFrame(main);
@@ -672,13 +673,14 @@ long _getFocusTopWindow() {
     return (long)hmc_window::getParentWindow(hmc_window::getFocusWindow())|| hmc_window::getFocusWindow();
 }
 
-const char* hwnd_list2_long_list(vector<HWND> &hwnd_list) {
+template <typename T>
+const char* hwnd_list2_long_list(vector<T> &hwnd_list) {
 
     string _hwnd_list = string();
     for (size_t i = 0; i < hwnd_list.size(); i++)
     {
-        HWND hwnd = hwnd_list[i];
-        _hwnd_list.append(to_string((int)hwnd));
+        T hwnd = hwnd_list[i];
+        _hwnd_list.append(to_string((long long)hwnd));
         _hwnd_list.append(",");
 
     }
@@ -704,6 +706,7 @@ const char* hwnd_list2_long_list(vector<HWND> &hwnd_list) {
 
     return pUTF8;
 }
+
 
 std::string removeNullCharacters(std::string str) {
 
@@ -805,4 +808,55 @@ const char* _findAllWindow(const char* className, const char* title) {
 
     return pUTF8;
 
+}
+
+const char* _getWindowRect(long hwnds){
+    RECT rect;
+    ::GetWindowRect(HWND(hwnds), &rect);
+
+    int width = rect.right - rect.left; // 计算窗口宽度
+    int height = rect.bottom - rect.top; // 计算窗口高度
+
+
+    string res_json = string();
+    res_json.append("{");
+    res_json.append("\"left\":");
+    res_json.append(to_string(rect.left));
+    res_json.append(",\"top\":");
+    res_json.append(to_string(rect.top));
+    res_json.append(",\"bottom\":");
+    res_json.append(to_string(rect.bottom));
+    res_json.append(",\"right\":");
+    res_json.append(to_string(rect.right));
+    res_json.append(",\"width\":");
+    res_json.append(to_string(width));
+    res_json.append(",\"height\":");
+    res_json.append(to_string(height));
+    res_json.append("}");
+
+
+    char* pUTF8 = new char[res_json.size() + 1];
+
+    for (size_t i = 0; i < res_json.size(); i++)
+    {
+        char data = res_json[i];
+        pUTF8[i] = data;
+    }
+    const int end = res_json.size();
+
+    pUTF8[end] = *"\0";
+
+
+    return pUTF8;
+
+}
+
+long long _randomNum() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<long long> dis(-8446744073709551617i64, 8446744073709551617i64);
+
+    int randomNum = dis(gen);
+
+    return randomNum;
 }

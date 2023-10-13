@@ -9,7 +9,16 @@ pub struct HotspotItmeControl {
     pub width: i32,
     pub height: i32,
 }
-
+impl HotspotItmeControl {
+    pub(crate) fn clone(&self) -> Self {
+        HotspotItmeControl{
+            x: self.x.clone(),
+            y: self.y.clone(),
+            width: self.width.clone(),
+            height: self.height.clone(),
+        }
+    }
+}
 impl HotspotItmeControl {
     pub fn new(x: i32, y: i32, width: i32, height: i32) -> Self {
         let mut check_item_control = HotspotItmeControl {
@@ -49,11 +58,7 @@ impl HotspotItmeControl {
             _ => false,
         });
     }
-    // pub fn car(x: i32, y: i32, width: i32, height: i32){
-    //     let mut main = fltk::frame::Frame::new(x,y,width,height, "");
-    //     main.set_frame(FrameType::NoBox);
-    //     main.set_callback()
-    // }
+
 }
 
 pub fn create_hotspot(x: i32, y: i32, width: i32, height: i32) -> HotspotItmeControl {

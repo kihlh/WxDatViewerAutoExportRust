@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicUsize,AtomicBool, Ordering};
 use std::sync::{mpsc, OnceLock};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use std::time::Duration;
 
 static WATCH_PATH_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -68,7 +69,9 @@ pub fn watch_path_puppet(dir_path: String, send_main_tx: mpsc::Sender<PathBuf>) 
             watch_puppet_id.clone()
         );
 
-        let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
+        // let mut config = Config::default().with_poll_interval(Duration::from_millis(1200));
+
+        let mut watcher = RecommendedWatcher::new(tx,Config::default()).unwrap();
         watcher
             .watch(dir_path.as_ref(), RecursiveMode::Recursive)
             .unwrap();
@@ -93,6 +96,7 @@ pub fn watch_path_puppet(dir_path: String, send_main_tx: mpsc::Sender<PathBuf>) 
 
                         // 是文件 后缀是dat 更新方式是修改
                         if (value.is_file()
+                            &&paths.contains("MsgAttach")
                             && (event.clone().kind.is_modify())
                             && str_eq_str("dat".to_owned(), ext.clone()))
                         {

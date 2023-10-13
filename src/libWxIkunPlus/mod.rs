@@ -4,6 +4,11 @@ use std::{env, thread};
 use std::ffi::{c_int, c_long, c_void, OsStr,c_uint,};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use libc::c_longlong;
+use serde_json::json;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value};
+
 pub type PCSTR =*const c_char;
 
 type wchar_t = u16;
@@ -51,7 +56,8 @@ extern "C" {
     fn _findAllWindow(className:PCSTR, title:PCSTR) -> PCSTR;
     fn _isWindow(_hWnd: c_long) -> bool;
     fn _setWindowShake(hWnd: c_long);
-
+    fn _getWindowRect(hWnd: c_long) -> PCSTR;
+    fn _randomNum()->c_longlong;
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -246,17 +252,17 @@ fn rust_string_to_ansi_str(s: String)->Vec<i8>{
     return result;
 }
 
-fn option_vec_u8_to_cstring(option_vec: Option<Vec<u8>>) -> Result<CString, &'static str> {
-    match option_vec {
-        Some(vec) => {
-            match CString::new(vec) {
-                Ok(cstring) => Ok(cstring),
-                Err(_) => Err("Failed to create CString"),
-            }
-        }
-        None => Err("Option<Vec<u8>> is None"),
-    }
-}
+// fn option_vec_u8_to_cstring(option_vec: Option<Vec<u8>>) -> Result<CString, &'static str> {
+//     match option_vec {
+//         Some(vec) => {
+//             match CString::new(vec) {
+//                 Ok(cstring) => Ok(cstring),
+//                 Err(_) => Err("Failed to create CString"),
+//             }
+//         }
+//         None => Err("Option<Vec<u8>> is None"),
+//     }
+// }
 
 
 // // 将Rust UTF-8字符串转换为Windows API中的A字符
@@ -523,3 +529,49 @@ pub fn findAllWindow(className: &str, titleName: &str)->Vec<i128>{
         get_str_to_long_vec(c_result)
     }
 }
+
+#[derive(Debug  )]
+pub struct RECT {
+    pub left:i32,
+    pub top:i32,
+    pub bottom:i32,
+    pub right:i32,
+    pub height:i32,
+    pub width:i32
+}
+pub fn getWindowRect(hWnd: i128)->RECT{
+    let mut rect = RECT{
+        left: 0,
+        top: 0,
+        bottom: 0,
+        right: 0,
+        height: 0,
+        width: 0,
+    };
+
+    unsafe {
+       let c_result_json = _getWindowRect(hWnd as c_long);
+
+        let data = c_string_to_rust_string(c_result_json);
+
+        if let Ok(c_rect) = serde_json::from_str(data.as_str()) as serde_json::Result<Value> {
+            rect.bottom = c_rect["bottom"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.left = c_rect["left"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.top = c_rect["top"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.right = c_rect["right"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.height = c_rect["height"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.width = c_rect["width"].as_i64().unwrap_or_else(||{0}) as i32;
+        }
+
+    }
+
+    rect
+}
+
+// 随机数
+pub(crate) fn randomNum() -> i128{
+    unsafe {
+        _randomNum() as i128
+    }
+}
+

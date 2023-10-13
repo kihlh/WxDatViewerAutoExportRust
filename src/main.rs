@@ -104,8 +104,7 @@ fn main() -> Result<()> {
         let appMain = app::App::default();
 
         let mut mainItme = gui::mianWindow(true);
-        
-        
+
 
         appMain.run().unwrap();
     });
@@ -148,6 +147,7 @@ fn main() -> Result<()> {
 
             let conn: Connection =
                 Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+
             handle_dat::initialize_table(&conn);
             let _ = handle_dat::handle_walk_pictures(&conn);
             let _ = conn.close();
