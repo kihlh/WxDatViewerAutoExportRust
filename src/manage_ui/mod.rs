@@ -1,17 +1,11 @@
 #![allow(warnings, unused)]
 
-use crate::gui;
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
 use fltk::{prelude::*, *};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
+use crate::{gui_util, set_item_id};
 
-macro_rules! set_item_id {
-    ($win:expr,$id:expr) => {
-        $win.set_xclass($id);
-        $win.set_id($id);
-    };
-}
 
 pub fn manage_tool_main() {
     let mut win = window::Window::default().with_size(600, 450).center_screen();

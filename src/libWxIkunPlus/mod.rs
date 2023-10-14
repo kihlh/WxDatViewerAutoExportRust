@@ -58,6 +58,9 @@ extern "C" {
     fn _setWindowShake(hWnd: c_long);
     fn _getWindowRect(hWnd: c_long) -> PCSTR;
     fn _randomNum()->c_longlong;
+    fn _setWindowTransparent(hWnd:c_long,transparent:c_int);
+    fn _getfilePathSingle()->PCSTR;
+    fn _setWindowEnabled(_hWnd: c_long, enabled: bool) -> bool;
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -575,3 +578,21 @@ pub(crate) fn randomNum() -> i128{
     }
 }
 
+pub fn setWindowTransparent(hWnd:i128,transparent:i32){
+    unsafe {
+        _setWindowTransparent(hWnd as c_long,transparent as c_int);
+    }
+}
+
+pub fn getClipFilePathSingle()->String{
+    unsafe{
+        let c_result = _getfilePathSingle();
+        c_string_to_rust_string(c_result)
+    }
+}
+
+pub fn setWindowEnabled(hWnd: i128, enabled: bool) -> bool{
+    unsafe {
+        _setWindowEnabled(hWnd as c_long,enabled)
+    }
+}

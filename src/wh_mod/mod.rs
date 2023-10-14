@@ -45,6 +45,7 @@ fn initialize_watch_path_token() {
     VARIABLE_INITIALIZE_WALK_ATTACH_FILE_LIST.set(true);
 }
 
+// 清理历史枚举记录
 pub fn gc_walk_attach_file_list() {
     initialize_watch_path_token();
     let mutex = Arc::new(Mutex::new(&WALK_ATTACH_FILE_LIST_BIND));
@@ -63,14 +64,10 @@ pub fn gc_walk_attach_file_list() {
     // drop(lazy_value);
 }
 
-pub fn get_walk_attach_file() -> HashMap<String, Vec<PathBuf>> {
+// 获取历史枚举列表
+pub fn get_walk_attach_file_history() -> HashMap<String, Vec<PathBuf>> {
     initialize_watch_path_token();
     let mut result = HashMap::new();
-    // let mut lazy_value = WALK_ATTACH_FILE_LIST.lock().unwrap();
-    // for (key, value) in lazy_value.iter() {
-    //     result.insert(key.to_string(), value.clone());
-    // }
-    // drop(lazy_value);
 
     let mutex = Arc::new(Mutex::new(&WALK_ATTACH_FILE_LIST_BIND));
     mutex.lock();
@@ -89,25 +86,6 @@ pub fn get_walk_attach_file() -> HashMap<String, Vec<PathBuf>> {
 
     WALK_ATTACH_FILE_LIST_BIND.store(the_value + 1, Ordering::SeqCst);
     drop(mutex);
-
-    // macro_rules! get_result_value {
-    //     ($data:expr) => {
-    //         match $data.get() {
-    //             Some(data2) => {
-    //                 for (key, data) in data2.iter() {
-    //                     result.insert(key.to_string(), data.to_vec());
-    //                 }
-    //             }
-    //             _ =>{
-
-    //             },
-    //         };
-    //     };
-    // }
-    // get_result_value!(WALK_ATTACH_FILE);
-    // get_result_value!(WALK_ATTACH_FILE2);
-    // get_result_value!(WALK_ATTACH_FILE3);
-    // get_result_value!(WALK_ATTACH_FILE4);
 
     result
 }

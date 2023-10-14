@@ -6,9 +6,8 @@ use fltk::{prelude::*, *};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
 use crate::gui_util::hotspot::create_hotspot;
 use crate::gui_util::img;
-use crate::{gui, gui_util, libWxIkunPlus};
-use crate::libWxIkunPlus::findWindow;
-use crate::util::Sleep;
+use crate::{gui_util, libWxIkunPlus};
+
 use std::collections::HashSet;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicUsize, Ordering};
@@ -140,7 +139,7 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
         move |win, ev| match ev {
             enums::Event::Show=>{
                 win.set_visible_focus();
-                libWxIkunPlus::setWinTop(findWindow(win_id.as_str(),""),true);
+                libWxIkunPlus::setWinTop(libWxIkunPlus::findWindow(win_id.as_str(),""),true);
                 true
             }
             enums::Event::Drag => {
@@ -189,14 +188,14 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
 
     // 置顶
     std::thread::spawn(move || {
-        Sleep(100);
-        libWxIkunPlus::setWinTop(findWindow(win_id2.as_str(),""),true);
+        std::thread::sleep(std::time::Duration::from_millis(100u64));
+        libWxIkunPlus::setWinTop(libWxIkunPlus::findWindow(win_id2.as_str(),""),true);
 
-        Sleep(500);
-        libWxIkunPlus::setWinTop(findWindow(win_id2.as_str(),""),true);
+        std::thread::sleep(std::time::Duration::from_millis(500u64));
+        libWxIkunPlus::setWinTop(libWxIkunPlus::findWindow(win_id2.as_str(),""),true);
 
-        Sleep(1500);
-        libWxIkunPlus::setWinTop(findWindow(win_id2.as_str(),""),true);
+        std::thread::sleep(std::time::Duration::from_millis(1500u64));
+        libWxIkunPlus::setWinTop(libWxIkunPlus::findWindow(win_id2.as_str(),""),true);
     });
 
     let message_copy = format!("{}",message);
@@ -204,8 +203,10 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
 
     // 释放
     std::thread::spawn(move || {
-        Sleep(close_sleep);
-        libWxIkunPlus::setwinVisible(libWxIkunPlus::findWindow(win_id3.as_str(),""),false);
+        let hwnd = libWxIkunPlus::findWindow(win_id3.as_str(),"");
+        // Sleep(close_sleep);
+        std::thread::sleep(std::time::Duration::from_millis(close_sleep));
+        libWxIkunPlus::setwinVisible(hwnd,false);
     });
 
 }

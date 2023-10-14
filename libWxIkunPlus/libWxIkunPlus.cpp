@@ -860,3 +860,62 @@ long long _randomNum() {
 
     return randomNum;
 }
+
+void _setWindowTransparent(long hwnds,int transparent) {
+    HWND hwnd = (HWND)hwnds;
+    hmc_window::setHandleTransparent(hwnd, transparent);
+}
+
+const char* _getfilePathSingle () {
+    string filePath = "";
+
+    if (OpenClipboard(NULL))
+    {
+        HDROP hDrop = HDROP(::GetClipboardData(CF_HDROP));
+        if (hDrop != NULL)
+        {
+            char szFilePathName[MAX_PATH + 1] = { 0 };
+            UINT UintAllFiles = DragQueryFileA(hDrop, 0xFFFFFFFF, NULL, 0);
+
+            for (UINT index = 0; index < UintAllFiles; index++)
+            {
+                memset(szFilePathName, 0, MAX_PATH + 1);
+                // get path
+                DragQueryFileA(hDrop, index, szFilePathName, MAX_PATH);
+
+                filePath.append(szFilePathName);
+            }
+        }
+        CloseClipboard();
+    }
+
+    char* pUTF8 = new char[filePath.size() + 1];
+
+    for (size_t i = 0; i < filePath.size(); i++)
+    {
+        char data = filePath[i];
+        pUTF8[i] = data;
+    }
+    const int end = filePath.size();
+
+    pUTF8[end] = *"\0";
+
+    return pUTF8;
+}
+
+bool _setWindowEnabled(long hwnds, bool enabled) {
+    HWND hwnd = (HWND)hwnds;
+
+    if (enabled) {
+        ::SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) | (WS_DISABLED));
+        
+    }
+    else {
+        ::SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~(WS_DISABLED));
+
+    }
+
+    LONG windowLong = ::GetWindowLong(hwnd, GWL_STYLE);
+
+    return !(windowLong & WS_DISABLED);
+}

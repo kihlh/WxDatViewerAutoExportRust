@@ -23,11 +23,25 @@ use std::{
 
 pub struct ImgPreview {
     pub preview: frame::Frame,
-    x:i32,
-    y:i32,
-    width: i32,
-    height: i32
+    pub x:i32,
+    pub y:i32,
+    pub width: i32,
+    pub height: i32,
+    pub(crate) data: Vec<u8>,
+    pub img_type:ImgPreviewDataType,
+    pub data_x:i32,
+    pub data_y:i32,
+    pub data_width: i32,
+    pub data_height: i32,
 }
+pub enum ImgPreviewDataType {
+    NoneS,
+    Svg,
+    Jpeg,
+    Png,
+    Gif
+}
+
 impl Clone for ImgPreview {
     fn clone(&self) -> Self {
         ImgPreview {
@@ -36,6 +50,12 @@ impl Clone for ImgPreview {
             y: self.y.clone(),
             width: self.width.clone(),
             height: self.height.clone(),
+            data:self.data.clone(),
+            img_type: ImgPreviewDataType::Svg,
+            data_x: self.data_x.clone(),
+            data_y: self.data_y.clone(),
+            data_width: self.data_width.clone(),
+            data_height: self.data_height.clone(),
         }
     }
 }
@@ -64,7 +84,24 @@ impl ImgPreview {
         preview.set_frame(enums::FrameType::FlatBox);
         preview.set_color(enums::Color::from_rgb(80, 80, 80));
         preview.set_id(id);
-        Self { preview, x, y, width, height }
+        Self { preview, x, y, width, height ,data:Vec::new(), img_type: ImgPreviewDataType::NoneS, data_x: 0, data_y: 0, data_width: 0, data_height: 0 }
+    }
+
+    pub fn new2(x: i32, y: i32, width: i32, height: i32, id: &'static str, data_x: i32, data_y: i32, data_width: i32, data_height: i32) -> Self {
+        let mut preview = frame::Frame::new(x, y, width, height, "");
+        preview.set_frame(enums::FrameType::FlatBox);
+        preview.set_color(enums::Color::from_rgb(80, 80, 80));
+        preview.set_id(id);
+        Self { preview, x, y, width, height ,data:Vec::new(), img_type: ImgPreviewDataType::NoneS, data_x , data_y, data_width, data_height}
+    }
+
+    pub fn new_border(x: i32, y: i32, width: i32, height: i32,svg_data:&str) -> Self {
+        let mut preview = frame::Frame::new(x, y, width, height, "");
+        preview.set_frame(enums::FrameType::NoBox);
+        preview.set_color(enums::Color::from_rgb(80, 80, 80));
+        let mut self_data =  Self { preview, x, y, width, height ,data:svg_data.as_bytes().to_vec(), img_type: ImgPreviewDataType::Svg, data_x:0 , data_y:0, data_width:width, data_height:height};
+        self_data.from_svg(svg_data,0,0,width,height);
+        self_data
     }
 
     // 判断鼠标是否在当前元素
@@ -97,6 +134,10 @@ impl ImgPreview {
                     let cy: i32 = y;
                     $imag.draw_ext(cbx, cby, cbw, cbh, cx, cy);
                 });
+                self.data_height = height;
+                self.data_width = width;
+                self.data_x = x;
+                self.data_y = y;
                 self.preview.redraw();
                 self.preview.redraw_label();
                 res = true;
@@ -104,22 +145,31 @@ impl ImgPreview {
         }
 
         if let Some(ext) = ImgPreview::detect_image_format(&data) {
+            self.data = data.to_vec();
+
             if (ext.as_bytes().eq("png".as_bytes())) {
                 if let Result::Ok(mut img) = image::PngImage::from_data(&*data) {
                     re_imag!(img);
+                    self.img_type = ImgPreviewDataType::Png
                 }
             } else if (ext.as_bytes().eq("jpg".as_bytes())) {
                 if let Result::Ok(mut img) = image::JpegImage::from_data(&*data) {
+                    self.img_type = ImgPreviewDataType::Jpeg;
                     re_imag!(img);
                 }
             } else if (ext.as_bytes().eq("gif".as_bytes())) {
                 if let Result::Ok(mut img) = image::GifImage::from_data(&*data) {
+                    self.img_type = ImgPreviewDataType::Gif;
                     re_imag!(img);
                 }
             }
         }
 
         res
+    }
+
+    pub fn re_data(&mut self, data: Vec<u8>){
+        self.from_data(data,self.data_x,self.data_y,self.data_width,self.data_height);
     }
 
     pub fn from_svg(&mut self, data: &str, x: i32, y: i32, width: i32, height: i32) -> bool {
@@ -142,8 +192,20 @@ impl ImgPreview {
             };
         }
         if let Result::Ok(mut img) = image::SvgImage::from_data(data) {
+            self.img_type = ImgPreviewDataType::Svg;
+            self.data = data.as_bytes().to_vec();
+
             re_imag!(img);
         }
         res
     }
+
+    pub fn get_data (&self) -> Vec<u8> {
+        self.data.to_vec()
+    }
+
+    pub fn as_mut (&mut self) -> &mut ImgPreview {
+         self
+    }
+
 }

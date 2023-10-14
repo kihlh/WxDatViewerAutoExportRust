@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-use crate::gui_util;
+use crate::{gui_util, set_item_id};
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
 use fltk::{prelude::*, *};
@@ -8,12 +8,7 @@ use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, 
 use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local};
 
-macro_rules! set_item_id {
-    ($win:expr,$id:expr) => {
-        $win.set_xclass($id);
-        $win.set_id($id);
-    };
-}
+
 
 struct time_info {
     // 年

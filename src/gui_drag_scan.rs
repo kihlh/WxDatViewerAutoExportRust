@@ -1,10 +1,6 @@
 #![allow(warnings, unused)]
 
-use crate::{
-    atomic_util, global_var, gui_hotspot, gui_imge, handle_dat, libWxIkunPlus,
-    util::{str_eq_str, Sleep},
-    wh_mod,
-};
+use crate::{atomic_util, global_var, gui_hotspot, gui_imge, handle_dat, inject_fltk_theme, libWxIkunPlus, util::{str_eq_str, Sleep}, wh_mod};
 use chrono::Local;
 use fltk::{
     app::{self, handle},
@@ -44,7 +40,6 @@ use std::{
 use crate::gui_imge::ImgPreview;
 use crate::libWxIkunPlus::closeWindow;
 use crate::watching::insert_watch_path_token;
-use crate::wh_mod::get_walk_attach_file;
 use fltk::draw::{height, width};
 use fltk::image::PngImage;
 use std::hint;
@@ -94,17 +89,7 @@ macro_rules! next_gui {
         text_recent_pictures.set_label_color(Color::from_rgb(51, 51, 51));
     };
 }
-macro_rules! set_theme {
-    () => {
-        // 设置主题
-        let theme = ColorTheme::new(color_themes::BLACK_THEME);
-        let widget_theme = WidgetTheme::new(ThemeType::HighContrast);
-        widget_theme.apply();
-        let widget_scheme = WidgetScheme::new(SchemeType::Aqua);
-        widget_scheme.apply();
-        theme.apply();
-    };
-}
+
 fn initialize_watch_attach_puppet(img_path: String) {
     atomic_util::set_bool(&INITIALIZED_PUPPET, true);
     thread::spawn(move || {
@@ -127,7 +112,7 @@ fn initialize_watch_attach_puppet(img_path: String) {
         let mut text_recent_pictures: Frame =
             app::widget_from_id("gui::preview_main::text_recent_pictures_info").unwrap();
 
-        let history_attach_list = get_walk_attach_file();
+        let history_attach_list = wh_mod::get_walk_attach_file_history();
         if (history_attach_list.len() != 0) {
             println!("扫描历史查找... 共-> {} 条",history_attach_list.len());
             text_recent_pictures.set_label("扫描历史查找...");
@@ -246,7 +231,7 @@ pub fn main_window() {
     }
     global_var::set_bool("gui::open::gui_drag_scan", true);
 
-    set_theme!();
+    inject_fltk_theme!();
     let mut win: DoubleWindow =
         fltk::window::DoubleWindow::new(0, 0, 351, 367, "扫描图源用户").center_screen();
     win.set_color(Color::from_rgb(24, 24, 24));
@@ -381,6 +366,7 @@ pub fn main_window() {
             }
         };
     }
+
     win.handle({
         let mut x = 0;
         let mut y = 0;

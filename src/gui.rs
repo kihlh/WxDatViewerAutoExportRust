@@ -70,11 +70,50 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui, gui_util};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui, gui_util, set_bool};
 use crate::wh_mod::parse_dat_path;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
 use std::sync::{Arc, Condvar, Mutex,RwLock};
+use serde_json::Value as Json;
+use toml::Value as Toml;
+
+use crate::SYNC_TOKEN;
+pub struct AppVersionInfo {
+
+}
+
+fn toml2json(toml: Toml) -> Json {
+    match toml {
+        Toml::String(s) => Json::String(s),
+        Toml::Integer(i) => Json::Number(i.into()),
+        Toml::Float(f) => {
+            let n = serde_json::Number::from_f64(f).expect("float infinite and nan not allowed");
+            Json::Number(n)
+        }
+        Toml::Boolean(b) => Json::Bool(b),
+        Toml::Array(arr) => Json::Array(arr.into_iter().map(toml2json).collect()),
+        Toml::Table(table) => {
+            Json::Object(table.into_iter().map(|(k, v)| (k, toml2json(v))).collect())
+        }
+        Toml::Datetime(dt) => Json::String(dt.to_string()),
+    }
+}
+
+pub fn get_app_version_info () -> Json {
+    const APP_VERSION: &str = include_str!("../Cargo.toml");
+    // println!("toml2json-> {:?}",toml2json(APP_VERSION));
+
+    match APP_VERSION.parse() {
+        Ok(toml) => {
+            let json = toml2json(toml);
+             return json
+        }
+        Err(error) => println!("failed to parse TOML: {}", error),
+    }
+
+    json!("")
+}
 
 struct MainTheme {
     /**主背景颜色 */
@@ -472,18 +511,9 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
     set_theme!();
 
-
-    // 状态栏用于显示任务图标的傀儡窗口
-    // let mut dock_win = window::Window::default()
-    //     .with_size(1, 1)
-    //     .with_label("微信图片自动备份")
-    //     .center_screen();
-    // dock_win.size_range(0, 0, 0, 0);
-    // dock_win.make_resizable(false);
-    // dock_win.set_xclass("app_main_win_dock_win_wx_dat_viewer_auto_export_rust");
-    // dock_win.show();
-    // dock_win.end();
-    
+    let version_info = get_app_version_info();
+    let version =  (version_info["package"]["version"]).as_str().unwrap();
+    println!("{}",&version);
     let mut mainTheme: MainTheme = getMainTheme();
 
     let mut appMainWin = Window::new(0, 0, 600, 531, "Ikun导出");
@@ -493,13 +523,8 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
     app::set_selection_color(24, 24, 24);
     let mut cwd = env::current_dir().expect("get current_dir error ");
-    //  设置窗口图标
-    //  let ICON1 = image::IcoImage::load(format!("{}/{}",cwd.display().to_string(),"app.ico").to_string().to_owned())
-    //  .expect("set main icon error");
-    // appMainWin.set_icon(Some(ICON1.clone()));
-
-    // appMainWin.set_icon();
     appMainWin.set_border(false);
+
     // 主界面的窗口 2  悬浮在主窗口1上面
     let mut appRootView = window::Window::new(0, 0, 600, 531, "mian");
     setWinBackground_forRoot_image(&mut appRootView);
@@ -509,27 +534,30 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     let mut input_shellOpenDatDir = addInput_shellOpenDatDir(&mut appRootView);
     let mut input_Console = addConsole(&mut appRootView);
     let mut input_shellName = addInput_shellName(&mut appRootView);
+    set_bool!(SYNC_TOKEN,libWxIkunPlus::has_auto_sync());
+    let mut sync_type = String::new();
+    let mut build_name = if wh_mod::convert::is_build_52pojie() {"52破解专版"} else {"开源版"};
+
+    if(libWxIkunPlus::has_auto_sync()){
+        sync_type=(format!("[用户] 自动同步开启"));
+    }
+    else if (wh_mod::convert::is_developer()) {
+        sync_type=(format!("[同步]{}", "自动同步已启用 因为开发者模式有效"));
+        build_name = "开发者版";
+    }
+    else {
+        sync_type=(format!("[用户] 自动同步关闭"));
+    }
 
     if !wh_mod::convert::is_developer(){
-    input_Console.buff.set_text(("初始化成功！"));
-    input_Console.buff.set_text("作者 @Ikun  ");
-    input_Console.buff.append("\n");
-    input_Console
-        .buff
-        .append("软件开源协议 GPL 3.0  (但是并不包含解码算法)  版本：1.0.1 ");
-    input_Console.buff.append("\n\n");
-    input_Console
-        .buff
-        .append("本软件 是免费软件 如果付费请维权退款\n");
-    
-    input_Console
-    .buff
-    .append("本软件只供备份自己的图片禁止用于其他用途\n");
-
-        input_Console
-        .buff
-        .append("在此 @Ikun 向所有引用的开源项目表示感谢");
-
+    input_Console.buff.set_text(
+        format!(
+        r#"作者 @Ikun 软件开源协议 GPL 3.0 (但是并不包含解码算法) 版本：{} ({})
+        本软件 是免费软件 如果付费请维权退款
+        本软件只供备份自己的图片禁止用于其他用途
+        {}"#
+        ,version ,build_name,sync_type).replace("  ","").as_str()
+    );
     }else {
         input_Console.buff.set_text(("初始化成功 [开发者模式]"));
     }
@@ -951,46 +979,6 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
         }
     });
 
-
-
-    // dock_win.handle({
-    //     let mut win = copy_appMainWin.clone();
-    //     let mut dock_win = dock_win.clone();
-
-    //     g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
-
-    //     setTaskbarWin(g_copy_dock_win_hwnd);
-
-    //     move |_wself, event| match event {
-    //         enums::Event::Show=>{
-    //             if(g_copy_dock_win_hwnd.eq(&0)){
-    //             g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
-    //             }
-    //             true
-    //         }
-    //         enums::Event::Focus => {
-               
-    //             if(g_copy_dock_win_hwnd.eq(&0)){
-    //                 g_copy_dock_win_hwnd = get_window_hwnd(&dock_win);
-    //                 }
-
-    //             setTaskbarWin(g_copy_dock_win_hwnd);
-    //             libWxIkunPlus::setwinVisible(g_appMainWinHwnd , true);
-    //             // win.show();
-    //             true
-    //         }
-    //         enums::Event::Hide => {
-    //             libWxIkunPlus::setwinVisible(g_appMainWinHwnd, false);
-                
-    //             true
-    //         }
-    //         enums::Event::Close => {
-    //             process::exit(0);
-    //             true
-    //         }
-    //         _ => false,
-    //     }
-    // });
     
     loop {
         Sleep(200);

@@ -313,3 +313,8 @@ pub fn is_developer() -> bool {
 
     false
 }
+
+// 编译版本是 52破解专版
+pub fn is_build_52pojie() -> bool {
+    false
+}

@@ -33,6 +33,7 @@ fltk-theme = { path = "./src/fltk-theme-kiic" }
 protobuf = "3.2.0"
 keepcalm = "0.3.5"
 arc-swap = "1.6.0"
+toml = "0.8.2"
 
 [build-dependencies]
 fl2rust = "0.5.17"

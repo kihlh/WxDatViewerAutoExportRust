@@ -28,3 +28,14 @@ macro_rules! inject_fltk_theme {
 
     };
 }
+
+#[macro_export]
+macro_rules! set_item_id {
+    ($win:expr,$id:expr) => {
+        $win.set_xclass($id);
+        $win.set_id($id);
+    };
+}
+
+
+

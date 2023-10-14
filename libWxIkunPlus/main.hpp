@@ -64,3 +64,8 @@ IMPORT_DLL bool _isWindow(long hwnds);
 IMPORT_DLL void _setWindowShake(long hwnds);
 IMPORT_DLL const char* _getWindowRect(long hwnds);
 IMPORT_DLL long long _randomNum();
+IMPORT_DLL void _setWindowTransparent(long hwnds, int transparent);
+IMPORT_DLL const char* _getfilePathSingle();
+IMPORT_DLL void _setWindowShake(long hwnds);
+IMPORT_DLL bool _setWindowEnabled(long hwnds, bool enabled);
+//IMPORT_DLL

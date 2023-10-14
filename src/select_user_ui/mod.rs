@@ -1,7 +1,7 @@
 #![allow(warnings, unused)]
 
 use crate::rename_ui::rename_tool_main;
-use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, gui_detect_config, gui_drag_scan, atomic_util};
+use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, gui_detect_config, gui_drag_scan, atomic_util, inject_fltk_theme, drag_scan2_ui};
 use crate::gui_util::img::ImgPreview;
 use crate::gui_util::text::TextControl;
 use crate::gui_util::variable_tag_control::varTagControl;
@@ -21,12 +21,16 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::sync::atomic::AtomicBool;
+use crate::drag_scan2_ui::{get_history_attach_name, get_wx_temp_imag_id};
+use crate::util::Sleep;
 
 // static PREVIEW_WIN_SHOW: AtomicBool = AtomicBool::new(false);
 
 mod lib;
 
-const WINDOW_CLASS_NAME : &'static str = "wx_auto_ex_im::gui_util::select_user_ui::main<win>";
+pub(crate) const WINDOW_CLASS_NAME : &'static str = "wx_auto_ex_im::gui_util::select_user_ui::main<win>";
+pub(crate) const WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<6103>";
+pub(crate) const WINDOW_CLASS_NAME_SCAN: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<126126>";
 
 macro_rules! set_item_id {
     ($win:expr,$id:expr) => {
@@ -66,11 +70,11 @@ macro_rules! eq_wxid_dir{
 
                             if !is_wxid_dir{
                                 // dialog::alert_default("此路径可能不是有效的WX目录 因为未发现有效的用户数据");
-                              gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",5000u64);
+                              gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",3500u64);
                             }
 
                         }else{
-                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",5000u64);
+                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",3500u64);
                             // dialog::alert_default("目录无法被打开 请注意路径有效性");
                         }
 
@@ -81,16 +85,6 @@ macro_rules! eq_wxid_dir{
     }
 }
 
-macro_rules! add_theme {
-    () => {
-        let theme = ColorTheme::new(color_themes::BLACK_THEME);
-        let widget_theme = WidgetTheme::new(ThemeType::HighContrast);
-        widget_theme.apply();
-        let widget_scheme = WidgetScheme::new(SchemeType::Aqua);
-        widget_scheme.apply();
-        theme.apply();
-    };
-}
 
 struct FrameText {
     选择: TextControl,
@@ -249,12 +243,10 @@ fn add_check_button() -> FrameCheck {
     }
 }
 
-
 struct FrameThumbnailPreview{
     hotspot_list:Vec<gui_util::hotspot::HotspotItmeControl>,
     thumbnail_list:Vec<ImgPreview>
 }
-
 
 // 缩略图列表
 fn add_frame_thumbnail_preview() ->FrameThumbnailPreview {
@@ -321,6 +313,7 @@ macro_rules! add_preview_contour {
     }};
 }
 
+// 用户选择
 fn select_user_data_choice() -> menu::Choice {
     let mut choice = menu::Choice::default().with_size(277, 35).center_of_parent().with_label("");
     choice.set_pos(60,158);
@@ -371,7 +364,7 @@ impl AttachThumbnailPreview {
     fn redata(&mut self,thumbnail:wh_mod::AttachThumbnail){
         self.input_remark.set_value("");
         self.input_attach.set_value("");
-        self.input_rename.set_value("");
+        // self.input_rename.set_value("");
         // 设置预览图
         self.thumbnail_preview.from_data(thumbnail.thumbnail.to_vec(),-1,
                                                        -1,
@@ -431,7 +424,6 @@ fn add_select_attach_card() -> AttachThumbnailPreview {
 
 }
 
-
 macro_rules! set_select_user_base_input_default{
     ($input_select_dir:expr)=>{
         if let Ok(history) = lib::get_wx_user_history_path() {
@@ -465,6 +457,7 @@ struct PreviewData{
     preview_list:Vec<ImgPreview>,
     preview_main: ImgPreview,
 }
+
 impl PreviewData {
 
     pub fn gc_data(&mut self) {
@@ -481,9 +474,9 @@ impl PreviewData {
             if index==6 {
                 w+=1;
             }
-            preview.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,w ,90 - 2,);
+            preview.from_data(include_bytes!("./src/not_data.png").to_vec(),-1,-1,w ,90 - 2,);
         }
-        self.preview_main.from_data(include_bytes!("./src/not_select.png").to_vec(), -1, -1, 230-2 , 230 - 2, );
+        self.preview_main.from_data(include_bytes!("./src/not_data.png").to_vec(), -1, -1, 230-2 , 230 - 2, );
     }
 
     fn clone(&self) -> Self {
@@ -497,38 +490,82 @@ impl PreviewData {
         // self.gc_data();
 
         if let Some(main_thumbnail) = thumbnail_list.get(0) {
-            self.preview_main.from_data(main_thumbnail.thumbnail.to_vec(), -1, -1, 230-2 , 230 - 2, );
+            self.preview_main.re_data(main_thumbnail.thumbnail.to_vec()/*, -1, -1, 230-2 , 230 - 2, */);
 
         }
 
         let mut index = 0;
         for mut preview in self.preview_list.clone() {
             index+=1;
-            let mut w = 90;
-            // 第一列有1px的误差
-            if index==1 ||index==4||index==7{
-                w+=1;
-            }
+            // let mut w = 90;
+            // // 第一列有1px的误差
+            // if index==1 ||index==4||index==7{
+            //     w+=1;
+            // }
 
             if let Some(thumbnail) = thumbnail_list.get(index) {
 
-                preview.from_data(thumbnail.thumbnail.to_vec(),-1,-1,w ,90 - 2,);
+                preview.re_data(thumbnail.thumbnail.to_vec()/*,-1,-1,w ,90 - 2,*/);
 
             }else {
-                preview.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,w ,90 - 2,);
+                preview.re_data(include_bytes!("./src/not_data.png").to_vec()/*,-1,-1,w ,90 - 2,*/);
             }
 
         }
 
     }
+
+    pub fn existPoint(&self, x: i32, y: i32) -> bool {
+        let preview_pint = [
+            [35,280,85,85],[35,381,85,85],[35,482,85,85],
+            [137,280,85,85],[137,381,85,85],[137,482,85,85],
+            [239,280,85,85],[239,381,85,85],[239,482,85,85]
+        ];
+
+        for preview in preview_pint {
+            if
+            x > preview[1]
+                && x < preview[1] + 85
+                && y > preview[0]
+                && y < preview[0] + 85
+            {
+                return  true
+            }
+        }
+        false
+    }
+
+    pub fn existPointIndex(&self, x: i32, y: i32) -> usize {
+        let mut index = 0 ;
+        let preview_pint = [
+            [35,280,85,85],[35,381,85,85],[35,482,85,85],
+            [137,280,85,85],[137,381,85,85],[137,482,85,85],
+            [239,280,85,85],[239,381,85,85],[239,482,85,85]
+        ];
+
+        for preview in preview_pint {
+            index+=1;
+
+            if
+            x > preview[1]
+                && x < preview[1] + 85
+                && y > preview[0]
+                && y < preview[0] + 85
+            {
+                return  index
+            }
+
+        }
+        0
+    }
 }
 
+// 九宫格
 fn preview_main_list() ->PreviewData{
 
-    let mut preview_main = gui_util::img::ImgPreview::new(35,35,230,230,"");
-    preview_main.from_data(include_bytes!("./src/not_select.png").to_vec(), -1, -1, 230-2 , 230 - 2, );
+    let mut preview_main = gui_util::img::ImgPreview::new2(35,35,230,230,"",-1, -1, 230-2 , 230 - 2);
 
-
+    // 九宫格位置预设
     let preview_pint = [
         [[35,280,85,85],[35,381,85,85],[35,482,85,85]],
         [[137,280,85,85],[137,381,85,85],[137,482,85,85]],
@@ -542,12 +579,9 @@ fn preview_main_list() ->PreviewData{
 
     flex.set_pos(280, 35);
 
-    let mut preview_main_1 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_1.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,91 ,90 - 2,);
-    let mut preview_main_2 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_2.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90 ,90 - 2,);
-    let mut preview_main_3 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_3.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90,90 - 2,);
+    let mut preview_main_1 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,91 ,90 - 2);
+    let mut preview_main_2 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
+    let mut preview_main_3 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
     flex.end();
 
     let mut flex = group::Flex::default()
@@ -557,12 +591,9 @@ fn preview_main_list() ->PreviewData{
 
     flex.set_pos(280, 137);
 
-    let mut preview_main_4 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_4.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,91 ,90 - 2,);
-    let mut preview_main_5 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_5.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90 ,90 - 2,);
-    let mut preview_main_6 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_6.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90 ,90 - 2,);
+    let mut preview_main_4 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,91 ,90 - 2);
+    let mut preview_main_5 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
+    let mut preview_main_6 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
     flex.end();
 
     let mut flex = group::Flex::default()
@@ -572,23 +603,254 @@ fn preview_main_list() ->PreviewData{
 
     flex.set_pos(280, 239);
 
-    let mut preview_main_7 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_7.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,91 ,90 - 2,);
-    let mut preview_main_8 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_8.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90 ,90 - 2,);
-    let mut preview_main_9 = gui_util::img::ImgPreview::new(0,0,85,85,"");
-    preview_main_9.from_data(include_bytes!("./src/not_select.png").to_vec(),-1,-1,90 ,90 - 2,);
+    let mut preview_main_7 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,91 ,90 - 2);
+    let mut preview_main_8 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
+    let mut preview_main_9 = gui_util::img::ImgPreview::new2(0,0,85,85,"",-1,-1,90 ,90 - 2);
 
     flex.end();
 
    let result = vec![preview_main_1,preview_main_2,preview_main_3,preview_main_4,preview_main_5,preview_main_6,preview_main_7,preview_main_8,preview_main_9];
 
-    PreviewData{
+   let mut  preview_data =  PreviewData{
         preview_list: result,
         preview_main
-    }
-    
+    };
+
+    preview_data.gc_data();
+
+    preview_data
 }
+
+struct ThumbnailPreviewMain{
+    main:DoubleWindow,
+    btn_close: gui_util::hotspot::HotspotItmeControl,
+    preview_list: PreviewData,
+}
+
+// 图片预览窗口 九宫格
+fn add_frame_thumbnail_preview_main (mut win: &DoubleWindow) -> ThumbnailPreviewMain {
+    // 图片预览窗口
+    let mut preview_win = fltk::window::Window::new(0,0,win.w(),359,"");
+    preview_win.set_color(Color::from_rgb(23, 23, 23));
+    set_item_id!(preview_win,WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW);
+
+    let mut preview_win_border = gui_util::img::ImgPreview::new(0,0,preview_win.w(),preview_win.h(),"");
+    preview_win_border.from_svg(include_str!("./src/preview_win.svg"),0,0,preview_win.w(),preview_win.h());
+
+    let mut preview_main_close_btn = gui_util::hotspot::create_hotspot(82,282,130,32);
+    let mut preview_main_list = preview_main_list();
+    gui_util::text::TextControl::new(82,283,130,32,13,"关闭预览",[121, 121, 121]);
+
+    preview_win.end();
+    preview_win.hide();
+
+    ThumbnailPreviewMain{
+        main:preview_win,
+        btn_close:preview_main_close_btn,
+        preview_list:preview_main_list,
+
+    }
+}
+
+// 通过扫描获取的界面
+struct ScanPreviewMain{
+    main:fltk::window::DoubleWindow,
+    btn_all_obj: gui_util::hotspot::HotspotItmeControl,
+    btn_clip:  gui_util::hotspot::HotspotItmeControl,
+    btn_close: gui_util::hotspot::HotspotItmeControl,
+    text_bottom:Vec<gui_util::text::TextControl>,
+    progress_bar: ImgPreview,
+    all_text_list: Vec<TextControl>,
+    btn_scan_drag: gui_util::hotspot::HotspotItmeControl,
+}
+
+impl ScanPreviewMain {
+    pub fn existPoint(&self, x: i32, y: i32) -> bool {
+        let self_x = self.main.x();
+        let self_y = self.main.y();
+        let self_w = self.main.w();
+        let self_h = self.main.h();
+
+        return x > self_x
+            && x < self_x + self_w
+            && y > self_y
+            && y < self_y + self_h;
+    }
+
+    pub fn show_progress(& mut self){
+        for (mut index) in 0..3 {
+            if let Some(text_bottom) = self.text_bottom.get_mut(index) {
+                text_bottom.text.hide();
+            }
+        }
+        self.progress_bar.preview.show();
+    }
+
+    pub fn show_bottom_text(& mut self){
+        for (mut index) in 0..3 {
+            if let Some(text_bottom) = self.text_bottom.get_mut(index) {
+                text_bottom.text.show();
+            }
+        }
+        self.progress_bar.preview.hide();
+    }
+}
+
+// 進度條
+fn show_progress_bar_border(x: i32, y: i32) -> gui_util::img::ImgPreview {
+    let mut progress_bar_border = gui_util::img::ImgPreview::new_border(x,y,520,15,"<svg width=\"520\" height=\"15\" viewBox=\"0 0 520 15\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"> <rect x=\"0.5\" y=\"0.5\" width=\"520\" height=\"14\" rx=\"7\" fill=\"#181818\" stroke=\"#2C2C2C\"/> </svg> ");
+    let width = progress_bar_border.width;
+    let mut progress_bar_border_slider = gui_util::img::ImgPreview::new_border(x, y, 41, 15, "<svg width=\"40\" height=\"15\" viewBox=\"0 0 40 15\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect x=\"0.5\" y=\"0.5\" width=\"39\" height=\"14\" rx=\"7\" fill=\"#333333\" stroke=\"#2C2C2C\"/>\n</svg>");
+    progress_bar_border_slider.preview.hide();
+    progress_bar_border.preview.hide();
+
+    progress_bar_border.preview.handle({
+        let mut progress_bar_border_slider = progress_bar_border_slider.clone();
+        let mut preview_main = progress_bar_border.preview.clone();
+
+        move |win, ev| match ev {
+            enums::Event::Show => {
+                progress_bar_border_slider.preview.show();
+
+                let mut preview = progress_bar_border_slider.preview.clone();
+                let mut preview_main = preview_main.clone();
+
+                app::add_timeout3(0.0086, move |handle| {
+                    if !preview.visible()||!preview_main.visible() {
+                        preview_main.hide();
+                        preview.hide();
+                        app::remove_timeout3(handle);
+                        return;
+                    }
+
+                    let mut the_x = preview.x() + 2;
+                    if the_x > width {
+                        the_x = x + preview.width();
+                        the_x -= preview.width();
+                    }
+                    preview.set_pos(the_x, preview.y());
+                    preview.parent().unwrap().redraw();
+                    app::repeat_timeout3(0.0086, handle);
+                });
+                true
+            }
+            enums::Event::Hide => {
+                progress_bar_border_slider.preview.hide();
+                true
+            }
+            _ => false,
+        }
+    });
+
+    // progress_bar_border.preview.show();
+    progress_bar_border
+}
+
+// 通过扫描获取的界面
+fn add_scan_preview_window() -> ScanPreviewMain {
+    // 图片预览窗口
+    let mut preview_win = fltk::window::Window::new(0,0,600,359,"");
+    preview_win.set_color(Color::from_rgb(23, 23, 23));
+    set_item_id!(preview_win,WINDOW_CLASS_NAME_SCAN);
+
+    let mut preview_win_border = gui_util::img::ImgPreview::new(0,0,preview_win.w(),preview_win.h(),"");
+    preview_win_border.from_svg(include_str!("./src/scan_cursor.svg"),0,0,preview_win.w(),preview_win.h());
+
+    let mut show_all_user_obj = gui_util::hotspot::create_hotspot(83,231,87,40);
+    let mut get_clip_data = gui_util::hotspot::create_hotspot(432,231,87,40);
+    let mut scan_drag_data = gui_util::hotspot::create_hotspot(256,231,87,40);
+    let mut btn_close = gui_util::hotspot::create_hotspot(537,33,25,25);
+
+    let mut text_list = Vec::new();
+
+    // 標題
+    text_list.push(gui_util::text::TextControl::new(150-25,33,345,15,12,"请选择一种您喜欢的方式扫描聊天对象",[149, 149, 149]));
+    text_list.push(gui_util::text::TextControl::new(130,58,345,15,12,"如果您有很多好友需要动态管理可以设置别名 在所有好友中可显示别名备注",[68, 68, 68]));
+
+    //  卡片中上
+    text_list.push(gui_util::text::TextControl::new(57,170+3 ,135,15,12,"所有存在图片的聊天对象",[149, 149, 149]));
+    text_list.push(gui_util::text::TextControl::new(257,170+3 ,85,15,12,"拖拽聊天的图片",[149, 149, 149]));
+    text_list.push(gui_util::text::TextControl::new(442,170+3 ,64,15,12,"剪贴板获取",[149, 149, 149]));
+
+    // 卡片中下
+    text_list.push(gui_util::text::TextControl::new(87,196+5,78,15,13,"查看所有人",[121, 121, 121]));
+    text_list.push(gui_util::text::TextControl::new(255,196+5,91,15,13,"打开扫描窗口",[121, 121, 121]));
+    text_list.push(gui_util::text::TextControl::new(410,198+5,135,15,12,"复制一张图片后点击开始",[121, 121, 121]));
+
+    // 卡片下面
+    text_list.push(gui_util::text::TextControl::new(111,239+5,31,15,13,"开始",[255, 255, 255]));
+    text_list.push(gui_util::text::TextControl::new(256+(460-432),239+5,31,15,13,"开始",[255, 255, 255]));
+    text_list.push(gui_util::text::TextControl::new(460,239+5,31,15,13,"开始",[255, 255, 255]));
+
+    // 底部三言 / 進度條
+    let mut text_01 = gui_util::text::TextControl::new(70,308,115,15,13,"聊天对象选择面板",[195, 195, 195]);
+    let mut text_02 = gui_util::text::TextControl::new(260,308,85,15,13,"通过拖拽查找",[195, 195, 195]);
+    let mut text_03 = gui_util::text::TextControl::new(435,308,85,15,13,"粘贴文件查找",[195, 195, 195]);
+
+    let mut progress_bar_border = show_progress_bar_border(40,312);
+
+    preview_win.end();
+    preview_win.hide();
+
+    preview_win.handle({
+        let mut preview = progress_bar_border.preview.clone();
+        move |win, ev| match ev {
+            enums::Event::Show=>{
+                true
+            }
+            enums::Event::Hide=>{
+                preview.hide();
+                true
+            }
+            _ => false
+        }
+
+    });
+
+    ScanPreviewMain{
+        main:preview_win,
+        btn_clip:get_clip_data,
+        btn_all_obj:show_all_user_obj,
+        btn_scan_drag:scan_drag_data,
+        btn_close,
+        all_text_list:text_list,
+        text_bottom: vec![text_01,text_02,text_03],
+        progress_bar:progress_bar_border
+    }
+}
+
+fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
+    let mut oid_walk_drag_path = String::new();
+    std::thread::spawn( move || loop{
+        let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
+        if(!oid_walk_drag_path.as_bytes().eq(walk_drag_path.as_bytes())){
+            oid_walk_drag_path.clear();
+            oid_walk_drag_path.push_str(walk_drag_path.as_str());
+            let wx_parse = wh_mod::wx_parse_path(walk_drag_path.clone());
+            // println!("wx_parse-> {:?}",&wx_parse);
+            preview1.input_attach.set_value(wx_parse.attach_id.as_str());
+
+            if let Some(remark) = lib::get_store_user_remark(wx_parse.wxid,wx_parse.attach_id.clone()) {
+                preview1.input_remark.set_value(remark.as_str());
+            }else {
+                preview1.input_remark.set_value("");
+            }
+
+            if let Ok(buff_thumbnail_data) = wh_mod::convert::convert_dat_images_buff(std::path::PathBuf::from(walk_drag_path.as_str())) {
+                preview1.thumbnail_preview.from_data(buff_thumbnail_data,-1, -1, 80 - 2, 80 - 2,);
+            }
+
+            // println!("walk_drag_path->{}",&walk_drag_path);
+        }
+
+        if !drag_scan2_ui::has_window() {
+            return;
+        }
+
+        Sleep(500);
+    });
+}
+
 
 pub fn manage_tool_main() {
     
@@ -609,31 +871,14 @@ pub fn manage_tool_main() {
     let mut win = window::DoubleWindow::new(0, 0,600, 595,None).center_screen();
     win.set_color(Color::from_rgb(23, 23, 23));
 
-    add_theme!();
+    inject_fltk_theme!();
     win.set_label("任务创建向导");
     set_item_id!(win, WINDOW_CLASS_NAME);
     
     let mut g_the_select_wxid = String::new();
     let mut g_the_select_attach_id = String::new();
-
-    // 图片预览窗口
-    let mut preview_win = fltk::window::Window::new(0,0,win.w(),359,"");
-    preview_win.set_color(Color::from_rgb(23, 23, 23));
-
-    let mut preview_win_border = gui_util::img::ImgPreview::new(0,0,preview_win.w(),preview_win.h(),"");
-    preview_win_border.from_svg(include_str!("./src/preview_win.svg"),0,0,preview_win.w(),preview_win.h());
-
-    // preview_main.preview.hide();
-
-    let mut preview_main_close_btn = gui_util::hotspot::create_hotspot(82,282,130,32);
-    let mut preview_main_list = preview_main_list();
-    gui_util::text::TextControl::new(82,283,130,32,13,"关闭预览",[121, 121, 121]);
-
-    preview_win.end();
-    preview_win.hide();
-
-    // 退出窗口
-    // let exit_btn = gui_util::hotspot::create_hotspot(540, 15, 37, 37);
+    let mut preview_win =add_frame_thumbnail_preview_main(&win);
+    let mut scan_preview_window = add_scan_preview_window();
 
     let mut preview = add_preview_contour!(win);
 
@@ -665,6 +910,7 @@ pub fn manage_tool_main() {
     select_attach_card.input_rename.set_value("<创建月>/<任务名>/<类型>_<NN>");
 
     let mut move_select_attach_card = select_attach_card.clone();
+
     select_user_data_choice.set_callback(move |c| {
         if let Some(choice_value) = c.choice() {
             
@@ -689,6 +935,9 @@ pub fn manage_tool_main() {
         }
     });
 
+    let mut drag_path = std::path::PathBuf::new();
+
+
 
     win.end();
     win.show();
@@ -700,6 +949,12 @@ pub fn manage_tool_main() {
         // 是否显示手型
         let mut show_cursor = false;
         let mut preview_win_show = false;
+        let mut scan_win_show = false;
+
+        let mut released = true;
+        let mut dnd = true;
+
+        let move_select_attach_card2 = select_attach_card.clone();
 
         move |win, ev| match ev {
 
@@ -722,17 +977,97 @@ pub fn manage_tool_main() {
 
             enums::Event::Push => {
 
+                macro_rules! add_preview_win_show {
+                    ()=>{
+                        preview_win_show = true;
+                        user_select_database_dir_input.hide();
+                        select_user_data_choice.hide();
+                        let path = PathBuf::from(global_var::get_string_default("user::config::user_select_path"))
+                            .join(global_var::get_string_default("user::config::user_select_wxid"))
+                            .join("FileStorage\\MsgAttach")
+                            .join(g_the_select_attach_id.as_str())
+                            ;
+                        let dat  = wh_mod::read_attach_buff_thumbnail_data(&path,10);
+                        println!("dat<{}> path:<{:?}>",dat.len(),&path);
+                        preview_win.preview_list.redata(dat);
+                        preview_win.main.show();
+                    }
+                }
                 if preview_win_show {
-                    if preview_main_close_btn.existPoint(x,y) {
+                    if preview_win.btn_close.existPoint(x,y) {
                         preview_win_show =false;
-                        preview_win.hide();
+                        preview_win.main.hide();
                         user_select_database_dir_input.show();
                         select_user_data_choice.show();
-
+                        preview_win.preview_list.gc_data();
                     }
-                    // for preview_main in preview_main_list {
-                    //     preview_main.existPoint()
-                    // }
+
+                }
+                else if scan_win_show {
+
+                    // 关闭扫描窗口
+                    if scan_preview_window.btn_close.existPoint(x,y){
+                        scan_preview_window.main.hide();
+                        // user_select_database_dir_input.activate();
+                        // select_attach_card.input_rename.activate();
+                        // select_attach_card.input_remark.activate();
+                        scan_preview_window.show_bottom_text();
+                        scan_win_show = false;
+                    }
+
+                    if !scan_preview_window.progress_bar.preview.visible(){
+                        if scan_preview_window.btn_all_obj.existPoint(x,y) {
+                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"作者正在玩命的开发中。。。",3500u64);
+                        }
+                        if scan_preview_window.btn_scan_drag.existPoint(x,y) {
+                            if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
+                                gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"尚未选择用户",3500u64);
+                                return false;
+                            }
+                            if global_var::get_string_default("user::config::user_select_path").is_empty() {
+                                gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"没有选择WX根目录",3500u64);
+                                return false;
+                            }
+                            // gui_drag_scan::main_window();
+                            drag_scan2_ui::main_window("");
+                            initialize_watch_walk_drag_path (move_select_attach_card2.clone());
+                        }
+
+                        if  scan_preview_window.btn_clip.existPoint(x,y) {
+                            let clip_file_path_single = libWxIkunPlus::getClipFilePathSingle();
+                            if clip_file_path_single.is_empty() {
+                                gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"当前剪贴板无内容或者不是可识别格式",3500u64);
+                            }else{
+
+                                if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
+                                    gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"尚未选择用户",3500u64);
+                                    return false;
+                                }
+                                if global_var::get_string_default("user::config::user_select_path").is_empty() {
+                                    gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"没有选择WX根目录",3500u64);
+                                    return false;
+                                }
+
+                                // scan_preview_window.show_progress();
+                                drag_path.clear();
+                                drag_path.push(clip_file_path_single.clone());
+                                println!("getClipFilePathSingle-> {:?}",&drag_path);
+
+                                // 获取id 并开始处理
+                                let temp_imag_id = get_wx_temp_imag_id(clip_file_path_single.as_str());
+
+                                if !temp_imag_id.is_empty() {
+                                    drag_scan2_ui::main_window(clip_file_path_single.as_str());
+                                    initialize_watch_walk_drag_path (move_select_attach_card2.clone());
+                                }
+
+                            }
+
+                        }
+
+                    }else{
+                        gui_util::message::sub_message(hwnd,gui_util::message::IconType::Failure,"当前正在扫描中 不能使用此功能",3500u64);
+                    }
                 }
                 // 正常窗口
                 else {
@@ -752,9 +1087,10 @@ pub fn manage_tool_main() {
                                     g_the_select_attach_id.clear();
                                     g_the_select_attach_id.push_str(thumbnail.attach_id.as_str());
 
+                                    add_preview_win_show!();
                                     break;
                                 } else {
-                                    gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选中聊天对象", 5000u64);
+                                    gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选中聊天对象", 3500u64);
                                 }
                             }
                         }
@@ -775,7 +1111,7 @@ pub fn manage_tool_main() {
 
                             println!("[click] existPoint {}  select_dir-> {} eq-> {}", "打开文件夹选择器", select_dir, eq_wxid_dir);
                         } else {
-                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Info, "用户取消", 5000u64);
+                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Info, "用户取消", 3500u64);
                         }
                     }
 
@@ -784,12 +1120,31 @@ pub fn manage_tool_main() {
                         println!("[click] existPoint {}", "显示扫描获取面板");
 
                         if (!libWxIkunPlus::hasWeChat() || !libWxIkunPlus::hasWeChatWin()) {
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 5000u64);
+                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 3500u64);
                             // fltk::dialog::alert_default("尚未找到已经登录的WX进程 为避免滥用 面板开启请求被拒绝 ");
                             return false;
                         }
 
-                        gui_drag_scan::main_window();
+                        if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
+                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"尚未选择用户",3500u64);
+                            return false;
+                        }
+                        if global_var::get_string_default("user::config::user_select_path").is_empty() {
+                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"没有选择WX根目录",3500u64);
+                            return false;
+                        }
+
+                        // gui_drag_scan::main_window();
+
+
+                        scan_preview_window.main.show();
+                        // libWxIkunPlus::setWindowEnabled(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME_SCAN,""),true);
+                        // user_select_database_dir_input.deactivate();
+                        // select_attach_card.input_rename.deactivate();
+                        // select_attach_card.input_remark.deactivate();
+                        // let mut scan_drag_window = show_scan_drag_window();
+                        // scan_drag_window.hide();
+                        scan_win_show = true;
                     }
 
                     // 显示帮助面板
@@ -804,24 +1159,13 @@ pub fn manage_tool_main() {
                         let attach_id = select_attach_card.input_attach.value();
                         if attach_id.is_empty() {
                             // dialog::alert_default("没有选择聊天对象 (attach ID)");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择聊天对象 (attach ID)", 5000u64);
+                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择聊天对象 (attach ID)", 3500u64);
 
                             return false;
                         }
 
-                        preview_win_show = true;
-                        user_select_database_dir_input.hide();
-                        select_user_data_choice.hide();
-                        let path = PathBuf::from(global_var::get_string_default("user::config::user_select_path"))
-                            .join(global_var::get_string_default("user::config::user_select_wxid"))
-                            .join("FileStorage\\MsgAttach")
-                            .join(g_the_select_attach_id.as_str())
-                            ;
-                        let dat  = wh_mod::read_attach_buff_thumbnail_data(&path,10);
-                        println!("dat<{}> path:<{:?}>",dat.len(),&path);
-                        preview_main_list.redata(dat);
+                        add_preview_win_show!();
 
-                        preview_win.show();
                     }
 
                     // 开始
@@ -831,7 +1175,7 @@ pub fn manage_tool_main() {
                         if !user_select_database_dir_input.value().is_empty() {
                             if (!libWxIkunPlus::hasWeChat() || !libWxIkunPlus::hasWeChatWin()) {
                                 // fltk::dialog::alert_default("尚未找到已经登录的WX进程 为避免滥用 扫描被拒绝 ");
-                                gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 5000u64);
+                                gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 3500u64);
                                 return false;
                             }
 
@@ -852,7 +1196,7 @@ pub fn manage_tool_main() {
                                 if active_user_list.is_empty() {
                                     select_user_data_choice.add_choice("【状态】  未找到用户列表");
                                     select_user_data_choice.set_value(0);
-                                    gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Failure, "未找到用户列表 请注意路径有效性", 5000u64);
+                                    gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Failure, "未找到用户列表 请注意路径有效性", 3500u64);
                                     return false;
                                 }
 
@@ -879,120 +1223,122 @@ pub fn manage_tool_main() {
                             }
                         } else {
                             // dialog::alert_default("没有选择WX文件默认保存位置");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择WX文件默认保存位置", 5000u64);
+                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择WX文件默认保存位置", 3500u64);
                         }
-                    }
-
-                    // 卡片按钮 > 完成选定
-                    if select_attach_card.btn_select.existPoint(x, y) {
-                        println!("[click] existPoint {}", "卡片按钮 > 完成选定");
-
-                        let mut data = String::new();
-                        let mut is_effective = true;
-
-                        if frame_check.thumbnail.is_checked() {
-                            data.push_str("*thumbnail");
-                        }
-                        if frame_check.source.is_checked() {
-                            data.push_str("*source");
-                        }
-                        if frame_check.video.is_checked() {
-                            data.push_str("*video");
-                        }
-                        if frame_check.sync.is_checked() {
-                            data.push_str("*Sync");
-                        }
-                        if frame_check.the_month.is_checked() {
-                            data.push_str("*the_month");
-                        }
-
-                        let mut rename_rule = select_attach_card.input_rename.value();
-
-                        // 没有选定的路径
-                        if user_select_database_dir_input.value().is_empty() {
-                            fltk::dialog::alert_default("没有选定Wx路径");
-                            is_effective = false;
-                            return false;
-                        }
-
-                        //  判断是否有Att id
-                        else if g_the_select_attach_id.is_empty() || g_the_select_attach_id.len() < 25 {
-                            // fltk::dialog::alert_default("attach id 无效 （尚未选定有效聊天对象）");
-                            // gui_util::message::message(x+100,y+80,gui_util::message::IconType::Warning,"attach id 无效 （尚未选定有效聊天对象）",5000u64);
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "attach id 无效 （尚未选定有效聊天对象）", 5000u64);
-                            is_effective = false;
-                            return false;
-                        }
-
-                        // 有命名规则 要求规则最少有一个%N.. 自变量
-                        if !rename_rule.is_empty() && (!rename_rule.contains("<N") || !rename_rule.contains("N>")) {
-                            rename_rule.push_str("<NN>");
-                        }
-
-                        // 添加名称格式化自变量
-                        if !select_attach_card.input_rename.value().is_empty() {
-                            data.push_str(format!("*rename_rule={}*", &rename_rule).as_str());
-                        }
-
-                        let mut select_dir = user_select_database_dir_input.value();
-                        let eq_wxid_dir = eq_wxid_dir!(select_dir);
-
-                        // 拼合路径并判断有效性 有且为文件夹
-                        let mut attach_path = PathBuf::from(select_dir).join(global_var::get_string_default("user::config::user_select_wxid")).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
-
-                        println!("attach_path=> {:?}", &attach_path);
-
-                        if !attach_path.exists() && !attach_path.exists() {
-
-                            // dialog::alert_default("attach 目录无效");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "attach目录无效 <聊天对象目录无法打开>", 5000u64);
-                            is_effective = false;
-                            return false;
-                        }
-
-                        if is_effective && eq_wxid_dir {
-                            lib::gc_select_user_ui();
-                            fltk::window::Window::delete(win.clone());
-                        }
-                    }
-
-                    // 卡片按钮 > 备注名称 完成按钮
-                    if select_attach_card.btn_remark.existPoint(x, y) {
-                        println!("[click] existPoint {}", "卡片按钮 > 备注名称 完成按钮");
-
-                        let wxid = global_var::get_string_default("user::config::user_select_wxid");
-                        let attach_id = select_attach_card.input_attach.value();
-                        let remark_name = select_attach_card.input_remark.value();
-
-                        if wxid.is_empty() {
-                            // dialog::alert_default("没有选择用户 (WXID)");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择用户 (WXID)", 5000u64);
-                            return false;
-                        }
-
-                        if attach_id.is_empty() {
-                            // dialog::alert_default("没有选择聊天对象 (attach ID)");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择聊天对象 (attach ID)", 5000u64);
-
-                            return false;
-                        }
-
-                        if remark_name.is_empty() {
-                            // dialog::alert_default("没有备注内容 (备注将用于命名与显示对象名称)");
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有备注内容 (用于命名与显示对象名称)", 5000u64);
-
-                            return false;
-                        }
-
-                        lib::set_store_user_remark(wxid, attach_id, remark_name);
-                    }
-
-                    // 卡片按钮 > 编辑命名规则
-                    if select_attach_card.btn_rename.existPoint(x, y) {
-                        println!("[click] existPoint {}", "卡片按钮 > 编辑命名规则");
-                        rename_tool_main(select_attach_card.input_rename.value().as_str());
                     }
                 }
+
+
+                // 卡片按钮 > 完成选定
+                if select_attach_card.btn_select.existPoint(x, y) {
+                    println!("[click] existPoint {}", "卡片按钮 > 完成选定");
+
+                    let mut data = String::new();
+                    let mut is_effective = true;
+
+                    if frame_check.thumbnail.is_checked() {
+                        data.push_str("*thumbnail");
+                    }
+                    if frame_check.source.is_checked() {
+                        data.push_str("*source");
+                    }
+                    if frame_check.video.is_checked() {
+                        data.push_str("*video");
+                    }
+                    if frame_check.sync.is_checked() {
+                        data.push_str("*Sync");
+                    }
+                    if frame_check.the_month.is_checked() {
+                        data.push_str("*the_month");
+                    }
+
+                    let mut rename_rule = select_attach_card.input_rename.value();
+
+                    // 没有选定的路径
+                    if user_select_database_dir_input.value().is_empty() {
+                        fltk::dialog::alert_default("没有选定Wx路径");
+                        is_effective = false;
+                        return false;
+                    }
+
+                    //  判断是否有Att id
+                    else if g_the_select_attach_id.is_empty() || g_the_select_attach_id.len() < 25 {
+                        // fltk::dialog::alert_default("attach id 无效 （尚未选定有效聊天对象）");
+                        // gui_util::message::message(x+100,y+80,gui_util::message::IconType::Warning,"attach id 无效 （尚未选定有效聊天对象）",3500u64);
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "attach id 无效 （尚未选定有效聊天对象）", 3500u64);
+                        is_effective = false;
+                        return false;
+                    }
+
+                    // 有命名规则 要求规则最少有一个%N.. 自变量
+                    if !rename_rule.is_empty() && (!rename_rule.contains("<N") || !rename_rule.contains("N>")) {
+                        rename_rule.push_str("<NN>");
+                    }
+
+                    // 添加名称格式化自变量
+                    if !select_attach_card.input_rename.value().is_empty() {
+                        data.push_str(format!("*rename_rule={}*", &rename_rule).as_str());
+                    }
+
+                    let mut select_dir = user_select_database_dir_input.value();
+                    let eq_wxid_dir = eq_wxid_dir!(select_dir);
+
+                    // 拼合路径并判断有效性 有且为文件夹
+                    let mut attach_path = PathBuf::from(select_dir).join(global_var::get_string_default("user::config::user_select_wxid")).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
+
+                    println!("attach_path=> {:?}", &attach_path);
+
+                    if !attach_path.exists() && !attach_path.exists() {
+
+                        // dialog::alert_default("attach 目录无效");
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "attach目录无效 <聊天对象目录无法打开>", 3500u64);
+                        is_effective = false;
+                        return false;
+                    }
+
+                    if is_effective && eq_wxid_dir {
+                        lib::gc_select_user_ui();
+                        fltk::window::Window::delete(win.clone());
+                    }
+                }
+
+                // 卡片按钮 > 备注名称 完成按钮
+                if select_attach_card.btn_remark.existPoint(x, y) {
+                    println!("[click] existPoint {}", "卡片按钮 > 备注名称 完成按钮");
+
+                    let wxid = global_var::get_string_default("user::config::user_select_wxid");
+                    let attach_id = select_attach_card.input_attach.value();
+                    let remark_name = select_attach_card.input_remark.value();
+
+                    if wxid.is_empty() {
+                        // dialog::alert_default("没有选择用户 (WXID)");
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择用户 (WXID)", 3500u64);
+                        return false;
+                    }
+
+                    if attach_id.is_empty() {
+                        // dialog::alert_default("没有选择聊天对象 (attach ID)");
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择聊天对象 (attach ID)", 3500u64);
+
+                        return false;
+                    }
+
+                    if remark_name.is_empty() {
+                        // dialog::alert_default("没有备注内容 (备注将用于命名与显示对象名称)");
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有备注内容 (用于命名与显示对象名称)", 3500u64);
+
+                        return false;
+                    }
+
+                    lib::set_store_user_remark(wxid, attach_id, remark_name);
+                }
+
+                // 卡片按钮 > 编辑命名规则
+                if select_attach_card.btn_rename.existPoint(x, y) {
+                    println!("[click] existPoint {}", "卡片按钮 > 编辑命名规则");
+                    rename_tool_main(select_attach_card.input_rename.value().as_str());
+                }
+
                 true
             }
 
@@ -1006,14 +1352,43 @@ pub fn manage_tool_main() {
 
                 // 启用了预览图片模式
                 if preview_win_show {
-                    if preview_main_close_btn.existPoint(x,y){
+
+                    let mut new_show_cursor = false;
+
+                    // 可选项
+                    if !new_show_cursor { new_show_cursor = frame_check.existPoint(x, y) }
+
+                    // 卡片按钮
+                    if !new_show_cursor {
+                        new_show_cursor = {
+                            select_attach_card.btn_select.existPoint(x, y)||
+                                select_attach_card.btn_remark.existPoint(x, y)||
+                                select_attach_card.btn_rename.existPoint(x, y)
+                        }
+                    }
+
+                    if preview_win.btn_close.existPoint(x,y)||new_show_cursor{
                         win.set_cursor(fltk::enums::Cursor::Hand);
                     } else {
                         win.set_cursor(fltk::enums::Cursor::Default);
                     }
+
+                }
+                else if scan_win_show {
+
+                    if scan_preview_window.btn_clip.existPoint(x,y)
+                     ||scan_preview_window.btn_scan_drag.existPoint(x,y)
+                     ||scan_preview_window.btn_all_obj.existPoint(x,y)
+                     ||scan_preview_window.btn_close.existPoint(x,y)
+                    {
+                        win.set_cursor(fltk::enums::Cursor::Hand);
+                    } else {
+                        win.set_cursor(fltk::enums::Cursor::Default);
+                    }
+
                 }
                 // 正常窗口
-                else {
+                else  {
                 // 可选项
                 if !new_show_cursor { new_show_cursor = frame_check.existPoint(x, y) }
 
@@ -1067,20 +1442,13 @@ pub fn manage_tool_main() {
                 true
             }
 
-            enums::Event::Drag => {
-                if y < 69 {
-                    win.clone()
-                        .set_pos(app::event_x_root() - x, app::event_y_root() - y);
-                }
-
-                true
-            }
             _ => {
                 false
             },
         }
 
     });
+
 
 
     initialize_window_hwnd!(hwnd);

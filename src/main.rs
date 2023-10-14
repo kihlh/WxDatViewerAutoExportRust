@@ -69,6 +69,7 @@ mod wh_mod;
 mod gui_util;
 mod rename_ui;
 mod select_user_ui;
+mod drag_scan2_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -76,6 +77,14 @@ static SYNC_TOKEN:AtomicBool = AtomicBool::new(false);
 static SYNC_IMMED_TOKEN:AtomicBool = AtomicBool::new(false);
 static APP_STARTUP:AtomicBool = AtomicBool::new(false);
 
+// let start = Instant::now();
+// libWxIkunPlus::findWindow("WeChatMainWndForPC","微信");
+// 代码执行时间: 54.1µs
+// libWxIkunPlus::findAllWindow("WeChatMainWndForPC","微信");
+// 代码执行时间: 72.5087ms
+// libWxIkunPlus::findAllWindow("WeChatMainWndForPC","");
+// 代码执行时间: 1.0077ms
+// println!("代码执行时间: {:?}", start.elapsed());
 
 // mod wh_util;
 fn main() -> Result<()> {
@@ -102,6 +111,7 @@ fn main() -> Result<()> {
     thread::spawn(move || {
         // 创建窗口
         let appMain = app::App::default();
+        // drag_scan2_ui::main_window();
 
         let mut mainItme = gui::mianWindow(true);
 
@@ -117,7 +127,7 @@ fn main() -> Result<()> {
     thread::spawn(move || {
         if (!wh_mod::convert::is_developer()) {
             if (!libWxIkunPlus::has_auto_sync()) {
-                let mut err_name = if !hasWeChatWin() {"WX尚未登录" } else if !hasWeChat() {"WX进程未找到并且WX窗口是伪装的"} else {"用户未启用同步"};
+                let mut err_name = if !hasWeChatWin() {"WX尚未登录" } else if !hasWeChat() {"WX进程未找到"} else {"用户未启用同步"};
                 console_log!(format!("[同步暂停] 因为：{}", err_name));
 
                 loop {
@@ -130,11 +140,7 @@ fn main() -> Result<()> {
             }
         }
 
-        if (wh_mod::convert::is_developer()) {
-            console_log!(format!("[同步]{}", "自动同步已启用 因为开发者模式有效"));
-        } else {
-            console_log!(format!("[同步]{}", "自动同步已启用"));
-        }
+
 
         // 启动文件系统日志模式
         thread::spawn(move || {
@@ -166,16 +172,6 @@ fn main() -> Result<()> {
                     let _ = handle_dat::handle_walk_pictures(&conn);
                     let _ = conn.close();
                 });
-            }
-            // println!("has_sync_token 值已经更新");
-        };
-        
-        if(set_bool!(SYNC_TOKEN,libWxIkunPlus::has_auto_sync())){
-            // println!("has_auto_sync 值已经更新");
-            if(libWxIkunPlus::has_auto_sync()){
-                console_log!(format!("[用户] 自动同步开启"));
-            }else{
-                console_log!(format!("[用户] 自动同步关闭"));
             }
         };
 
