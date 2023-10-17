@@ -1,7 +1,7 @@
 use chrono::Local;
 use rusqlite::Connection;
 
-use crate::{atomic_util, get_arc_bind_variable, global_var, gui_detect_config, gui_drag_scan, gui_hotspot, gui_imge::{self, ImgPreview}, gui_text_control, handle_dat, libWxIkunPlus::getFocusTopWindow, read_rw_lazy_lock, read_rw_lock, set_arc_bind_variable, set_arc_bind_variable_insert, set_arc_bind_variable_vec_clear, set_arc_bind_variable_vec_replace_data, util::{str_eq_str, Sleep}, wh_mod::{self, AttachThumbnail}, write_rw_lock, write_rw_lock_insert, gui_util, libWxIkunPlus};
+use crate::{atomic_util, get_arc_bind_variable, global_var, handle_dat, libWxIkunPlus::getFocusTopWindow, read_rw_lazy_lock, read_rw_lock, set_arc_bind_variable, set_arc_bind_variable_insert, set_arc_bind_variable_vec_clear, set_arc_bind_variable_vec_replace_data, util::{str_eq_str, Sleep}, wh_mod::{self, AttachThumbnail}, write_rw_lock, write_rw_lock_insert, gui_util, libWxIkunPlus};
 
 use std::{
     sync::atomic::{AtomicUsize, Ordering},
@@ -9,7 +9,7 @@ use std::{
     thread, time::UNIX_EPOCH, collections::HashMap, path::{Path, PathBuf},
 };
 use std::sync::atomic::AtomicBool;
-use crate::select_user_ui::WINDOW_CLASS_NAME;
+use crate::gui_select_user_ui::THE_WINDOW_CLASS_NAME;
 
 static HAS_SELECT_USER_WINDOW_NORMAL: AtomicBool = AtomicBool::new(false);
 
@@ -38,6 +38,26 @@ pub struct UserWxRootHistory {
     pub time: String,
     pub path: String,
     pub name: String,
+}
+
+macro_rules! get_the_hwnd {
+    ($class_id:expr) => {
+        {
+        let mut _hwnd = 0 ;
+        for _ in 0..8 {
+          _hwnd = libWxIkunPlus::findWindow($class_id,"");
+            if !libWxIkunPlus::isWindow(_hwnd) {
+                 _hwnd=0;
+            }else {
+              break;
+          }
+            fltk::app::sleep(0.020);
+        }
+        _hwnd as i128}
+    };
+    ()=>{
+        get_the_hwnd!(THE_WINDOW_CLASS_NAME)
+    }
 }
 
 // 从数据库读取历史记录
@@ -128,11 +148,11 @@ pub fn set_store_user_remark(wxid: String, attach_id: String, remark_name: Strin
             ],
         ) {
             Ok(_) => {
-                gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Success,"当前别名备注已经更新",5000u64);
+                gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Success,"当前别名备注已经更新",5000u64);
 
             }
             Err(err) => {
-                gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,format!("别名更新失败 因为-> {:?}",err).as_str(),5000u64);
+                gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Failure,format!("别名更新失败 因为-> {:?}",err).as_str(),5000u64);
 
             }
         }
@@ -316,7 +336,7 @@ pub fn update_thumbnail_preview_list()  {
         let (width, height) = (75, 75);
 
         if thumbnail_list.is_empty(){
-            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"没有发现图片列表 可以找开发者反馈",5000u64);
+            gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Warning,"没有发现图片列表 可以找开发者反馈",5000u64);
         }
 
         // 更新到视图中  
@@ -458,6 +478,7 @@ pub fn initialize_img_preview_list (img_preview_list:&Vec<gui_util::img::ImgPrev
 // GC掉大部分高内存的存储
 pub fn gc_select_user_ui(){
     atomic_util::set_bool(&HAS_SELECT_USER_WINDOW_NORMAL,false);
+    wh_mod::gc_walk_attach_file_list();
     gc_select_user_ui!();
 }
 

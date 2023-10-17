@@ -1,7 +1,7 @@
 #![allow(warnings, unused)]
 
-use crate::rename_ui::rename_tool_main;
-use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, gui_detect_config, gui_drag_scan, atomic_util, inject_fltk_theme, drag_scan2_ui};
+use crate::gui_rename_ui::rename_tool_main;
+use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, atomic_util, inject_fltk_theme, gui_drag_scan2_ui, gui_detect_config_ui};
 use crate::gui_util::img::ImgPreview;
 use crate::gui_util::text::TextControl;
 use crate::gui_util::variable_tag_control::varTagControl;
@@ -21,16 +21,16 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::sync::atomic::AtomicBool;
-use crate::drag_scan2_ui::{get_history_attach_name, get_wx_temp_imag_id};
+use crate::gui_drag_scan2_ui::{get_history_attach_name, get_wx_temp_imag_id};
 use crate::util::Sleep;
 
 // static PREVIEW_WIN_SHOW: AtomicBool = AtomicBool::new(false);
 
 mod lib;
 
-pub(crate) const WINDOW_CLASS_NAME : &'static str = "wx_auto_ex_im::gui_util::select_user_ui::main<win>";
-pub(crate) const WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<6103>";
-pub(crate) const WINDOW_CLASS_NAME_SCAN: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<126126>";
+pub(crate) const THE_WINDOW_CLASS_NAME : &'static str = "wx_auto_ex_im::gui_util::select_user_ui::main<win:56315:>";
+pub(crate) const THE_SUB_WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<6103>";
+pub(crate) const THE_SUB_WINDOW_CLASS_NAME_SCAN: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<126126>";
 
 macro_rules! set_item_id {
     ($win:expr,$id:expr) => {
@@ -70,11 +70,11 @@ macro_rules! eq_wxid_dir{
 
                             if !is_wxid_dir{
                                 // dialog::alert_default("此路径可能不是有效的WX目录 因为未发现有效的用户数据");
-                              gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",3500u64);
+                              gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",3500u64);
                             }
 
                         }else{
-                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",3500u64);
+                            gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",3500u64);
                             // dialog::alert_default("目录无法被打开 请注意路径有效性");
                         }
 
@@ -85,6 +85,30 @@ macro_rules! eq_wxid_dir{
     }
 }
 
+macro_rules! get_the_hwnd {
+    ($class_id:expr) => {
+        {
+        let mut _hwnd = 0 ;
+        for _ in 0..8 {
+          _hwnd = libWxIkunPlus::findWindow($class_id,"");
+            if !libWxIkunPlus::isWindow(_hwnd) {
+                 _hwnd=0;
+            }else {
+              break;
+          }
+            fltk::app::sleep(0.020);
+        }
+        _hwnd as i128}
+    };
+    ()=>{
+        get_the_hwnd!(THE_WINDOW_CLASS_NAME)
+    }
+}
+
+pub fn has_window() -> bool{
+    let hwnd = get_the_hwnd!(THE_WINDOW_CLASS_NAME);
+    libWxIkunPlus::isWindow(hwnd)
+}
 
 struct FrameText {
     选择: TextControl,
@@ -205,6 +229,8 @@ fn add_check_button() -> FrameCheck {
     let mut check_button_thumbnail = button::CheckButton::default().with_label("存缩略图");
     let mut check_button_source = button::CheckButton::default().with_label("保存原图");
     let mut check_button_the_month = button::CheckButton::default().with_label("只保存本月");
+
+    check_button_video.deactivate();
 
     check_button_sync.set_callback(|win|{
         global_var::set_bool("user::config::check_button_sync",win.is_checked());
@@ -445,10 +471,10 @@ macro_rules! set_select_user_base_input_default{
 macro_rules! initialize_window_hwnd{
     ($hwnd:expr)=>{
         if $hwnd==0{
-            $hwnd =  libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, "");
+            $hwnd =  libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, "");
             libWxIkunPlus::setWinIcon($hwnd);
             lib::initialize_gc_select_user_ui($hwnd);
-            println!("[initialize-window] {} -> {}",WINDOW_CLASS_NAME, $hwnd);
+            println!("[initialize-window] {} -> {}",THE_WINDOW_CLASS_NAME, $hwnd);
         }
     }
 }
@@ -632,7 +658,7 @@ fn add_frame_thumbnail_preview_main (mut win: &DoubleWindow) -> ThumbnailPreview
     // 图片预览窗口
     let mut preview_win = fltk::window::Window::new(0,0,win.w(),359,"");
     preview_win.set_color(Color::from_rgb(23, 23, 23));
-    set_item_id!(preview_win,WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW);
+    set_item_id!(preview_win,THE_SUB_WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW);
 
     let mut preview_win_border = gui_util::img::ImgPreview::new(0,0,preview_win.w(),preview_win.h(),"");
     preview_win_border.from_svg(include_str!("./src/preview_win.svg"),0,0,preview_win.w(),preview_win.h());
@@ -751,7 +777,7 @@ fn add_scan_preview_window() -> ScanPreviewMain {
     // 图片预览窗口
     let mut preview_win = fltk::window::Window::new(0,0,600,359,"");
     preview_win.set_color(Color::from_rgb(23, 23, 23));
-    set_item_id!(preview_win,WINDOW_CLASS_NAME_SCAN);
+    set_item_id!(preview_win,THE_SUB_WINDOW_CLASS_NAME_SCAN);
 
     let mut preview_win_border = gui_util::img::ImgPreview::new(0,0,preview_win.w(),preview_win.h(),"");
     preview_win_border.from_svg(include_str!("./src/scan_cursor.svg"),0,0,preview_win.w(),preview_win.h());
@@ -822,6 +848,11 @@ fn add_scan_preview_window() -> ScanPreviewMain {
 fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
     let mut oid_walk_drag_path = String::new();
     std::thread::spawn( move || loop{
+        if !has_window(){
+            lib::gc_select_user_ui();
+            return;
+        }
+
         let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
         if(!oid_walk_drag_path.as_bytes().eq(walk_drag_path.as_bytes())){
             oid_walk_drag_path.clear();
@@ -837,13 +868,13 @@ fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
             }
 
             if let Ok(buff_thumbnail_data) = wh_mod::convert::convert_dat_images_buff(std::path::PathBuf::from(walk_drag_path.as_str())) {
-                preview1.thumbnail_preview.from_data(buff_thumbnail_data,-1, -1, 80 - 2, 80 - 2,);
+                preview1.thumbnail_preview.from_data(buff_thumbnail_data,-1, -1, 80, 80);
             }
 
             // println!("walk_drag_path->{}",&walk_drag_path);
         }
 
-        if !drag_scan2_ui::has_window() {
+        if !gui_drag_scan2_ui::has_window() {
             return;
         }
 
@@ -851,19 +882,35 @@ fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
     });
 }
 
+macro_rules! the_token {
+    ()=>{
+       {
+        let mut _the_token =format!("[select_user_ui]token<{}>@query",libWxIkunPlus::randomNum());
+        loop{
+            if global_var::has_string(_the_token.as_str()) {
+                _the_token = format!("[select_user_ui]token<{}>@query",libWxIkunPlus::randomNum());
+            }else{
+                break;
+            }
+        }
+            _the_token
+        }
+    }
+}
 
-pub fn manage_tool_main() {
-    
+pub fn manage_tool_main() -> String{
+    let the_token = the_token!();
     // 禁止创建多个窗口
-    if let hwnd = libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, "") {
+    if let hwnd = libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, "") {
         if hwnd!=0 && libWxIkunPlus::isWindow(hwnd) {
-            if let Some(mut win) =app::widget_from_id(WINDOW_CLASS_NAME) as Option<DoubleWindow>
+            if let Some(mut win) =app::widget_from_id(THE_WINDOW_CLASS_NAME) as Option<DoubleWindow>
              {
                  win.show();
                  win.set_visible_focus();
              }
              libWxIkunPlus::setWindowShake(hwnd);
-            return;
+            global_var::set_string(the_token.as_str(),String::new());
+            return the_token;
         }
     }
 
@@ -873,7 +920,7 @@ pub fn manage_tool_main() {
 
     inject_fltk_theme!();
     win.set_label("任务创建向导");
-    set_item_id!(win, WINDOW_CLASS_NAME);
+    set_item_id!(win, THE_WINDOW_CLASS_NAME);
     
     let mut g_the_select_wxid = String::new();
     let mut g_the_select_attach_id = String::new();
@@ -953,7 +1000,7 @@ pub fn manage_tool_main() {
 
         let mut released = true;
         let mut dnd = true;
-
+        let the_token =the_token.clone();
         let move_select_attach_card2 = select_attach_card.clone();
 
         move |win, ev| match ev {
@@ -1029,7 +1076,7 @@ pub fn manage_tool_main() {
                                 return false;
                             }
                             // gui_drag_scan::main_window();
-                            drag_scan2_ui::main_window("");
+                            gui_drag_scan2_ui::main_window("");
                             initialize_watch_walk_drag_path (move_select_attach_card2.clone());
                         }
 
@@ -1057,7 +1104,7 @@ pub fn manage_tool_main() {
                                 let temp_imag_id = get_wx_temp_imag_id(clip_file_path_single.as_str());
 
                                 if !temp_imag_id.is_empty() {
-                                    drag_scan2_ui::main_window(clip_file_path_single.as_str());
+                                    gui_drag_scan2_ui::main_window(clip_file_path_single.as_str());
                                     initialize_watch_walk_drag_path (move_select_attach_card2.clone());
                                 }
 
@@ -1111,46 +1158,14 @@ pub fn manage_tool_main() {
 
                             println!("[click] existPoint {}  select_dir-> {} eq-> {}", "打开文件夹选择器", select_dir, eq_wxid_dir);
                         } else {
-                            gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Info, "用户取消", 3500u64);
+                            gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Info, "用户取消", 3500u64);
                         }
-                    }
-
-                    // 显示扫描获取面板
-                    if button_show_drag.existPoint(x, y) {
-                        println!("[click] existPoint {}", "显示扫描获取面板");
-
-                        if (!libWxIkunPlus::hasWeChat() || !libWxIkunPlus::hasWeChatWin()) {
-                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 3500u64);
-                            // fltk::dialog::alert_default("尚未找到已经登录的WX进程 为避免滥用 面板开启请求被拒绝 ");
-                            return false;
-                        }
-
-                        if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
-                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"尚未选择用户",3500u64);
-                            return false;
-                        }
-                        if global_var::get_string_default("user::config::user_select_path").is_empty() {
-                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"没有选择WX根目录",3500u64);
-                            return false;
-                        }
-
-                        // gui_drag_scan::main_window();
-
-
-                        scan_preview_window.main.show();
-                        // libWxIkunPlus::setWindowEnabled(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME_SCAN,""),true);
-                        // user_select_database_dir_input.deactivate();
-                        // select_attach_card.input_rename.deactivate();
-                        // select_attach_card.input_remark.deactivate();
-                        // let mut scan_drag_window = show_scan_drag_window();
-                        // scan_drag_window.hide();
-                        scan_win_show = true;
                     }
 
                     // 显示帮助面板
                     if button_show_help.existPoint(x, y) {
                         println!("[click] existPoint {}", "");
-                        gui_detect_config::main_window();
+                        gui_detect_config_ui::main_window();
                     }
 
                     // 图片预览大图
@@ -1169,7 +1184,7 @@ pub fn manage_tool_main() {
                     }
 
                     // 开始
-                    if button_start.existPoint(x, y) {
+                    if button_start.existPoint(x, y)||(button_show_drag.existPoint(x, y)&&global_var::get_string_default("user::config::user_select_wxid").is_empty()) {
                         select_attach_card.gc();
 
                         if !user_select_database_dir_input.value().is_empty() {
@@ -1196,7 +1211,7 @@ pub fn manage_tool_main() {
                                 if active_user_list.is_empty() {
                                     select_user_data_choice.add_choice("【状态】  未找到用户列表");
                                     select_user_data_choice.set_value(0);
-                                    gui_util::message::sub_message(libWxIkunPlus::findWindow(WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Failure, "未找到用户列表 请注意路径有效性", 3500u64);
+                                    gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Failure, "未找到用户列表 请注意路径有效性", 3500u64);
                                     return false;
                                 }
 
@@ -1226,6 +1241,39 @@ pub fn manage_tool_main() {
                             gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择WX文件默认保存位置", 3500u64);
                         }
                     }
+
+                    // 显示扫描获取面板
+                    if button_show_drag.existPoint(x, y) {
+                        println!("[click] existPoint {}", "显示扫描获取面板");
+
+                        if (!libWxIkunPlus::hasWeChat() || !libWxIkunPlus::hasWeChatWin()) {
+                            gui_util::message::sub_message(hwnd, gui_util::message::IconType::Failure, "WX未登录 为避免滥用 面板开启请求被拒绝", 3500u64);
+                            // fltk::dialog::alert_default("尚未找到已经登录的WX进程 为避免滥用 面板开启请求被拒绝 ");
+                            return false;
+                        }
+
+                        if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
+                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"尚未选择用户",3500u64);
+                            return false;
+                        }
+                        if global_var::get_string_default("user::config::user_select_path").is_empty() {
+                            gui_util::message::sub_message(hwnd,gui_util::message::IconType::Warning,"没有选择WX根目录",3500u64);
+                            return false;
+                        }
+
+                        // gui_drag_scan::main_window();
+
+
+                        scan_preview_window.main.show();
+                        // libWxIkunPlus::setWindowEnabled(libWxIkunPlus::findWindow(THE_SUB_WINDOW_CLASS_NAME_SCAN,""),true);
+                        // user_select_database_dir_input.deactivate();
+                        // select_attach_card.input_rename.deactivate();
+                        // select_attach_card.input_remark.deactivate();
+                        // let mut scan_drag_window = show_scan_drag_window();
+                        // scan_drag_window.hide();
+                        scan_win_show = true;
+                    }
+
                 }
 
 
@@ -1233,30 +1281,20 @@ pub fn manage_tool_main() {
                 if select_attach_card.btn_select.existPoint(x, y) {
                     println!("[click] existPoint {}", "卡片按钮 > 完成选定");
 
-                    let mut data = String::new();
+                    let mut result_data = String::new();
                     let mut is_effective = true;
-
-                    if frame_check.thumbnail.is_checked() {
-                        data.push_str("*thumbnail");
-                    }
-                    if frame_check.source.is_checked() {
-                        data.push_str("*source");
-                    }
-                    if frame_check.video.is_checked() {
-                        data.push_str("*video");
-                    }
-                    if frame_check.sync.is_checked() {
-                        data.push_str("*Sync");
-                    }
-                    if frame_check.the_month.is_checked() {
-                        data.push_str("*the_month");
-                    }
 
                     let mut rename_rule = select_attach_card.input_rename.value();
 
                     // 没有选定的路径
                     if user_select_database_dir_input.value().is_empty() {
                         fltk::dialog::alert_default("没有选定Wx路径");
+                        is_effective = false;
+                        return false;
+                    }
+                    // 没有选定WX用户
+                    if global_var::get_string_default("user::config::user_select_wxid").is_empty() {
+                        fltk::dialog::alert_default("没有选定WX用户");
                         is_effective = false;
                         return false;
                     }
@@ -1269,17 +1307,10 @@ pub fn manage_tool_main() {
                         is_effective = false;
                         return false;
                     }
-
                     // 有命名规则 要求规则最少有一个%N.. 自变量
                     if !rename_rule.is_empty() && (!rename_rule.contains("<N") || !rename_rule.contains("N>")) {
                         rename_rule.push_str("<NN>");
                     }
-
-                    // 添加名称格式化自变量
-                    if !select_attach_card.input_rename.value().is_empty() {
-                        data.push_str(format!("*rename_rule={}*", &rename_rule).as_str());
-                    }
-
                     let mut select_dir = user_select_database_dir_input.value();
                     let eq_wxid_dir = eq_wxid_dir!(select_dir);
 
@@ -1287,6 +1318,38 @@ pub fn manage_tool_main() {
                     let mut attach_path = PathBuf::from(select_dir).join(global_var::get_string_default("user::config::user_select_wxid")).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
 
                     println!("attach_path=> {:?}", &attach_path);
+
+                    if let Some(attach_path_str) = attach_path.to_str() {
+                        result_data.push_str(attach_path_str);
+                        // 识标
+                        if frame_check.thumbnail.is_checked() {
+                            result_data.push_str("*wizards");
+                        }
+                        // 可选项
+                        if frame_check.thumbnail.is_checked() {
+                            result_data.push_str("*thumbnail");
+                        }
+                        if frame_check.source.is_checked() {
+                            result_data.push_str("*source");
+                        }
+                        if frame_check.video.is_checked() {
+                            result_data.push_str("*video");
+                        }
+                        if frame_check.sync.is_checked() {
+                            result_data.push_str("*Sync");
+                        }
+                        if frame_check.the_month.is_checked() {
+                            result_data.push_str("*the_month");
+                        }
+                        // 添加名称格式化自变量
+                        if !select_attach_card.input_rename.value().is_empty() {
+                            result_data.push_str(format!("*rename_rule={}*", &rename_rule).as_str());
+                        }
+
+                    }else{
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "路径转义失败 错误代码[3061]", 3500u64);
+                        return false;
+                    }
 
                     if !attach_path.exists() && !attach_path.exists() {
 
@@ -1297,6 +1360,8 @@ pub fn manage_tool_main() {
                     }
 
                     if is_effective && eq_wxid_dir {
+                        println!("result_data->{}",&result_data);
+                        global_var::set_string(the_token.as_str(),result_data);
                         lib::gc_select_user_ui();
                         fltk::window::Window::delete(win.clone());
                     }
@@ -1336,7 +1401,47 @@ pub fn manage_tool_main() {
                 // 卡片按钮 > 编辑命名规则
                 if select_attach_card.btn_rename.existPoint(x, y) {
                     println!("[click] existPoint {}", "卡片按钮 > 编辑命名规则");
-                    rename_tool_main(select_attach_card.input_rename.value().as_str());
+                   let mut rename_token = rename_tool_main(select_attach_card.input_rename.value().as_str());
+                    let mut input_rename = select_attach_card.input_rename.clone();
+
+                    app::add_timeout3(0.3,move|handle|{
+                        if global_var::has_string(rename_token.as_str()) {
+                            let data = global_var::get_string_default(rename_token.as_str());
+                            if data.is_empty() {
+                                println!("{} 用户取消 data-> [{}]",&rename_token,&data);
+                                gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Warning,"用户取消处理",3500u64);
+                            }else{
+                                if !input_rename.value().as_bytes().eq(data.as_bytes()) {
+                                    input_rename.set_value(data.as_str());
+                                    println!("{} 名称更新 data-> [{}]",&rename_token,&data);
+                                    gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Success,"名称已成功更新",3500u64);
+                                }else {
+                                    println!("{} 没有需要更新的名称内容 data-> [{}]",&rename_token,&data);
+                                    gui_util::message::sub_message(get_the_hwnd!(),gui_util::message::IconType::Info,"名称内容没有变化",3500u64);
+                                }
+                            }
+                            global_var::set_string(rename_token.as_str(),String::new());
+                            app::remove_timeout3(handle);
+                        }else {
+                            app::repeat_timeout3(0.3, handle);
+                        }
+                    });
+
+                    /*
+                    std::thread::spawn(move|| loop{
+                        std::thread::sleep(std::time::Duration::from_millis(300u64));
+                        if global_var::has_string(rename_token.as_str()) {
+                            let data = global_var::get_string_default(rename_token.as_str());
+                            if data.is_empty() {
+                                println!("{} 用户取消 data-> [{}]",&rename_token,&data);
+                            }else{
+                                input_rename.set_value(data.as_str());
+                                println!("{} 名称更新 data-> [{}]",&rename_token,&data);
+                            }
+                            break;
+                        }
+                    });
+                    */
                 }
 
                 true
@@ -1452,5 +1557,5 @@ pub fn manage_tool_main() {
 
 
     initialize_window_hwnd!(hwnd);
-
+    the_token
 }

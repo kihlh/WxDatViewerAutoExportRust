@@ -1,13 +1,13 @@
 #![allow(warnings, unused)]
 
-use crate::{get_arc_bind_variable, get_bool, get_option_arc_bind_variable, get_option_arc_bind_variable_or, global_var, gui_util, inject_fltk_theme, libWxIkunPlus, select_user_ui, set_arc_bind_variable, set_arc_bind_variable_string_replace_data, set_bool, set_item_id, set_option_arc_bind_variable, wh_mod};
+use crate::{get_arc_bind_variable, get_bool, get_option_arc_bind_variable, get_option_arc_bind_variable_or, global_var, gui_util, inject_fltk_theme, libWxIkunPlus, set_arc_bind_variable, set_arc_bind_variable_string_replace_data, set_bool, set_item_id, set_option_arc_bind_variable, wh_mod};
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
 use fltk::{prelude::*, *};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local};
-
+use crate::gui_select_user_ui;
 use std::collections::{HashMap, HashSet};
 use std::path;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicUsize, Ordering};
@@ -28,7 +28,7 @@ static PUSH_MESSAGE_ING: AtomicBool = AtomicBool::new(false);
 macro_rules! gc_the_window {
     ($win:expr) => {
       fltk::window::Window::delete($win.clone());
-      wh_mod::gc_walk_attach_file_list();
+      // wh_mod::gc_walk_attach_file_list();
       // set_arc_bind_variable_string_replace_data!(STATUS_PREVIEW_TEXT,STATUS_PREVIEW_TEXT_BIND,"");
       println!("[gc_window] [{}] [{}]",THE_WIN_CLASS_NAME,!has_window());
     };
@@ -202,12 +202,12 @@ fn initialize_watch_attach_puppet(imag_id: &str){
 
                 if (walk_next_not_message > 50) {
                     set_bool!(SCAN_SCAN_ING,false);
-                    let start = get_option_arc_bind_variable_or!(STATUS_TIME,STATUS_TIME_BIND,std::time::Instant::now());
-                    let mut input_data = format!("扫描结束【未找到】 用时: {:?}", start.elapsed());
+                    // let start = get_option_arc_bind_variable_or!(STATUS_TIME,STATUS_TIME_BIND,std::time::Instant::now());
+                    // let mut input_data = format!("扫描结束 用时: {:?}", start.elapsed());
 
-                    push_message(input_data.as_str(),true);
+                    // push_message(input_data.as_str(),true);
 
-                    println!("{}", &input_data);
+                    // println!("{}", &input_data);
                     break;
                 }
             }
@@ -302,27 +302,28 @@ fn add_ui_control() -> UiControl{
         }
 
         if !get_bool!(SCAN_SCAN_ING) {
-            if !has_window() {return };
-
-           progress_bar_preview.hide();
+            if has_window() { progress_bar_preview.hide();}
 
             let start = get_option_arc_bind_variable!(STATUS_TIME,STATUS_TIME_BIND);
 
             if let Some(start) = start {
                 std::thread::sleep(std::time::Duration::from_millis(300u64));
-                if !has_window() {return };
 
-                buf.remove(0,buf.length());
-                let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
-                if walk_drag_path.is_empty() {
-                    let mut input_data = format!("扫描结束 用时约为: {:?} ", start.elapsed());
-                    buf.append(input_data.as_str());
-                }
-                else{
-                    let att_info = wh_mod::wx_parse_path(walk_drag_path.to_string());
-                    let mut input_data = format!("ID<{}> [已选定] 用时约为: {:?}", att_info.attach_id , start.elapsed());
-                    buf.append(input_data.as_str());
-                }
+                if !has_window() {
+                    buf.remove(0,buf.length());
+                    let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
+                    if walk_drag_path.is_empty() {
+                        let mut input_data = format!("扫描结束 用时约为: {:?} ", start.elapsed());
+                        buf.append(input_data.as_str());
+                    }
+                    else{
+                        let att_info = wh_mod::wx_parse_path(walk_drag_path.to_string());
+                        let mut input_data = format!("ID<{}> [已选定] 用时约为: {:?}", att_info.attach_id , start.elapsed());
+                        buf.append(input_data.as_str());
+                    }
+                };
+
+
             }
 
             unsafe {
@@ -352,14 +353,24 @@ fn add_ui_control() -> UiControl{
 
 // 初始化窗口
 pub fn main_window(match_input:&str)->Option<DoubleWindow> {
-    // 窗口已经被初始化 而且句柄有效
-    if has_window() {
-        return Option::None;
+
+    // 禁止创建多个窗口
+    if let hwnd = get_the_hwnd!() {
+        if hwnd!=0 && libWxIkunPlus::isWindow(hwnd) {
+            if let Some(mut win) =app::widget_from_id(THE_WIN_CLASS_NAME) as Option<DoubleWindow>
+            {
+                win.show();
+                win.set_visible_focus();
+            }
+            libWxIkunPlus::setWindowShake(hwnd);
+            return Option::None;
+        }
     }
 
+
     let mut win: DoubleWindow = fltk::window::DoubleWindow::new(0, 0, 600,360, "扫描图源用户").center_screen();
-    let mut rect = libWxIkunPlus::getWindowRect(libWxIkunPlus::findWindow(select_user_ui::WINDOW_CLASS_NAME,""));
-    win.set_pos(rect.left,rect.top);
+    let mut rect = libWxIkunPlus::getWindowRect(libWxIkunPlus::findWindow(gui_select_user_ui::THE_WINDOW_CLASS_NAME,""));
+    win.set_pos(rect.left+8,rect.top+31);
 
     inject_fltk_theme!();
     win.set_color(Color::from_rgb(24, 24, 24));

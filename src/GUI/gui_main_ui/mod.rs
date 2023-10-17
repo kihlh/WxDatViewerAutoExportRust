@@ -1,19 +1,4 @@
-// #![allow(
-//     dead_code,
-//     unused_imports,
-//     unused_parens,
-//     unused_variables,
-//     unused_mut,
-//     unused_must_use,
-//     unused_assignments,
-//     non_snake_case,
-//     unreachable_code,
-//     unused_macros,
-//     unused_unsafe
-// )]
 #![allow(warnings, unused)]
-
-// #![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -21,13 +6,6 @@ use hotwatch::{
     blocking::{Flow, Hotwatch},
     EventKind,
 };
-// GleamThinDownBox -> 53
-// GtkRoundUpFrame -> 46
-// RoundDownBox -> 23
-// RoundUpBox -> 22
-// RShadowBox -> 19
-// EngravedFrame -> 12
-// 12 19 22 23 46 53(buj)
 
 use libc::c_void;
 use rusqlite::{params, Connection, Result};
@@ -56,7 +34,7 @@ use fltk_theme::WidgetTheme;
 use fltk_theme::ThemeType;
 use fltk_theme::WidgetScheme;
 use fltk_theme::SchemeType;
-
+use crate::{console_log, gui_manage_item};
 use std::{
     env,
     ffi::{c_int, c_long, OsStr},
@@ -70,13 +48,15 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, gui_manage_item, gui_select_user_base, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, gui_drag_scan, wh_mod, console_log, gui_imge, global_var_util, get_bool, APP_STARTUP, select_user_ui, gui_util, set_bool};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, wh_mod, global_var_util, get_bool, APP_STARTUP, gui_util, set_bool, gui_select_user_ui};
 use crate::wh_mod::parse_dat_path;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
 use std::sync::{Arc, Condvar, Mutex,RwLock};
 use serde_json::Value as Json;
 use toml::Value as Toml;
+
+
 
 use crate::SYNC_TOKEN;
 pub struct AppVersionInfo {
@@ -101,7 +81,7 @@ fn toml2json(toml: Toml) -> Json {
 }
 
 pub fn get_app_version_info () -> Json {
-    const APP_VERSION: &str = include_str!("../Cargo.toml");
+    const APP_VERSION: &str = include_str!("../../Cargo.toml");
     // println!("toml2json-> {:?}",toml2json(APP_VERSION));
 
     match APP_VERSION.parse() {
@@ -193,9 +173,9 @@ pub fn setMainTheme() {
 
 // 设置背景为图片（主视图）
 fn setWinBackground_forRoot_image(appMainWin: &mut window::DoubleWindow) -> Frame {
-    let background_image = image::PngImage::from_data(include_bytes!("./assets/main_back.png"))
+    let background_image = image::PngImage::from_data(include_bytes!("../assets/main_back.png"))
         .expect("set main icon error");
-    // image::SvgImage::from_data(include_str!("./assets/main_back.svg"))
+    // image::SvgImage::from_data(include_str!("../assets/main_back.svg"))
     // .expect("set main icon error");
     let mut frame = Frame::default().with_size(600, 0).center_of(appMainWin);
     frame.set_frame(FrameType::EngravedBox);
@@ -271,14 +251,14 @@ fn getFormPointSpace(x: i32, y: i32) -> PointExistHasmap {
 
 
 // 设置自启动按钮的状态
-fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_imge::ImgPreview  {
+fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_util::img::ImgPreview  {
     let w_h = 20;
-    let mut preview = gui_imge::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
+    let mut preview = gui_util::img::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
 
     if libWxIkunPlus::hasStartup() {
-        preview.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,w_h, w_h);
     }else{
-        preview.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
     }
     
    
@@ -605,10 +585,10 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
         if get_bool!(APP_STARTUP)!=oid_app_start{
             oid_app_start = true;
-            copy_btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,20, 20);
         }else{
             oid_app_start = false;
-            copy_btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,20, 20);
         }
 
         Sleep(550);
@@ -721,6 +701,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                     //     .buff
                     //     .set_text("[用户] 很抱歉 当前还不支持配置管理");
                     println!("click => manageItme");
+
                     gui_manage_item::ManageItmeMain();
                 } else if (point_exist_hasmap.shellOpenDatDir) {
                     input_Console
@@ -729,8 +710,9 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                   
                     // 有wx进程 而且有窗口
                     if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
-                    select_user_ui::manage_tool_main();
+                        gui_select_user_ui::manage_tool_main();
                     // gui_select_user_base::mian_window();
+
                     }else{
                         // thread::spawn(||{
                         //     // libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
@@ -780,9 +762,9 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                     }
                     
                     // if libWxIkunPlus::hasStartup() {
-                    //     btnEnableStarting.from_data(include_bytes!("./assets/enable.png").to_vec(), 0, 0,20, 20);
+                    //     btnEnableStarting.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,20, 20);
                     // }else{
-                    //     btnEnableStarting.from_data(include_bytes!("./assets/un_enable.png").to_vec(), 0, 0,20, 20);
+                    //     btnEnableStarting.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,20, 20);
                     // }
 
                     println!("click => starting");

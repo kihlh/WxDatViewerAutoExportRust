@@ -1,13 +1,13 @@
 #![allow(warnings, unused)]
 
-use crate::{gui_util, set_item_id};
+use crate::{global_var, gui_util, libWxIkunPlus, set_item_id};
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
 use fltk::{prelude::*, *};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
 use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local};
-
+pub(crate) const THE_WINDOW_CLASS_NAME: &'static str = "wx_auto_ex_im::gui_util::rename_tool::main<32626>";
 
 
 struct time_info {
@@ -58,17 +58,35 @@ fn get_time_info () ->time_info {
     result
 }
 
+macro_rules! the_token {
+    ()=>{
+       {
+        let mut _the_token =format!("token<{}>@query",libWxIkunPlus::randomNum());
+        loop{
+            if global_var::has_string(_the_token.as_str()) {
+                _the_token = format!("token<{}>@query",libWxIkunPlus::randomNum());
+            }else{
+                break;
+            }
+        }
+            _the_token
+        }
+    }
+}
 
-pub fn rename_tool_main(input:&str) {
+pub fn rename_tool_main(input:&str) -> String {
+
+    let mut the_token = the_token!();
+
     let mut win = window::Window::default().with_size(600, 550).center_screen();
     win.set_label("命名规则工具");
-    set_item_id!(win, "gui_util::rename_tool::main<win>");
+    set_item_id!(win, THE_WINDOW_CLASS_NAME);
     win.set_border(false);
     let mut rename_variable_input_oid_str = String::new();
     let time_info =get_time_info();
     
     let mut preview =
-    gui_util::img::ImgPreview::new(0, 0, win.w(), win.h(), "gui_util::rename_tool::main<win>");
+    gui_util::img::ImgPreview::new(0, 0, win.w(), win.h(), THE_WINDOW_CLASS_NAME);
     preview.from_svg(
         include_str!("./src/contour.svg"),
         0,
@@ -238,9 +256,9 @@ pub fn rename_tool_main(input:&str) {
     update_variable_input!();
 
     win.handle({
+        let mut the_token =the_token.clone();
         let mut x = 0;
         let mut y = 0;
-
         move |win, ev| match ev {
             enums::Event::Show => {
                 win.set_visible_focus();
@@ -271,10 +289,12 @@ pub fn rename_tool_main(input:&str) {
                 }
 
                 if cancel_btn.existPoint(x,y) {
+                    global_var::set_string(the_token.as_str(),String::new());
                     fltk::window::Window::delete(win.clone());
                 }
 
                 if confirm_btn.existPoint(x,y){
+                    global_var::set_string(the_token.as_str(),rename_variable_input_copy.value());
                     fltk::window::Window::delete(win.clone());
                 }
 
@@ -327,4 +347,6 @@ pub fn rename_tool_main(input:&str) {
     });
 
     win.show();
+
+    the_token.clone()
 }
