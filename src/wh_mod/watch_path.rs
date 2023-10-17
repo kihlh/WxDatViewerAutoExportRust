@@ -1,7 +1,7 @@
 #![allow(dropping_references)]
 
 use crate::util::{str_eq_str, Sleep};
-use crate::{console_log, global_var, util, get_bool,set_bool};
+use crate::{global_var, util, get_bool,set_bool};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -10,7 +10,7 @@ use std::sync::{mpsc, OnceLock};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
-
+use crate::console_log;
 static WATCH_PATH_ID: AtomicUsize = AtomicUsize::new(0);
 
 // lazy_static! {

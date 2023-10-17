@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-use crate::set_bool;
+use crate::{libWxIkunPlus, set_bool};
 use chrono::Local;
 use core::sync::atomic::Ordering;
 use fltk::app::handle;
@@ -38,11 +38,11 @@ use std::{
     thread,
     time::Duration,
 };
-
+use crate::console_log;
 use crate::{
-    console_log, get_bool, global_var, global_var_util,
+    get_bool, global_var, global_var_util,
     util::{self, str_eq_str, Sleep},
-    wh_mod, SYNC_TOKEN,
+    wh_mod,
 };
 static HANDLE_DAT_ING: AtomicBool = AtomicBool::new(false);
 
@@ -202,8 +202,8 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
         return Ok(());
     }
 
-    if !get_bool!(SYNC_TOKEN) {
-        console_log!(format!("[处理]  取消处理 -> 已被禁用"));
+    if libWxIkunPlus::has_auto_sync() {
+        console_log!(format!("[处理]  取消处理 -> 总同步开关要求禁用"));
         return Ok(());
     }
 
@@ -234,7 +234,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
                 .to_string()
         );
 
-        if (!get_bool!(SYNC_TOKEN)) {
+        if (!libWxIkunPlus::has_auto_sync()) {
             console_log!("[跳出] 因为用户关闭自动同步 已经退出扫描".to_string());
 
             break;
@@ -281,7 +281,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
             }
             handle_all_size = handle_all_size + 1;
 
-            if (!get_bool!(SYNC_TOKEN)) {
+            if (!libWxIkunPlus::has_auto_sync()) {
                 console_log!("[跳出] 因为用户关闭自动同步 已经退出扫描".to_string());
                 break;
             };
@@ -461,7 +461,8 @@ pub fn handle_commandLine() -> Result<()> {
     });
 
     if (is_show) {
-        env::set_var("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed", "true");
+        libWxIkunPlus::setInitWindowIsDisplayed(true);
+        // env::set_var("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed", "true");
     }
 
     if args.len() > 1 {

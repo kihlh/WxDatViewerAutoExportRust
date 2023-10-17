@@ -23,8 +23,8 @@ fn main() {
     {
         WindowsResource::new()
             // This path can be absolute, or relative to your crate root.
-            .set_icon("src/icon/ICON1.ico")
-            .set_icon_with_id("src/icon/ICON1.ico", "appicon")
+            .set_icon("src/assets/icon/ICON1.ico")
+            .set_icon_with_id("src/assets/icon/ICON1.ico", "appicon")
             .compile()
             .expect("set icon error");
     }

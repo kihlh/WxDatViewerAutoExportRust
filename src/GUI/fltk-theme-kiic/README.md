@@ -85,28 +85,28 @@ fn main() {
 ## Widget themes
 
 - Classic (old Windows theme)
-- ![alt_test](screenshots/classic.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/classic.jpg)
 
 - Aero (Windows 7 theme)
-- ![alt_test](screenshots/aero.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/aero.jpg)
 
 - AquaClassic (classic MacOS theme),
-- ![alt_test](screenshots/aqua_classic.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/aqua_classic.jpg)
 
 - Dark
-- ![alt_test](screenshots/dark.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/dark.jpg)
 
 - High Contrast
-- ![alt_test](screenshots/high_contrast.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/high_contrast.jpg)
 
 - Blue
-- ![alt_test](screenshots/blue.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/blue.jpg)
 
 - Metro (Windows 8 theme)
-- ![alt_test](screenshots/metro.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/metro.jpg)
 
 - Greybird (Gnome xfce)
-- ![alt_test](screenshots/greybird.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/greybird.jpg)
 
 ## Theme FrameTypes
 
@@ -142,55 +142,55 @@ OS_BG_BOX
 ```
 
 You can check the frames example to see all `FrameType`'s you can apply to you widgets.
-- ![alt_test](screenshots/frames.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/frames.jpg)
 
 
 ## Color themes
 
 - Black theme
-- ![alt_test](screenshots/black.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/black.jpg)
 
 - Dark theme
-- ![alt_test](screenshots/dark_color.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/dark_color.jpg)
 
 - Plain gray theme
-- ![alt_test](screenshots/plain-gray.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/plain-gray.jpg)
 
 - Tan theme
-- ![alt_test](screenshots/tan.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/tan.jpg)
 
 - Shake theme
-- ![alt_test](screenshots/shake.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/shake.jpg)
 
 
 ## Widget Schemes
 
 These provide schemes for widgets without color theming. Currently there are 6 schemes:
 - Clean: Taken from NTK's clear scheme.
-- ![alt_test](screenshots/clean.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/clean.jpg)
 
 - Crystal: Taken from NTK's crystal scheme.
-- ![alt_test](screenshots/crystal.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/crystal.jpg)
 
 - Gleam: Taken from NTK's gleam scheme.
-- ![alt_test](screenshots/gleam.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/gleam.jpg)
 
 - Aqua: Tries to mimic the modern MacOS's styles.
-- ![alt_test](screenshots/aqua_scheme.jpg)
-- ![alt_test](screenshots/aqua_scheme2.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/aqua_scheme.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/aqua_scheme2.jpg)
 
 - Fluent: Tries to mimic Window's 10 styles.
-- ![alt_test](screenshots/fluent.jpg)
-- ![alt_test](screenshots/fluent2.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/fluent.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/fluent2.jpg)
 
 - SvgBased: This overrides FLTK's Base scheme round/rounded/oval FrameTypes which are drawn using scalable vector graphics.
-- ![alt_test](screenshots/svgbased.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/svgbased.jpg)
 
 ## Colors
 
 The crate also provides colors, namely html colors and aqua colors.
 The aqua colors are provided as static values and are named after the cocoa NSColor properties (such as windowBackgroundColor, systemBlueColor, controlAccentColor...etc). The html colors are provided in a static HashMap and can be accessed by their [html names](https://www.w3schools.com/tags/ref_colornames.asp). Refer to the html_colors and aqua_dark examples to see how the colors are used.
 
-- ![alt_test](screenshots/html_colors.jpg)
+- ![alt_test](GUI/fltk-theme-kiic/screenshots/html_colors.jpg)
 
 Colors and Color themes can also be used with widget schemes or even in a regular fltk-rs application.

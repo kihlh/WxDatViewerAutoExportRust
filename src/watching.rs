@@ -11,7 +11,6 @@ use std::{
 };
 
 use crate::{
-    console_log,
     global_var::{self, push_vec_string},
     global_var_util,
     handle_dat,
@@ -24,7 +23,7 @@ use crate::{
 use std::collections::HashSet;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
-
+use crate::console_log;
 // lazy_static! {
 //     static ref WARCHER_CHANGE_LIST: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
 //     static ref WARCHER_PATH_LIST: Mutex<HashSet<String>> = Mutex::new(HashSet::new());

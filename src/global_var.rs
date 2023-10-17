@@ -662,3 +662,12 @@ pub fn get_vec_string_len(key: &str) -> usize {
 pub fn get_vec_string_from_index(key: &str, index: usize) -> Option<String> {
     from_index_map_vec_bind_variable!(VARIABLE_VEC_STRING, VARIABLE_VEC_STRING_BIND, key, index)
 }
+
+#[macro_export]
+macro_rules! console_log {
+    ($message:expr) => {
+        println!("{}", $message);
+        global_var::push_vec_string("console_log", $message);
+        // handle_dat::push_console_message($message);
+    };
+}

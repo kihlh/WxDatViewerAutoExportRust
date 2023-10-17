@@ -8,7 +8,7 @@ repository = "https://github.com/fltk-rs/fltk-theme"
 documentation = "https://docs.rs/fltk-theme"
 keywords = ["gui", "ui", "widgets", "bindings", "graphics"]
 categories = ["gui"]
-readme = "README.md"
+readme = "GUI/fltk-theme-kiic/README.md"
 license = "MIT"
 exclude = ["/screenshots", "./examples"]
 

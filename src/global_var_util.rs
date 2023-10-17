@@ -10,7 +10,6 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
-use crate::console_log;
 use crate::global_var::insert_vec_string;
 use crate::global_var::push_vec_string;
 

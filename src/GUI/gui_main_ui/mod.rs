@@ -48,7 +48,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, wh_mod, global_var_util, get_bool, APP_STARTUP, gui_util, set_bool, gui_select_user_ui};
+use crate::{atomic_util, global_var, handle_dat, libWxIkunPlus::{self, setTaskbarWin}, util::{self, str_eq_ostr, str_eq_str, Sleep}, wh_mod::convert::{convert_bat_images}, wh_mod, global_var_util, get_bool,  gui_util, set_bool, gui_select_user_ui};
 use crate::wh_mod::parse_dat_path;
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
@@ -58,7 +58,6 @@ use toml::Value as Toml;
 
 
 
-use crate::SYNC_TOKEN;
 pub struct AppVersionInfo {
 
 }
@@ -81,7 +80,7 @@ fn toml2json(toml: Toml) -> Json {
 }
 
 pub fn get_app_version_info () -> Json {
-    const APP_VERSION: &str = include_str!("../../Cargo.toml");
+    const APP_VERSION: &str = include_str!("../../../Cargo.toml");
     // println!("toml2json-> {:?}",toml2json(APP_VERSION));
 
     match APP_VERSION.parse() {
@@ -173,9 +172,9 @@ pub fn setMainTheme() {
 
 // 设置背景为图片（主视图）
 fn setWinBackground_forRoot_image(appMainWin: &mut window::DoubleWindow) -> Frame {
-    let background_image = image::PngImage::from_data(include_bytes!("../assets/main_back.png"))
+    let background_image = image::PngImage::from_data(include_bytes!("../../assets/main_back.png"))
         .expect("set main icon error");
-    // image::SvgImage::from_data(include_str!("../assets/main_back.svg"))
+    // image::SvgImage::from_data(include_str!("../../assets/main_back.svg"))
     // .expect("set main icon error");
     let mut frame = Frame::default().with_size(600, 0).center_of(appMainWin);
     frame.set_frame(FrameType::EngravedBox);
@@ -256,9 +255,9 @@ fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_util::img:
     let mut preview = gui_util::img::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
 
     if libWxIkunPlus::hasStartup() {
-        preview.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0,w_h, w_h);
     }else{
-        preview.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
     }
     
    
@@ -514,7 +513,6 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     let mut input_shellOpenDatDir = addInput_shellOpenDatDir(&mut appRootView);
     let mut input_Console = addConsole(&mut appRootView);
     let mut input_shellName = addInput_shellName(&mut appRootView);
-    set_bool!(SYNC_TOKEN,libWxIkunPlus::has_auto_sync());
     let mut sync_type = String::new();
     let mut build_name = if wh_mod::convert::is_build_52pojie() {"52破解专版"} else {"开源版"};
 
@@ -583,12 +581,12 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     thread::spawn(move || loop {
         let mut oid_app_start = false;
 
-        if get_bool!(APP_STARTUP)!=oid_app_start{
+        if !libWxIkunPlus::has_auto_sync()!=oid_app_start{
             oid_app_start = true;
-            copy_btnEnableStarting.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0,20, 20);
         }else{
             oid_app_start = false;
-            copy_btnEnableStarting.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0,20, 20);
         }
 
         Sleep(550);
@@ -686,6 +684,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                 // 关闭按钮
                 if (point_exist_hasmap.quit) {
                     libWxIkunPlus::setwinVisible(g_appMainWinHwnd , false);
+                    fltk::app::quit();
                     // libWxIkunPlus::setwinVisible(g_copy_dock_win_hwnd , false);
                     // unsafe { setShowWindows((copyappMainWin.raw_handle() as i128).try_into().unwrap(), false) };
                 }
@@ -762,9 +761,9 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                     }
                     
                     // if libWxIkunPlus::hasStartup() {
-                    //     btnEnableStarting.from_data(include_bytes!("../assets/enable.png").to_vec(), 0, 0,20, 20);
+                    //     btnEnableStarting.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0,20, 20);
                     // }else{
-                    //     btnEnableStarting.from_data(include_bytes!("../assets/un_enable.png").to_vec(), 0, 0,20, 20);
+                    //     btnEnableStarting.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0,20, 20);
                     // }
 
                     println!("click => starting");
@@ -974,6 +973,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
     appRootView.set_visible_focus();
     // appMainWin.hide();
     // let path = gui_select_user_base::mian_window();
+
 
     Ok(MianWindowItme {
         appRootView,

@@ -29,9 +29,8 @@ use std::{
     process::{Command, Stdio},
     thread,
 };
-use winapi::shared::windef::HWND;
 use winapi::um::winuser::{CloseWindow, SetActiveWindow};
-
+use crate::console_log;
 // 按钮基本都是以坐标判断的
 struct PointExistHasmap {
     // 关闭按钮
@@ -116,7 +115,7 @@ fn getFormPointSpace(x: i32, y: i32) -> PointExistHasmap {
 
 // 设置背景为图片（主视图）
 fn setInterfaceBackgroundImage(appMainWin: &mut window::DoubleWindow) -> Frame {
-    let background_image = image::PngImage::from_data(include_bytes!("./assets/manage_itme.png"))
+    let background_image = image::PngImage::from_data(include_bytes!("../assets/manage_itme.png"))
         .expect("set main icon error");
     let mut frame = Frame::default().with_size(326, 0).center_of(appMainWin);
     frame.set_frame(FrameType::EngravedBox);
@@ -170,7 +169,7 @@ fn create_card(x: i32, y: i32, name: String, path: String, ouput: String) -> Car
     card_win.set_color(Color::from_rgb(24, 24, 24));
 
     // 背景
-    let background_image = image::PngImage::from_data(include_bytes!("./assets/card.png"))
+    let background_image = image::PngImage::from_data(include_bytes!("../assets/card.png"))
         .expect("set main icon error");
     let mut frame = Frame::default().with_size(289, 0).center_of(&card_win);
     frame.set_frame(FrameType::EngravedBox);
@@ -199,10 +198,10 @@ fn create_card(x: i32, y: i32, name: String, path: String, ouput: String) -> Car
     frame_info_name.set_label_color(Color::from_rgb(255, 255, 255));
     frame_info_name.resize(32, 80, 200, 22);
 
-    let card_ok = image::PngImage::from_data(include_bytes!("./assets/card_ok.png"))
+    let card_ok = image::PngImage::from_data(include_bytes!("../assets/card_ok.png"))
         .expect("set main icon error");
 
-    let card_error = image::PngImage::from_data(include_bytes!("./assets/card_error.png"))
+    let card_error = image::PngImage::from_data(include_bytes!("../assets/card_error.png"))
         .expect("set main icon error");
 
     let mut card_status_ok = Frame::default().with_size(26, 26).center_of(&card_win);
@@ -234,15 +233,6 @@ fn create_card(x: i32, y: i32, name: String, path: String, ouput: String) -> Car
         nameStr: name,
         pathStr: path,
         remove: false,
-    };
-}
-
-#[macro_export]
-macro_rules! console_log {
-    ($message:expr) => {
-        println!("{}", $message);
-        global_var::push_vec_string("console_log", $message);
-        // handle_dat::push_console_message($message);
     };
 }
 

@@ -7,7 +7,7 @@ use crate::wh_mod::convert::detect_image_format;
 use chrono::{DateTime, Local};
 // use lazy_static::lazy_static;
 use std::collections::HashSet;
-use std::fs;
+use std::{fs, path};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
@@ -21,6 +21,7 @@ use std::{
     sync::MutexGuard,
     sync::{atomic::AtomicUsize, OnceLock},
 };
+use std::ffi::OsStr;
 
 // lazy_static! {
 //     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
@@ -329,6 +330,93 @@ pub struct WxReadWxid {
     pub update_time_str: String,
     pub attach: PathBuf,
     pub user_root: PathBuf,
+}
+
+// 格式化路径到 String
+pub fn path2string<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(path: P) -> Option<String> {
+    let s = path.as_ref().to_string_lossy();
+    if s.is_empty() { None } else { Some(s.into_owned()) }
+}
+
+//
+pub fn list_path<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(_path: P) -> Vec<String> {
+    let path = path2string::<P,S,E>(_path).unwrap();
+    let path_str = path.replace("\\", "/");
+    let mut result = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(path_str) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                // 如果它是一个目录，就获取它的名字
+                if entry.file_type().map(|s| s.is_dir()).unwrap_or(false) {
+                    if let Some(file_name) = entry.file_name().to_str() {
+                        let path = file_name.to_string().replace("/","\\");
+                        result.push(path);
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+pub fn wildcard_path<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(_path: P) -> Vec<String>{
+    let path = path2string::<P,S,E>(_path).unwrap();
+    let mut result = Vec::new();
+
+    result
+}
+
+// 格式化路径到 D:\usersData\...\WeChat Files
+pub fn format_wx_root(wx_root: &str) -> Option<path::PathBuf> {
+    let match_feature = vec![
+        vec!["*","FileStorage","MsgAttach"],
+        vec!["*","config","AccInfo.dat"],
+        vec!["*","Msg"],
+    ];
+    let mut split_path = split_path(wx_root.to_string());
+    let mut split_path_join_to_wfs = String::new();
+
+    for split in split_path.iter() {
+        if split.as_bytes().eq("WeChat Files".as_bytes()) {
+
+            //  D:\usersData\...\WeChat Files\ 必须得是文件夹
+            if path::Path::new(split_path_join_to_wfs.as_str()).is_dir(){
+                split_path_join_to_wfs.push_str(split);
+
+                // 所有特征
+                // D:\usersData\...\WeChat Files\wxid_0x666\FileStorage\MsgAttach
+                // D:\usersData\...\WeChat Files\wxid_0x666\config\AccInfo.dat
+                // D:\usersData\...\WeChat Files\wxid_0x666\Msg
+                let mut temp_all_feature_path:Vec<String> = Vec::new();
+
+                // 循环并格式化出特征路径
+                for match_feature in match_feature.iter() {
+                    let list_path  = format!("{}\\{}",split_path_join_to_wfs,match_feature.join("\\"));
+
+                    // temp_all_feature_path.push();
+                }
+
+            }else {
+                return None;
+            }
+        }
+        split_path_join_to_wfs.push_str(split);
+    }
+
+    return None;
+}
+
+pub fn wx_search_wxid_root (wx_root: &str) -> Vec<String> {
+    let result = Vec::new();
+    let match_feature = vec![
+        vec!["*","FileStorage","MsgAttach"],
+        vec!["*","config","AccInfo.dat"],
+        vec!["*","Msg"],
+    ];
+
+    result
 }
 
 /**
@@ -1000,7 +1088,9 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
         path_list.push(line_f);
     }
 
-    dat_parse_meta.attach_dir = format!("{}", path_list[0].clone());
+    if let Some(attach_dir) = path_list.get(0) {
+        dat_parse_meta.attach_dir = format!("{}",attach_dir);
+    }
 
     if let Some(attach_id) = split_path(dat_parse_meta.attach_dir.clone()).pop() {
         dat_parse_meta.attach_id=attach_id;

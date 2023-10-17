@@ -182,6 +182,16 @@ void _setTaskbarWin(long hwnds) {
 bool ikun_user_auto_disable_sync = false;
 bool sync_token = false;
 bool ikun_app_startup = false;
+bool initializationWindowIsDisplayed = false;
+
+bool _hasInitWindowIsDisplayed() {
+    return initializationWindowIsDisplayed;
+}
+
+bool _setInitWindowIsDisplayed(bool initWindowIsDisplayed) {
+    initializationWindowIsDisplayed = initWindowIsDisplayed;
+    return initializationWindowIsDisplayed;
+}
 
 void _set_tray()
 {
@@ -196,13 +206,17 @@ void _set_tray()
      hmc_tray::addMenuItem(hmc_tray::Menu::check("开机启动", "btn::app_startup", ikun_app_startup));
      hmc_tray::addMenuItem(hmc_tray::Menu::menu("立即同步", "btn::auto_sync_token"));
      hmc_tray::addMenuItem(hmc_tray::Menu::separator("btn::separator::01"));
+     hmc_tray::setMenuItmeEnable("btn::app_startup",true);
+     hmc_tray::setMenuItmeEnable("btn::auto_sync", true);
 
     hmc_tray::addMenuItem(hmc_tray::Menu::menu("退出程序", "btn::quit_app"));
 
     hmc_tray::on("click", []()
                  {
             //_putenv("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed=true");
-            _putenv_s("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed", "true");
+            //_putenv_s("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed", "true");
+            initializationWindowIsDisplayed = true;
+
                      if (IsWindowVisible(winmian))
                      {
                          ShowWindow(winmian, 0);

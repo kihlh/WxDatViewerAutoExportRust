@@ -84,7 +84,7 @@ pub fn main_window() {
     global_var::set_bool("gui::open::gui_detect_config",true);
 
     let mut main_window_back = ImgPreview::new(0, 0, 450, 453, "gui::ImgPreview::main_window::back");
-    main_window_back.from_data(include_bytes!("../assets/select_user_base/detect/detect.png").to_vec(), 0,0,win.width(),win.height());
+    main_window_back.from_data(include_bytes!("../../assets/select_user_base/detect/detect.png").to_vec(), 0,0,win.width(),win.height());
 
     let mut next_btn = gui_util::hotspot::create_hotspot(203, 570, 233, 72);
     let mut gui_text_form01_state =gui_util::text::TextControl::new(320,53,0,0,11,"已经完成",[96, 139, 153]);
@@ -94,9 +94,9 @@ pub fn main_window() {
     let mut gui_imag_from01_state = ImgPreview::new(43,58,50,50,"gui_imag_from01_state");
     let mut gui_imag_from02_state = ImgPreview::new(43,175,50,50,"gui_imag_from02_state");
     let mut gui_imag_from03_state = ImgPreview::new(43,296,50,50,"gui_imag_from03_state");
-    gui_imag_from01_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
-    gui_imag_from02_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
-    gui_imag_from03_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+    gui_imag_from01_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+    gui_imag_from02_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+    gui_imag_from03_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
 
     let mut gui_text_form01_title =gui_util::text::TextControl::new(111-60-10,55,0,0,12,"选择WX存储位置",[207, 207, 207]);
     let mut gui_text_form02_title =gui_util::text::TextControl::new(111-78-10,175,0,0,12,"选择被保存的对象",[207, 207, 207]);
@@ -133,32 +133,32 @@ pub fn main_window() {
         ){
         gui_text_form03_state.set_label("尚未选择".to_string());
         gui_text_form03_state.set_color(215, 97, 97);
-        gui_imag_from03_state.from_data(include_bytes!("../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
+        gui_imag_from03_state.from_data(include_bytes!("../../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
     }else{
         gui_text_form03_state.set_label("已经完成".to_string());
         gui_text_form03_state.set_color(96, 139, 153);
-        gui_imag_from03_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+        gui_imag_from03_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
 
     if(global_var::get_i32_or("user::config::select_user_thumbnail_obj",-1)==-1){
         gui_text_form02_state.set_label("尚未选择".to_string());
         gui_text_form02_state.set_color(215, 97, 97);
-        gui_imag_from02_state.from_data(include_bytes!("../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
+        gui_imag_from02_state.from_data(include_bytes!("../../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
 
     }else{
         gui_text_form02_state.set_label("已经完成".to_string());
         gui_text_form02_state.set_color(96, 139, 153);
-        gui_imag_from02_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+        gui_imag_from02_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
 
     if(global_var::get_string_default("user::config::user_select_path").is_empty()){
         gui_text_form01_state.set_label("尚未选择".to_string());
         gui_text_form01_state.set_color(215, 97, 97);
-        gui_imag_from01_state.from_data(include_bytes!("../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
+        gui_imag_from01_state.from_data(include_bytes!("../../assets/select_user_base/detect/fail.png").to_vec(),0,0,50,50);
     }else{
         gui_text_form01_state.set_label("已经完成".to_string());
         gui_text_form01_state.set_color(96, 139, 153);
-        gui_imag_from01_state.from_data(include_bytes!("../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
+        gui_imag_from01_state.from_data(include_bytes!("../../assets/select_user_base/detect/success.png").to_vec(),0,0,50,50);
     }
                     };
                 }

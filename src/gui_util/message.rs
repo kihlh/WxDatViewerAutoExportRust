@@ -217,3 +217,10 @@ pub fn sub_message(hwnd:i128,icon: IconType, _message: &str,close_sleep:u64){
     message(x,y,icon,_message,close_sleep);
 }
 
+pub fn message_the_win(icon: IconType, _message: &str,close_sleep:u64){
+    let hwnd = libWxIkunPlus::getFocusWindow();
+    let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
+    message(x,y,icon,_message,close_sleep);
+}
+

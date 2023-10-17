@@ -487,3 +487,6 @@ pub fn get_thumbnail_list() -> Vec<AttachThumbnail> {
     get_arc_bind_variable!(THUMBNAIL_LIST,THUMBNAIL_LIST_BIND).clone()
 }
 
+pub fn bool_to_str (b:bool) -> &'static str {
+    if b {"是"} else { "否" }
+}

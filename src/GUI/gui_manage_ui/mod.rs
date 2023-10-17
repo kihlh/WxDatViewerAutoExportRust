@@ -18,7 +18,7 @@ pub fn manage_tool_main() {
     let mut preview =
         gui::img::ImgPreview::new(0, 0, win.w(), win.h(), "gui::rename_tool::main<win>");
     preview.from_svg(
-        include_str!("./src/contour.svg"),
+        include_str!("src/contour.svg"),
         0,
         0,
         preview.preview.w(),

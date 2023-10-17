@@ -100,3 +100,4 @@ pub fn path_extension_str(path_str: &String) -> String {
         .to_string_lossy()
         .into_owned()
 }
+

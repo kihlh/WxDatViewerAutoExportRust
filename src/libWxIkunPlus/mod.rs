@@ -61,6 +61,8 @@ extern "C" {
     fn _setWindowTransparent(hWnd:c_long,transparent:c_int);
     fn _getfilePathSingle()->PCSTR;
     fn _setWindowEnabled(_hWnd: c_long, enabled: bool) -> bool;
+    fn _hasInitWindowIsDisplayed ()->bool;
+    fn _setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool;
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -594,5 +596,16 @@ pub fn getClipFilePathSingle()->String{
 pub fn setWindowEnabled(hWnd: i128, enabled: bool) -> bool{
     unsafe {
         _setWindowEnabled(hWnd as c_long,enabled)
+    }
+}
+
+pub fn hasInitWindowIsDisplayed()->bool{
+    unsafe {
+        _hasInitWindowIsDisplayed()
+    }
+}
+pub fn setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool{
+    unsafe {
+        _setInitWindowIsDisplayed(initWindowIsDisplayed)
     }
 }

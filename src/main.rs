@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -53,29 +53,33 @@ use crate::{util::{str_eq_str, Sleep}, libWxIkunPlus::{hasWeChatWin, hasWeChat}}
 mod atomic_util;
 mod global_var;
 mod global_var_util;
-mod gui;
-mod gui_detect_config;
-mod gui_drag_scan;
-mod gui_hotspot;
-mod gui_imge;
-mod gui_manage_item;
-mod gui_select_user_base;
-mod gui_text_control;
 mod handle_dat;
 mod libWxIkunPlus;
 mod util;
 mod watching;
 mod wh_mod;
+
 mod gui_util;
-mod rename_ui;
-mod select_user_ui;
-mod drag_scan2_ui;
+#[path = "GUI/gui_rename_ui/mod.rs"]
+mod gui_rename_ui;
+#[path = "GUI/gui_drag_scan2_ui/mod.rs"]
+mod gui_drag_scan2_ui;
+#[path = "GUI/gui_select_user_ui/mod.rs"]
+mod gui_select_user_ui;
+#[path = "GUI/gui_main_ui/mod.rs"]
+mod gui_main_ui;
+#[path = "GUI/gui_detect_config_ui/mod.rs"]
+mod gui_detect_config_ui;
+#[path = "trash/gui_manage_item.rs"]
+mod gui_manage_item;
+#[path = "GUI/gui_main2_ui/mod.rs"]
+mod gui_main2_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
-static SYNC_TOKEN:AtomicBool = AtomicBool::new(false);
-static SYNC_IMMED_TOKEN:AtomicBool = AtomicBool::new(false);
-static APP_STARTUP:AtomicBool = AtomicBool::new(false);
+// static SYNC_TOKEN:AtomicBool = AtomicBool::new(false);
+// static SYNC_IMMED_TOKEN:AtomicBool = AtomicBool::new(false);
+// static APP_STARTUP:AtomicBool = AtomicBool::new(false);
 
 // let start = Instant::now();
 // libWxIkunPlus::findWindow("WeChatMainWndForPC","微信");
@@ -92,8 +96,8 @@ fn main() -> Result<()> {
     handle_dat::handle_commandLine();
 
     // 拒绝软件重复启动
-    if (!wh_mod::convert::is_developer()){ 
-        
+    if (!wh_mod::convert::is_developer()){
+
     if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
         libWxIkunPlus::error(
             "启动失败".to_owned(),
@@ -103,7 +107,7 @@ fn main() -> Result<()> {
     } else {
         libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
     }
-    
+
    }
 
 
@@ -111,10 +115,8 @@ fn main() -> Result<()> {
     thread::spawn(move || {
         // 创建窗口
         let appMain = app::App::default();
-        // drag_scan2_ui::main_window();
 
-        let mut mainItme = gui::mianWindow(true);
-
+        gui_main2_ui::main_init();
 
         appMain.run().unwrap();
     });
@@ -136,7 +138,7 @@ fn main() -> Result<()> {
                     }
                     Sleep(5000);
                 }
-              
+
             }
         }
 
@@ -162,23 +164,23 @@ fn main() -> Result<()> {
 
     // 阻塞进程状态可用 进程不退出 以及与cpp的数据更新
     loop {
-        if(set_bool!(SYNC_IMMED_TOKEN,libWxIkunPlus::has_sync_token())){
-            if get_bool!(SYNC_IMMED_TOKEN){
-                console_log!(format!("[用户] 立即全部扫描"));
-                thread::spawn(move || {        
-                    let conn: Connection =
-                        Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
-                    handle_dat::initialize_table(&conn);
-                    let _ = handle_dat::handle_walk_pictures(&conn);
-                    let _ = conn.close();
-                });
-            }
-        };
-
-        if(set_bool!(APP_STARTUP,libWxIkunPlus::hasStartupGlobalVar())){
-            // println!("自启动值已经更新");
-            
-        };
+        // if(set_bool!(SYNC_IMMED_TOKEN,libWxIkunPlus::has_sync_token())){
+        //     if get_bool!(SYNC_IMMED_TOKEN) {
+        //         console_log!(format!("[用户] 立即全部扫描"));
+        //         thread::spawn(move || {
+        //             let conn: Connection =
+        //                 Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+        //             handle_dat::initialize_table(&conn);
+        //             let _ = handle_dat::handle_walk_pictures(&conn);
+        //             let _ = conn.close();
+        //         });
+        //     }
+        // };
+        //
+        // if(set_bool!(APP_STARTUP,libWxIkunPlus::hasStartupGlobalVar())){
+        //     // println!("自启动值已经更新");
+        //
+        // };
 
         // println!("主线程");
         Sleep(150);
