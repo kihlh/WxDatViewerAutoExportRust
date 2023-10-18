@@ -31,15 +31,11 @@
 主界面截图
 ------------------------------
 ![img](assets/all_main.png)
-![img](assets/all_manage_main.png)
-![img](assets/all_sub_main.png)
 
-
+### 查看全部界面 ：[所有页面](./assets/demo.md)
 
 ----------------------------------------------------------
 ### 二次开发
-
-
 
 1.拉取项目代码
 
