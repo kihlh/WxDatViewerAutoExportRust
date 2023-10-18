@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-use crate::{global_var, gui_util, libWxIkunPlus, set_item_id};
+use crate::{global_var, gui_util, libWxIkunPlus, set_item_id, util};
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
 use fltk::{prelude::*, *};
@@ -10,53 +10,7 @@ use chrono::{DateTime, Local};
 pub(crate) const THE_WINDOW_CLASS_NAME: &'static str = "wx_auto_ex_im::gui_util::rename_tool::main<32626>";
 
 
-struct time_info {
-    // 年
-    years:String,
-    // 月
-    month:String,
-    // 日
-    day:String,
-    // 时
-    hour:String,
-    // 分
-    minutes:String,
-    // 今天
-    time:String,
-    // 创建月
-    time_years:String
-}
 
-fn get_time_info () ->time_info {
-    let mut result:time_info =time_info{
-        // 年
-        years: String::new(),
-        // 月
-        month: String::new(),
-        // 天
-        day: String::new(),
-        // 小时
-        hour: String::new(),
-        // 分钟
-        minutes: String::new(),
-        // 今天
-        time: String::new(),
-        // 2023-10
-        time_years:String::new()
-    };
-
-    let time = SystemTime::now();
-    let modified_datetime: DateTime<Local> = time.into();
-    result.time = modified_datetime.format("%Y-%m-%d").to_string();
-    result.years = modified_datetime.format("%Y").to_string();
-    result.month = modified_datetime.format("%m").to_string();
-    result.day = modified_datetime.format("%d").to_string();
-    result.hour = modified_datetime.format("%H").to_string();
-    result.minutes = modified_datetime.format("%M").to_string();
-    result.time_years = modified_datetime.format("%Y-%m").to_string();
-
-    result
-}
 
 macro_rules! the_token {
     ()=>{
@@ -83,7 +37,7 @@ pub fn rename_tool_main(input:&str) -> String {
     set_item_id!(win, THE_WINDOW_CLASS_NAME);
     win.set_border(false);
     let mut rename_variable_input_oid_str = String::new();
-    let time_info =get_time_info();
+    let time_info =util::get_time_info();
     
     let mut preview =
     gui_util::img::ImgPreview::new(0, 0, win.w(), win.h(), THE_WINDOW_CLASS_NAME);

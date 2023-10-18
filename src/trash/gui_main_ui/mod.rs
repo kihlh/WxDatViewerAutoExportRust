@@ -255,9 +255,9 @@ fn addBtnEnableStarting(appMainWin: &mut window::DoubleWindow) -> gui_util::img:
     let mut preview = gui_util::img::ImgPreview::new(90-3, 493, w_h, w_h, "gui::preview_main::index::user_select");
 
     if libWxIkunPlus::hasStartup() {
-        preview.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0, w_h, w_h);
     }else{
-        preview.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0,w_h, w_h);
+        preview.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0, w_h, w_h);
     }
     
    
@@ -583,10 +583,10 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
         if !libWxIkunPlus::has_auto_sync()!=oid_app_start{
             oid_app_start = true;
-            copy_btnEnableStarting.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../../assets/enable.png").to_vec(), 0, 0, 20, 20);
         }else{
             oid_app_start = false;
-            copy_btnEnableStarting.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0,20, 20);
+            copy_btnEnableStarting.from_data(include_bytes!("../../assets/un_enable.png").to_vec(), 0, 0, 20, 20);
         }
 
         Sleep(550);
@@ -882,7 +882,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
 
                 if (has_name&&has_inputPath&&has_ouputPath&&point_exist_hasmap.create){
                     if(wh_mod::convert::is_developer()||(libWxIkunPlus::hasWeChat()&&libWxIkunPlus::hasWeChatWin())){
-                        let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+                        let conn: Connection = Connection::open("../../../ikun_user_data.db").unwrap();
                     
                         handle_dat::initialize_table(&conn);
                         match  conn.execute(

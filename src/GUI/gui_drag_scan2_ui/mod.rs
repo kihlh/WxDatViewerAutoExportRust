@@ -179,7 +179,7 @@ fn initialize_watch_attach_puppet(imag_id: &str){
             if let Result::Ok((attach_key, paths)) = rx.recv() {
 
                 if let Some(file_name) = path::Path::new(attach_key.as_str()).file_name() {
-                    push_message(format!("[扫描]当前：{:?}",file_name).as_str(),false);
+                    push_message(format!("[扫描]当前：{:?}",wh_mod::get_show_mask_text(file_name)).as_str(),false);
                 }
 
                 for path in paths {
@@ -188,7 +188,7 @@ fn initialize_watch_attach_puppet(imag_id: &str){
                         let start = get_option_arc_bind_variable_or!(STATUS_TIME,STATUS_TIME_BIND,std::time::Instant::now());
                         let att_info = wh_mod::wx_parse_path(resolve_path.to_string());
 
-                        let mut input_data = format!("用户<{}> [已选定] 用时: {:?}", att_info.attach_id, start.elapsed());
+                        let mut input_data = format!("用户<{}> [已选定] 用时: {:?}", wh_mod::get_show_mask_text(&att_info.attach_id), start.elapsed());
                         global_var::set_string("user::config::walk_drag_path",resolve_path.clone().to_string());
 
                         set_bool!(SCAN_SCAN_ING,false);
@@ -314,12 +314,12 @@ fn add_ui_control() -> UiControl{
                     let walk_drag_path = global_var::get_string_default("user::config::walk_drag_path");
                     if walk_drag_path.is_empty() {
                         let mut input_data = format!("扫描结束 用时约为: {:?} ", start.elapsed());
-                        buf.append(input_data.as_str());
+                        buf.append(wh_mod::get_show_mask_text(&input_data).as_str());
                     }
                     else{
                         let att_info = wh_mod::wx_parse_path(walk_drag_path.to_string());
-                        let mut input_data = format!("ID<{}> [已选定] 用时约为: {:?}", att_info.attach_id , start.elapsed());
-                        buf.append(input_data.as_str());
+                        let mut input_data = format!("ID<{}> [已选定] 用时约为: {:?}",wh_mod::get_show_mask_text(att_info.attach_id) , start.elapsed());
+                        buf.append(wh_mod::get_show_mask_text(&input_data).as_str());
                     }
                 };
 
@@ -472,7 +472,7 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
                                 if !temp_imag_id.is_empty() {
                                     let mut  buf = id_preview.buf.clone();
                                     buf.remove(0,buf.length());
-                                    buf.append(temp_imag_id.as_str());
+                                    buf.append(wh_mod::get_show_mask_text(&temp_imag_id).as_str());
                                     win_control.progress_bar.preview.show();
 
                                     let mut new_buf_str = String::new();
@@ -534,7 +534,7 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
         if !temp_imag_id.is_empty() {
             let mut  buf = win_control.id_preview.buf.clone();
             buf.remove(0,buf.length());
-            buf.append(temp_imag_id.as_str());
+            buf.append(wh_mod::get_show_mask_text(&temp_imag_id).as_str());
             copy_progress_bar.show();
 
             let mut new_buf_str = String::new();
@@ -542,7 +542,7 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
                 let start = get_option_arc_bind_variable_or!(STATUS_TIME,STATUS_TIME_BIND,std::time::Instant::now());
                 let att_info = wh_mod::wx_parse_path(get_history_attach.to_string());
                 global_var::set_string("user::config::walk_drag_path",get_history_attach.clone().to_string());
-                new_buf_str.push_str( format!("ID<{}> [已选定] 用时: {:?}",att_info.attach_id,start.elapsed()).as_str());
+                new_buf_str.push_str( format!("ID<{}> [已选定] 用时: {:?}",wh_mod::get_show_mask_text(att_info.attach_id),start.elapsed()).as_str());
                 gui_util::message::sub_message(get_the_hwnd!(THE_WIN_CLASS_NAME), gui_util::message::IconType::Success, new_buf_str.as_str(), 3500u64);
                 set_bool!(SCAN_SCAN_ING,false);
 

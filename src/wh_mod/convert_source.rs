@@ -42,48 +42,27 @@ pub fn detect_image_format(data: &[u8]) -> Option<&'static str> {
 
 // !请注意  异或解密算法是不开源的部分
 // 对指定的文件进行异或算法 以此获取解码的文件
-pub fn convert_bat_images(input_path: PathBuf, mut ouput_path: PathBuf) -> io::Result<String> {
-    let content = fs::read(&input_path)?;
+// 对指定的文件进行异或算法 以此获取解码的文件
+pub fn convert_bat_images(input_path: PathBuf, mut output_path: PathBuf) -> io::Result<String> {
 
-    // let ** = content[0];
-    // let ** = content[1];
-
-    // let ** = ** ^ 0x66666;
-    // let ** = ** ^ 0x66666;
-    // let ** = ** ^ 0x66666;
-    // let ** = ** ^ 0x66666;
-    // let ** = ** ^ 0x66666;
-    // let ** = ** ^ 0x66666;
-
-    // let mut vi = ** ^ 0x66666;
-
-    // if ** == ** {
-    //     vi = **;
-    // } else if ** == ** {
-    //     vi = **;
-    // } else if ** == ** {
-    //     vi = **;
-    // }
-
-    // let buff: Vec<u8> = content.iter().map(|br| br ^ vi).collect();
-
-    let buff: Vec<u8> = Vec::new();
+    let buff =  convert_dat_images_buff(output_path.clone())?;
     match detect_image_format(&buff.clone()) {
         Some(format) => {
-            ouput_path.set_extension(format);
-            let mut out_dir = Path::new(&ouput_path).join("..");
+            output_path.set_extension(format);
+            let mut out_dir = Path::new(&output_path).join("..");
 
             if !out_dir.exists() {
                 fs::create_dir_all(out_dir)?;
             }
 
-            fs::write(&ouput_path, &buff)?;
+            fs::write(&output_path, &buff)?;
         }
         None => println!("Unknown image format."),
     }
 
-    Ok(ouput_path.display().to_string())
+    Ok(output_path.display().to_string())
 }
+
 
 // !请注意  异或解密算法是不开源的部分
 // 对指定的文件进行异或算法 以此获取解码的文件
@@ -306,15 +285,3 @@ pub fn get_active_user(user_root: &str) -> Vec<WxActiveUser> {
     active_users
 }
 
-
-// 判断当前是否处于开发者模式
-pub fn is_developer() -> bool {
-    // ! 这部分也是不开源的部分
-
-    false
-}
-
-// 编译版本是 52破解专版
-pub fn is_build_52pojie() -> bool {
-    false
-}

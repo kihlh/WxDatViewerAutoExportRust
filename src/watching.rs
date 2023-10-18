@@ -327,7 +327,7 @@ pub fn watch<P: AsRef<Path>>(
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
     let dir_path = path.as_ref().display().to_string();
-    let mut dat_parse_meta = wh_mod::parse_dat_path(dir_path.clone());
+    let mut dat_parse_meta = wh_mod::parse_dat2var_path(dir_path.clone());
 
     println!("dir_path-> {}", dir_path.clone());
     watcher.watch(

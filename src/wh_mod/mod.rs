@@ -2,6 +2,8 @@
 
 pub(crate) mod convert;
 pub(crate) mod watch_path;
+pub(crate) mod config;
+mod mobile_screenshot;
 
 use crate::wh_mod::convert::detect_image_format;
 use chrono::{DateTime, Local};
@@ -22,6 +24,7 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::ffi::OsStr;
+use crate::util;
 
 // lazy_static! {
 //     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
@@ -916,7 +919,7 @@ pub fn walk_file(dir_path: &Path,run_tx: mpsc::Sender<(String, Vec<PathBuf>)>,im
 }
 
 #[derive(Debug)]
-pub struct DatParseMeta {
+pub struct Dat2VarParseMeta {
     pub attach_id: String,
     pub attach_dir: String,
     // pub format_dir : String,
@@ -930,7 +933,7 @@ pub struct DatParseMeta {
     format_path_list: Vec<std::path::PathBuf>,
 }
 
-impl DatParseMeta {
+impl Dat2VarParseMeta {
     // 获取此可变体格式的格式化后的路径列表
     pub fn format(&mut self) -> Vec<std::path::PathBuf> {
         if (self.format_path_list.len() != 0) {
@@ -1008,11 +1011,56 @@ impl DatParseMeta {
         }
         is_exists
     }
+
+    // 获取可变命名路径的实际需要生成的路径
+    pub fn get_rename_output(&mut self) -> String{
+        let mut result = self.rename_rule.clone();
+        let mut the_data = HashMap::new();
+        let time_info =util::get_time_info();
+
+        the_data.insert("<现在>",time_info.time);
+        the_data.insert("<年>",time_info.years);
+        the_data.insert("<月>",time_info.month);
+        the_data.insert("<日>",time_info.day);
+        the_data.insert("<时>",time_info.hour);
+        the_data.insert("<分>",time_info.minutes);
+        // the_data.insert("<别名>","");
+        // the_data.insert("<任务名>","");
+        let mut mk_time_years = time_info.time_years;
+        the_data.insert("<创建月>",mk_time_years);
+
+        // let mut _type = "图片";
+        // if self.is_video {
+        //     _type = "视频";
+        // }
+        // else if self.is_thumbnail {
+        //     _type = "缩略图";
+        // }
+        // // else if self.is_source {
+        // //     _type = "手机截图";
+        // // }
+        // else {
+        //     _type = "图片";
+        // }
+
+        // the_data.insert("<类型>",_type.to_string());
+        the_data.insert("<哈希>",self.attach_id.clone());
+
+
+        for (key,data) in the_data {
+            result = result.replace(key,data.as_str());
+        }
+
+        result
+    }
+    pub fn writeFile(ex_dir:&str,){
+
+    }
 }
 
-impl Clone for DatParseMeta {
+impl Clone for Dat2VarParseMeta {
     fn clone(&self) -> Self {
-        DatParseMeta {
+        Dat2VarParseMeta {
             attach_id: self.attach_id.clone(),
             attach_dir: self.attach_dir.clone(),
             is_the_month: self.is_the_month.clone(),
@@ -1030,9 +1078,9 @@ impl Clone for DatParseMeta {
 /**
  * 解析可变化路径
  */
-pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
+pub fn parse_dat2var_path<T: util::OverloadedAnyStr >(input: T) -> Dat2VarParseMeta {
     // D:\usersData\weixin\WeChat Files/wxid_y.....1/FileStorage/MsgAttach/99e.......d..f,the_month,source,thumbnail
-    let mut dat_parse_meta = DatParseMeta {
+    let mut dat_parse_meta = Dat2VarParseMeta {
         attach_id: "".to_string(),
         attach_dir: "".to_string(),
         rename_rule:"".to_string(),
@@ -1045,7 +1093,7 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
         is_all: false,
         format_path_list: Vec::new(),
     };
-
+    let mut path_dir = input.to_string_default();
     let mut path_list = Vec::new();
     let binding = split_path(path_dir).join("\\");
     let lines: Vec<&str> = binding.split('*').collect();
@@ -1099,14 +1147,19 @@ pub fn parse_dat_path(path_dir: String) -> DatParseMeta {
     return dat_parse_meta;
 }
 
+
 pub fn resolve_path(path: String) -> String {
     return split_path(path).join("\\");
 }
 
-pub fn get_text_len(input:String)->usize{
-    let mut len = 0;
-    for char in input.chars() {
-        len+=1;
+
+
+
+// 自动按照设置获取显示的文本的消敏
+pub fn get_show_mask_text <T: util::OverloadedAnyStr >(input: T) -> String {
+    if config::is_show_mask() {
+        format!("{}",util::get_mask_text(input.to_string_default().as_str()))
+    }else {
+        input.to_string_default()
     }
-    len
 }

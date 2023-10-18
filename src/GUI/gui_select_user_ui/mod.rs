@@ -1,7 +1,7 @@
 #![allow(warnings, unused)]
 
 use crate::gui_rename_ui::rename_tool_main;
-use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, atomic_util, inject_fltk_theme, gui_drag_scan2_ui, gui_detect_config_ui};
+use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, atomic_util, inject_fltk_theme, gui_drag_scan2_ui, gui_detect_config_ui, util};
 use crate::gui_util::img::ImgPreview;
 use crate::gui_util::text::TextControl;
 use crate::gui_util::variable_tag_control::varTagControl;
@@ -24,13 +24,31 @@ use std::sync::atomic::AtomicBool;
 use crate::gui_drag_scan2_ui::{get_history_attach_name, get_wx_temp_imag_id};
 use crate::util::Sleep;
 
-// static PREVIEW_WIN_SHOW: AtomicBool = AtomicBool::new(false);
-
 mod lib;
 
 pub(crate) const THE_WINDOW_CLASS_NAME : &'static str = "wx_auto_ex_im::gui_util::select_user_ui::main<win:56315:>";
 pub(crate) const THE_SUB_WINDOW_CLASS_NAME_FRAME_THUMBNAIL_PREVIEW: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<6103>";
 pub(crate) const THE_SUB_WINDOW_CLASS_NAME_SCAN: &'static str = "wx_auto_ex_im::gui_util::select_user_ui::sub_main<126126>";
+const MAIN_CONTOUR: &str = include_str!("./src/contour.svg");
+
+pub fn ASSETS_NOT_DATA() -> Vec<u8> {
+    include_bytes!("./src/not_data.png").to_vec()
+}
+
+pub fn ASSETS_DEMO_DATA() -> Vec<u8> {
+    include_bytes!("../../assets/icon/demo.png").to_vec()
+}
+
+pub fn ASSETS_DEMO_NOT_DATA() -> Vec<u8> {
+    include_bytes!("../../assets/icon/demo_not.png").to_vec()
+}
+pub fn ASSETS_DEMO_NOT_SELECT() -> Vec<u8> {
+    include_bytes!("../../assets/icon/demo_not_select.png").to_vec()
+}
+
+pub fn ASSETS_NOT_SELECT () -> Vec<u8> {
+    include_bytes!("./src/not_select.png").to_vec()
+}
 
 macro_rules! set_item_id {
     ($win:expr,$id:expr) => {
@@ -293,9 +311,10 @@ fn add_frame_thumbnail_preview() ->FrameThumbnailPreview {
         let [x, y, width, height] = point;
 
         let mut preview = ImgPreview::new(x, y - 52, width, height, "gui::preview_main::index::");
+        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
 
         preview.from_data(
-            include_bytes!("./src/not.png").to_vec(),
+            pre,
             -1,
             -1,
             width - 2,
@@ -326,7 +345,7 @@ macro_rules! add_preview_contour {
             "gui_util::select_user_ui::main<win>",
         );
         preview.from_svg(
-            include_str!("./src/contour.svg"),
+            MAIN_CONTOUR,
             0,
             0,
             preview.preview.w(),
@@ -362,9 +381,10 @@ struct AttachThumbnailPreview{
 
 impl AttachThumbnailPreview {
     pub fn gc(&mut self) {
+        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
 
         self.thumbnail_preview.from_data(
-            include_bytes!("./src/not_select.png").to_vec(),
+            pre,
             -1,
             -1,
             self.thumbnail_preview.preview.w()-2,
@@ -373,6 +393,7 @@ impl AttachThumbnailPreview {
 
         self.input_remark.set_value("");
         self.input_attach.set_value("");
+        global_var::set_string("user::config::user_select_attach",String::new());
         // self.input_rename.set_value("");
 
     }
@@ -390,14 +411,20 @@ impl AttachThumbnailPreview {
     fn redata(&mut self,thumbnail:wh_mod::AttachThumbnail){
         self.input_remark.set_value("");
         self.input_attach.set_value("");
+        global_var::set_string("user::config::user_select_attach",String::new());
+
+        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
+
         // self.input_rename.set_value("");
         // 设置预览图
-        self.thumbnail_preview.from_data(thumbnail.thumbnail.to_vec(),-1,
+        self.thumbnail_preview.from_data(pre,-1,
                                                        -1,
                                          self.thumbnail_preview.preview.width()-2,
                                          self.thumbnail_preview.preview.height()-2,);
         // 绑定内容
-        self.input_attach.set_value(thumbnail.attach_id.as_str());
+        self.input_attach.set_value(wh_mod::get_show_mask_text( &thumbnail.attach_id).as_str());
+        global_var::set_string("user::config::user_select_attach",thumbnail.attach_id.clone());
+
         let retrieval_struct = wh_mod::wx_parse_path(thumbnail.thumbnail_path.to_string());
 
         // 获取备注
@@ -415,9 +442,9 @@ fn add_select_attach_card() -> AttachThumbnailPreview {
         82, 82,
         "gui_util::select_user_ui::imag<add_select_attach_card>",
     );
+    let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
 
-    preview.from_data(
-        include_bytes!("./src/not_select.png").to_vec(),
+    preview.from_data(pre,
         -1,
         -1,
         preview.preview.w()-2,
@@ -451,21 +478,26 @@ fn add_select_attach_card() -> AttachThumbnailPreview {
 }
 
 macro_rules! set_select_user_base_input_default{
-    ($input_select_dir:expr)=>{
+    ($input_select_dir:expr)=>{{
+
+        let mut _path = String::new();
         if let Ok(history) = lib::get_wx_user_history_path() {
-            
+
             let paths = history.path;
-            $input_select_dir.set_value(paths.as_str());
-            
+             _path = format!("{}",paths.as_str());
+            $input_select_dir.set_value(wh_mod::get_show_mask_text(paths.as_str()).as_str());
+
         }
         if ($input_select_dir.value().is_empty()) {
             if let Some(paths) = wh_mod::convert::get_user_data_path() {
-                $input_select_dir.set_value(paths.as_str());
+                _path = format!("{}",paths.as_str());
+                $input_select_dir.set_value(wh_mod::get_show_mask_text(paths.as_str()).as_str());
             }
         }
 
-        global_var::set_string("user::config::user_select_path", $input_select_dir.value());
-    }
+        global_var::set_string("user::config::user_select_path",_path);
+
+    }}
 }
 
 macro_rules! initialize_window_hwnd{
@@ -487,6 +519,8 @@ struct PreviewData{
 impl PreviewData {
 
     pub fn gc_data(&mut self) {
+        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+
         let mut index = 0;
         for mut preview in self.preview_list.clone() {
             index+=1;
@@ -500,9 +534,9 @@ impl PreviewData {
             if index==6 {
                 w+=1;
             }
-            preview.from_data(include_bytes!("./src/not_data.png").to_vec(),-1,-1,w ,90 - 2,);
+            preview.from_data(pre.clone(),-1,-1,w ,90 - 2,);
         }
-        self.preview_main.from_data(include_bytes!("./src/not_data.png").to_vec(), -1, -1, 230-2 , 230 - 2, );
+        self.preview_main.from_data(pre , -1, -1, 230-2 , 230 - 2, );
     }
 
     fn clone(&self) -> Self {
@@ -516,7 +550,8 @@ impl PreviewData {
         // self.gc_data();
 
         if let Some(main_thumbnail) = thumbnail_list.get(0) {
-            self.preview_main.re_data(main_thumbnail.thumbnail.to_vec()/*, -1, -1, 230-2 , 230 - 2, */);
+            let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ main_thumbnail.thumbnail.to_vec() };
+            self.preview_main.re_data(pre/*, -1, -1, 230-2 , 230 - 2, */);
 
         }
 
@@ -530,11 +565,13 @@ impl PreviewData {
             // }
 
             if let Some(thumbnail) = thumbnail_list.get(index) {
+                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
 
-                preview.re_data(thumbnail.thumbnail.to_vec()/*,-1,-1,w ,90 - 2,*/);
+                preview.re_data(pre/*,-1,-1,w ,90 - 2,*/);
 
             }else {
-                preview.re_data(include_bytes!("./src/not_data.png").to_vec()/*,-1,-1,w ,90 - 2,*/);
+                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+                preview.re_data(pre/*,-1,-1,w ,90 - 2,*/);
             }
 
         }
@@ -859,7 +896,8 @@ fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
             oid_walk_drag_path.push_str(walk_drag_path.as_str());
             let wx_parse = wh_mod::wx_parse_path(walk_drag_path.clone());
             // println!("wx_parse-> {:?}",&wx_parse);
-            preview1.input_attach.set_value(wx_parse.attach_id.as_str());
+            preview1.input_attach.set_value(wh_mod::get_show_mask_text(&wx_parse.attach_id).as_str());
+            global_var::set_string("user::config::user_select_attach",format!("{}",wx_parse.attach_id.as_str()));
 
             if let Some(remark) = lib::get_store_user_remark(wx_parse.wxid,wx_parse.attach_id.clone()) {
                 preview1.input_remark.set_value(remark.as_str());
@@ -868,7 +906,9 @@ fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
             }
 
             if let Ok(buff_thumbnail_data) = wh_mod::convert::convert_dat_images_buff(std::path::PathBuf::from(walk_drag_path.as_str())) {
-                preview1.thumbnail_preview.from_data(buff_thumbnail_data,-1, -1, 80, 80);
+                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ buff_thumbnail_data };
+
+                preview1.thumbnail_preview.from_data(pre,-1, -1, 80, 80);
             }
 
             // println!("walk_drag_path->{}",&walk_drag_path);
@@ -1134,7 +1174,9 @@ pub fn manage_tool_main() -> String{
                                     g_the_select_attach_id.clear();
                                     g_the_select_attach_id.push_str(thumbnail.attach_id.as_str());
 
-                                    add_preview_win_show!();
+                                    if wh_mod::config::is_click_open_preview() {
+                                        add_preview_win_show!();
+                                    }
                                     break;
                                 } else {
                                     gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选中聊天对象", 3500u64);
@@ -1148,7 +1190,7 @@ pub fn manage_tool_main() -> String{
                         let mut select_dir = libWxIkunPlus::openSelectFolder2();
                         let eq_wxid_dir = eq_wxid_dir!(select_dir);
                         if !select_dir.is_empty() {
-                            user_select_database_dir_input.set_value(select_dir.as_str());
+                            user_select_database_dir_input.set_value(wh_mod::get_show_mask_text(select_dir.as_str()).as_str());
 
                             select_user_data_choice.clear();
                             select_user_data_choice.add_choice("请点击 [开始] 获取在线用户列表");
@@ -1171,7 +1213,7 @@ pub fn manage_tool_main() -> String{
                     // 图片预览大图
                     if select_attach_card.thumbnail_preview.existPoint(x, y) {
 
-                        let attach_id = select_attach_card.input_attach.value();
+                        let attach_id = global_var::get_string_default("user::config::user_select_attach");//select_attach_card.input_attach.value();
                         if attach_id.is_empty() {
                             // dialog::alert_default("没有选择聊天对象 (attach ID)");
                             gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有选择聊天对象 (attach ID)", 3500u64);
@@ -1184,7 +1226,12 @@ pub fn manage_tool_main() -> String{
                     }
 
                     // 开始
-                    if button_start.existPoint(x, y)||(button_show_drag.existPoint(x, y)&&global_var::get_string_default("user::config::user_select_wxid").is_empty()) {
+                    if button_start.existPoint(x, y)||(button_show_drag.existPoint(x, y)&&
+                        (
+                            global_var::get_string_default("user::config::user_select_wxid").is_empty()||
+                            user_select_database_dir_input.value().is_empty()
+                        )
+                    ) {
                         select_attach_card.gc();
 
                         if !user_select_database_dir_input.value().is_empty() {
@@ -1202,7 +1249,28 @@ pub fn manage_tool_main() -> String{
                             select_user_data_choice.add_choice("【状态】  当前正在扫描用户列表... ");
                             select_user_data_choice.set_value(0);
 
-                            let user_select_database = user_select_database_dir_input.value();
+                            let mut user_select_database = global_var::get_string_default("user::config::user_select_path");
+                            let mut user_select_database_input = user_select_database_dir_input.value();
+
+                            // 没有* 则引用input内容 并重新设置input消敏
+                            if !user_select_database_input.contains("*") {
+                                let mut new_path = PathBuf::from(user_select_database_input.as_str());
+
+                                if !user_select_database_input.contains("WeChat Files") {
+                                    let new_data = new_path.clone().join("WeChat Files");
+                                    if new_data.exists() {
+                                        new_path = new_data;
+                                    }
+                                }
+
+                                if(new_path.exists()){
+                                    user_select_database = util::to_string_default(&new_path);
+                                    global_var::set_string("user::config::user_select_path",user_select_database.to_string());
+
+                                    user_select_database_dir_input.set_value(wh_mod::get_show_mask_text(&user_select_database).as_str());
+
+                                }
+                            }
 
                             if !user_select_database.is_empty() {
                                 let active_user_list = wh_mod::convert::get_active_user(user_select_database.as_str());
@@ -1218,9 +1286,9 @@ pub fn manage_tool_main() -> String{
                                 // 添加到列表
                                 for active_user in active_user_list {
                                     if let Some(accinfo) = active_user.accinfo.clone() {
-                                        select_user_data_choice.add_choice(format!("{} <{}>", accinfo.wx_id, accinfo.name).as_str());
+                                        select_user_data_choice.add_choice(format!("{} <{}>", wh_mod::get_show_mask_text(&accinfo.wx_id), wh_mod::get_show_mask_text(&accinfo.name)).as_str());
                                     } else {
-                                        select_user_data_choice.add_choice(active_user.user_data.as_str());
+                                        select_user_data_choice.add_choice( wh_mod::get_show_mask_text(&active_user.user_data).as_str());
                                     }
 
                                     lib::push_active_user_list(active_user.clone());
@@ -1311,11 +1379,13 @@ pub fn manage_tool_main() -> String{
                     if !rename_rule.is_empty() && (!rename_rule.contains("<N") || !rename_rule.contains("N>")) {
                         rename_rule.push_str("<NN>");
                     }
-                    let mut select_dir = user_select_database_dir_input.value();
+                    let mut select_dir = global_var::get_string_default("user::config::user_select_path");
+                    let mut user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
+
                     let eq_wxid_dir = eq_wxid_dir!(select_dir);
 
                     // 拼合路径并判断有效性 有且为文件夹
-                    let mut attach_path = PathBuf::from(select_dir).join(global_var::get_string_default("user::config::user_select_wxid")).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
+                    let mut attach_path = PathBuf::from(select_dir).join(user_select_wxid.as_str()).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
 
                     println!("attach_path=> {:?}", &attach_path);
 
@@ -1372,7 +1442,7 @@ pub fn manage_tool_main() -> String{
                     println!("[click] existPoint {}", "卡片按钮 > 备注名称 完成按钮");
 
                     let wxid = global_var::get_string_default("user::config::user_select_wxid");
-                    let attach_id = select_attach_card.input_attach.value();
+                    let attach_id = global_var::get_string_default("user::config::user_select_attach");//select_attach_card.input_attach.value();
                     let remark_name = select_attach_card.input_remark.value();
 
                     if wxid.is_empty() {

@@ -7,7 +7,7 @@ use serde_json::json;
 use serde_json::Value as Json;
 use toml::Value as Toml;
 use crate::global_var;
-use crate::gui_main2_ui::THE_WIN_CLASS_NAME;
+use crate::gui_main_ui::THE_WIN_CLASS_NAME;
 pub struct AppVersionInfo {}
 
 macro_rules! get_the_hwnd {
@@ -65,7 +65,7 @@ pub fn get_app_version_info() -> Json {
 pub fn get_init_text() -> String {
     let mut result = String::new();
     let mut sync_type = String::new();
-    let mut build_name = if wh_mod::convert::is_build_52pojie() {
+    let mut build_name = if wh_mod::config::is_build_52pojie() {
         "52破解专版"
     } else {
         "开源版"
@@ -73,7 +73,7 @@ pub fn get_init_text() -> String {
     let version_info = get_app_version_info();
     let version = (version_info["package"]["version"]).as_str().unwrap();
 
-    if !wh_mod::convert::is_developer() {
+    if !wh_mod::config::is_developer() {
         result.push_str(
             format!(
                 r#"作者 @Ikun 软件开源协议 GPL 3.0 (但是并不包含解码算法)
@@ -91,11 +91,11 @@ pub fn get_init_text() -> String {
     }
 
     if libWxIkunPlus::has_auto_sync() {
-        result.push_str(format!("[用户] 自动同步开启").as_str());
-    } else if wh_mod::convert::is_developer() {
-        result.push_str("[同步] 自动同步已启用 因为开发者模式有效");
+        result.push_str(format!("\n[用户] 自动同步开启").as_str());
+    } else if wh_mod::config::is_developer() {
+        result.push_str("\n[同步] 自动同步已启用 因为开发者模式有效");
     } else {
-        result.push_str("[同步] 自动同步关闭");
+        result.push_str("\n[同步] 自动同步关闭");
     }
 
     result
@@ -177,13 +177,13 @@ pub fn push_sql_export_dir_path(name: &str, export_dir: &str, task_command: &str
 }
 
 pub fn eq_next() -> bool {
-    (wh_mod::convert::is_developer()
+    (wh_mod::config::is_developer()
         || (libWxIkunPlus::hasWeChat() && libWxIkunPlus::hasWeChatWin()))
 }
 
 // 测试
 pub fn test_task(name: &str, export_dir: &str, task_command: &str) {
-    let mut path_dir = wh_mod::parse_dat_path(format!("{}", task_command));
+    let mut path_dir = wh_mod::parse_dat2var_path(format!("{}", task_command));
 
     if name.is_empty() {
         console_log!(format!("\n[警告] 没有名称"));

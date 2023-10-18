@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -73,7 +73,6 @@ mod gui_detect_config_ui;
 #[path = "trash/gui_manage_item.rs"]
 mod gui_manage_item;
 #[path = "GUI/gui_main2_ui/mod.rs"]
-mod gui_main2_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -96,7 +95,7 @@ fn main() -> Result<()> {
     handle_dat::handle_commandLine();
 
     // 拒绝软件重复启动
-    if (!wh_mod::convert::is_developer()){
+    if (!wh_mod::config::is_developer()){
 
     if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
         libWxIkunPlus::error(
@@ -108,7 +107,16 @@ fn main() -> Result<()> {
         libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
     }
 
-   }
+   }else {
+        if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
+        if !libWxIkunPlus::confirm(
+            "进程存在".to_owned(),
+            "(开发者模式) 已经存在了一个 <WxAutoExIm> 进程 是否继续启动".to_owned(),
+        ) {
+            process::exit(0);
+        }
+        }
+    }
 
 
     // 窗口部分
@@ -116,7 +124,7 @@ fn main() -> Result<()> {
         // 创建窗口
         let appMain = app::App::default();
 
-        gui_main2_ui::main_init();
+        gui_main_ui::main_init();
 
         appMain.run().unwrap();
     });
@@ -127,7 +135,7 @@ fn main() -> Result<()> {
     libWxIkunPlus::set_tray();
 
     thread::spawn(move || {
-        if (!wh_mod::convert::is_developer()) {
+        if (!wh_mod::config::is_developer()) {
             if (!libWxIkunPlus::has_auto_sync()) {
                 let mut err_name = if !hasWeChatWin() {"WX尚未登录" } else if !hasWeChat() {"WX进程未找到"} else {"用户未启用同步"};
                 console_log!(format!("[同步暂停] 因为：{}", err_name));

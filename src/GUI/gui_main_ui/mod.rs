@@ -121,7 +121,8 @@ fn add_ui_control() -> UiControl {
         }else {
             message::sub_message(get_the_hwnd!(),message::IconType::Info,"同步状态已被禁用",3500u64);
         }
-
+        // 用锁定线程来实现防抖
+        app::sleep(0.300);
     });
 
     // 自启
@@ -135,13 +136,14 @@ fn add_ui_control() -> UiControl {
         }else {
             message::sub_message(get_the_hwnd!(),message::IconType::Info,"开机自启动已被禁用",3500u64);
         }
-
+        // 用锁定线程来实现防抖
+        app::sleep(0.300);
     });
 
     let mut task_command_input = input::Input::new(45, 152, 423, 30, "");
     let mut export_input = input::Input::new(45, 225, 450, 30, "");
     let mut name_input = input::Input::new(96, 276, 230, 30, "");
-    task_command_input.set_readonly(!wh_mod::convert::is_developer());
+    task_command_input.set_readonly(!wh_mod::config::is_developer());
 
     let mut buf = fltk::text::TextBuffer::default();
     buf.append(lib::get_init_text().as_str());
@@ -262,9 +264,9 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                                     let data = global_var::get_string_default(token_id.as_str());
                                     if !data.is_empty() {
                                         println!("{}",data);
-                                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "向导任务命令已创建！", 3500u64);
-                                        task_command.set_value(data.as_str());
-
+                                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "向导任务命令已赋值", 3500u64);
+                                        task_command.set_value(wh_mod::get_show_mask_text(data.as_str()).as_str());
+                                        global_var::set_string("user::config::task_command",data.clone());
                                     }else {
                                         gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "用户取消任务创建", 3500u64);
                                     }
@@ -308,7 +310,8 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
 
                 // 测试
                 if button_test.existPoint(x,y) {
-                    let [name,export,task_command]= [win_control.name.value(),win_control.export.value(),win_control.task_command.value()];
+                    let mut task_command = global_var::get_string_default("user::config::task_command");
+                    let [name,export]= [win_control.name.value(),win_control.export.value()];
                     lib::test_task(name.as_str(),export.as_str(),task_command.as_str());
                 }
                 // 管理
@@ -317,7 +320,8 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
                 // 创建
                 if button_create.existPoint(x,y) {
-                    let [name,export,task_command]= [win_control.name.value(),win_control.export.value(),win_control.task_command.value()];
+                    let mut task_command = global_var::get_string_default("user::config::task_command");
+                    let [name,export]= [win_control.name.value(),win_control.export.value()];
                     lib::push_sql_export_dir_path(name.as_str(),export.as_str(),task_command.as_str());
                 }
                 true

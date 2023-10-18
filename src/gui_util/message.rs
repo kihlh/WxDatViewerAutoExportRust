@@ -8,15 +8,134 @@ use crate::gui_util::hotspot::create_hotspot;
 use crate::gui_util::img;
 use crate::{gui_util, libWxIkunPlus};
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, RwLock};
+use crate::util::OverloadedAnyStr;
 
-static mut MESS_HASH_SET: Option< HashSet<String> > = Option::None;
-static MESS_HASH_SET_BIND: AtomicUsize = AtomicUsize::new(0);
+static mut MESS_HASH_MAP: Option< HashMap<String,i128> > = Option::None;
+static MESS_HASH_MAP_BIND: AtomicUsize = AtomicUsize::new(0);
+
+static mut WINDOW_CLASS_HASH_SET: Option< HashSet<String> > = Option::None;
+static WINDOW_CLASS_HASH_SET_BIND: AtomicUsize = AtomicUsize::new(0);
+
+
 // 已经初始化哈希表了
 static VARIABLE_INITIALIZE: OnceLock<bool> = OnceLock::new();
+
+// 初始化全部类型哈希表
+fn initialize() {
+    if *(VARIABLE_INITIALIZE.get().unwrap_or_else(|| &false)) {
+        return;
+    }
+
+    unsafe {
+        if MESS_HASH_MAP.is_none() {
+            MESS_HASH_MAP.replace(HashMap::new());
+        }
+    }
+
+    unsafe {
+        if WINDOW_CLASS_HASH_SET.is_none() {
+            WINDOW_CLASS_HASH_SET.replace(HashSet::new());
+        }
+    }
+
+    VARIABLE_INITIALIZE.set(true);
+}
+
+fn has_hash_message(hwnd:i128, mess:&str) -> bool {
+    let mutex = Arc::new(Mutex::new(&MESS_HASH_MAP_BIND));
+    mutex.lock();
+    let the_value: usize = MESS_HASH_MAP_BIND.load(Ordering::SeqCst);
+    let mut result = false;
+
+    unsafe {
+        let mut mut_hash = MESS_HASH_MAP.as_mut().unwrap();
+        if let Some(mut_hash_) = mut_hash.get_key_value(&*mess.to_string()) {
+            result = mut_hash_.1.clone()==hwnd;
+        }
+    };
+
+    MESS_HASH_MAP_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+    result
+}
+
+fn del_hash_message(mess:&str){
+    let mutex = Arc::new(Mutex::new(&MESS_HASH_MAP_BIND));
+    mutex.lock();
+    let the_value: usize = MESS_HASH_MAP_BIND.load(Ordering::SeqCst);
+    unsafe {
+        let mut mut_hash = MESS_HASH_MAP.as_mut().unwrap();
+        if let Some(mut_hash_) = mut_hash.get_key_value(&*mess.to_string()) {
+            mut_hash.remove(&*mess.to_string());
+        }
+    };
+
+    MESS_HASH_MAP_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+}
+
+fn set_hash_message(hwnd:i128,mess:&str){
+    let mutex = Arc::new(Mutex::new(&MESS_HASH_MAP_BIND));
+    mutex.lock();
+    let the_value: usize = MESS_HASH_MAP_BIND.load(Ordering::SeqCst);
+    unsafe {
+        let mut mut_hash = MESS_HASH_MAP.as_mut().unwrap();
+        mut_hash.insert(mess.to_string(), hwnd.clone());
+    };
+
+    MESS_HASH_MAP_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+}
+
+
+fn get_window_class_list() -> Vec<String> {
+    let mutex = Arc::new(Mutex::new(&WINDOW_CLASS_HASH_SET_BIND));
+    mutex.lock();
+    let the_value: usize = WINDOW_CLASS_HASH_SET_BIND.load(Ordering::SeqCst);
+    let mut result: Vec<String> = Vec::new();
+
+    unsafe {
+        let mut mut_hash = WINDOW_CLASS_HASH_SET.as_mut().unwrap();
+        for mut_hash in mut_hash.iter() {
+            result.push(mut_hash.clone());
+        }
+    };
+
+    WINDOW_CLASS_HASH_SET_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+    result
+}
+
+fn del_window_class(class:&str){
+    let mutex = Arc::new(Mutex::new(&WINDOW_CLASS_HASH_SET_BIND));
+    mutex.lock();
+    let the_value: usize = WINDOW_CLASS_HASH_SET_BIND.load(Ordering::SeqCst);
+    unsafe {
+        let mut mut_hash = WINDOW_CLASS_HASH_SET.as_mut().unwrap();
+        mut_hash.remove(class);
+    };
+
+    WINDOW_CLASS_HASH_SET_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+}
+
+fn set_window_class(class:&str){
+    let mutex = Arc::new(Mutex::new(&WINDOW_CLASS_HASH_SET_BIND));
+    mutex.lock();
+    let the_value: usize = WINDOW_CLASS_HASH_SET_BIND.load(Ordering::SeqCst);
+    unsafe {
+        let mut mut_hash = WINDOW_CLASS_HASH_SET.as_mut().unwrap();
+        mut_hash.insert(class.to_string());
+    };
+
+    WINDOW_CLASS_HASH_SET_BIND.store(the_value + 1, Ordering::SeqCst);
+    drop(mutex);
+}
+
 
 pub enum IconType {
     Success,
@@ -72,9 +191,23 @@ pub fn text_size (data:&str) -> TextSize {
 }
 
 pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
-
     let mut hwnd = 0;
-    let mut win = window::DoubleWindow::new(x,y, 350, 45, None);
+    let mut max_top = 0;
+
+    // 消息不叠加到同个位置
+    for get_window_class in get_window_class_list() {
+        let hwnd = libWxIkunPlus::findWindow(get_window_class.as_str(),"");
+        let rect = libWxIkunPlus::getWindowRect(hwnd);
+        // println!("hwnd->{}  rect-> {:?}",&hwnd,&rect);
+        if rect.top >= max_top {
+            max_top = rect.top+55;
+        }
+    }
+    let mut new_y = if max_top!=0 {max_top} else {y};
+
+    // println!("get_window_class_list()->{:?}  new_y => {} ",get_window_class_list(),new_y);
+
+    let mut win = window::DoubleWindow::new(x,new_y, 350, 45, None);
     win.set_color(Color::from_rgb(25, 25, 25));
     win.set_border(false);
 
@@ -82,10 +215,12 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
     set_item_id!(win,win_id.as_str());
     let text_size_data = text_size(message);
 
-    println!("win_id->{}",&win_id);
-    println!("{:?}",text_size(message));
+    set_window_class(win_id.as_str());
 
-    win.set_pos(x, y);
+    // println!("win_id->{}",&win_id);
+    // println!("{:?}",text_size(message));
+
+    win.set_pos(x, new_y);
 
     let mut back_border = img::ImgPreview::new(0,0,win.w(),win.h(),"");
     let mut text_size = 13;
@@ -198,6 +333,7 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
         libWxIkunPlus::setWinTop(libWxIkunPlus::findWindow(win_id2.as_str(),""),true);
     });
 
+
     let message_copy = format!("{}",message);
     let win_id3 = win_id.clone();
 
@@ -207,17 +343,26 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
         // Sleep(close_sleep);
         std::thread::sleep(std::time::Duration::from_millis(close_sleep));
         libWxIkunPlus::setwinVisible(hwnd,false);
+        del_hash_message(message_copy.as_str());
+        del_window_class(win_id3.as_str());
     });
 
 }
 
 pub fn sub_message(hwnd:i128,icon: IconType, _message: &str,close_sleep:u64){
+    initialize();
     let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    if !has_hash_message(hwnd,_message) {
+        set_hash_message(hwnd,_message);
+    }
+
+
     let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
     message(x,y,icon,_message,close_sleep);
 }
 
 pub fn message_the_win(icon: IconType, _message: &str,close_sleep:u64){
+    initialize();
     let hwnd = libWxIkunPlus::getFocusWindow();
     let mut rect =libWxIkunPlus::getWindowRect(hwnd);
     let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];

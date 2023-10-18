@@ -9,7 +9,7 @@ use std::{
     thread, time::UNIX_EPOCH, collections::HashMap, path::{Path, PathBuf},
 };
 use std::sync::atomic::AtomicBool;
-use crate::gui_select_user_ui::THE_WINDOW_CLASS_NAME;
+use crate::gui_select_user_ui::{ASSETS_DEMO_DATA, ASSETS_DEMO_NOT_DATA, THE_WINDOW_CLASS_NAME};
 
 static HAS_SELECT_USER_WINDOW_NORMAL: AtomicBool = AtomicBool::new(false);
 
@@ -342,9 +342,12 @@ pub fn update_thumbnail_preview_list()  {
         // 更新到视图中  
         for index in 0..img_preview_list.len() {
             if let Some(mut img_preview) = img_preview_list.get(index) {
+
                 if let Some(thumbnail) = thumbnail_list.get(index) {
+                    let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.clone() };
+
                     img_preview.clone().from_data(
-                        thumbnail.thumbnail.clone(),
+                        pre,
                         -1,
                         -1,
                         width - 2,
@@ -352,7 +355,7 @@ pub fn update_thumbnail_preview_list()  {
                     );
                 } else {
                     img_preview.clone().from_data(
-                        include_bytes!("./src/not.png").to_vec(),
+                        ASSETS_DEMO_NOT_DATA(),
                         -1,
                         -1,
                         width - 2,

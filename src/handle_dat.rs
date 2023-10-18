@@ -223,7 +223,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
     ));
 
     for item_path in items_dir_list.iter() {
-        let mut path_item = wh_mod::parse_dat_path(item_path.path.clone());
+        let mut path_item = wh_mod::parse_dat2var_path(item_path.path.clone());
 
         // 深度枚举
         let pattern = format!(

@@ -85,11 +85,16 @@ pub fn watch_path_puppet(dir_path: String, send_main_tx: mpsc::Sender<PathBuf>) 
             }
         });
 
+        let mut shake_path = std::collections::HashSet::new();
         for res in rx {
             // 需要处理的任务已经更新了 释放 为什么不用un 因为会误操作其他的
-
             match res {
                 Ok(event) => {
+
+                    if shake_path.len()>5 {
+                        shake_path.clear();
+                    }
+
                     for value in event.clone().paths {
                         let mut paths = value.clone().display().to_string();
                         let mut ext = util::path_extension(&value);
@@ -100,8 +105,16 @@ pub fn watch_path_puppet(dir_path: String, send_main_tx: mpsc::Sender<PathBuf>) 
                             && (event.clone().kind.is_modify())
                             && str_eq_str("dat".to_owned(), ext.clone()))
                         {
-                            send_main_tx.send(value.clone());
-                            println!("is_modify [is_modify] -> {:?}  id ->  {}", value.clone(),watch_puppet_id.clone());
+                            if shake_path.insert(value.clone()) {
+                                let send_main_tx = send_main_tx.clone();
+                                thread::spawn(move || {
+                                    Sleep(1888);
+                                    send_main_tx.send(value.clone());
+                                    println!("is_modify [is_modify] -> {:?}  id ->  {}", value.clone(),watch_puppet_id.clone());
+                                });
+
+                            }
+
                         }
                     }
                 }
