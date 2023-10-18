@@ -30,7 +30,7 @@
 
 主界面截图
 ------------------------------
-![img](assets/all_main.png)
+![img](assets/main_all.png)
 
 ### 查看全部界面 ：[所有页面](./assets/demo.md)
 
