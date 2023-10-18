@@ -445,8 +445,6 @@ pub fn main_window() {
                         if !path_list.is_empty() {
                             path_list.reverse();
                             for for_path in path_list {
-                                // if wh_mod::convert::is_developer()||(for_path.contains("wxid_")&&(for_path.contains("FileStorage\\MsgAttach")||for_path.contains("FileStorage/MsgAttach"))){
-
                                 if PathBuf::from(for_path.clone()).exists() {
                                     let path = Path::new(&for_path.clone()).to_path_buf();
                                     drag_path = path.clone();

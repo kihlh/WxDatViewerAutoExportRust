@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -60,19 +60,27 @@ mod watching;
 mod wh_mod;
 
 mod gui_util;
+
 #[path = "GUI/gui_rename_ui/mod.rs"]
 mod gui_rename_ui;
+
 #[path = "GUI/gui_drag_scan2_ui/mod.rs"]
 mod gui_drag_scan2_ui;
+
 #[path = "GUI/gui_select_user_ui/mod.rs"]
 mod gui_select_user_ui;
+
 #[path = "GUI/gui_main_ui/mod.rs"]
 mod gui_main_ui;
+
 #[path = "GUI/gui_detect_config_ui/mod.rs"]
 mod gui_detect_config_ui;
+
 #[path = "trash/gui_manage_item.rs"]
 mod gui_manage_item;
-#[path = "GUI/gui_main2_ui/mod.rs"]
+
+#[path = "GUI/gui_donation_ui/mod.rs"]
+mod gui_donation_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -91,6 +99,7 @@ const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
 // mod wh_util;
 fn main() -> Result<()> {
+    
     // 处理命令行
     handle_dat::handle_commandLine();
 
@@ -123,9 +132,8 @@ fn main() -> Result<()> {
     thread::spawn(move || {
         // 创建窗口
         let appMain = app::App::default();
-
+        // gui_donation_ui::main_init();
         gui_main_ui::main_init();
-
         appMain.run().unwrap();
     });
 

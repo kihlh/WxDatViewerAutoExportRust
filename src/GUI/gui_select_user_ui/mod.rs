@@ -57,51 +57,51 @@ macro_rules! set_item_id {
     };
 }
 
-macro_rules! eq_wxid_dir{
-    ($select_dir:expr)=>{
-        {
-            let mut is_wxid_dir = false;
-            if !$select_dir.is_empty(){
+// macro_rules! eq_wxid_dir{
+//     ($select_dir:expr)=>{
+//         {
+//             let mut is_wxid_dir = false;
+//             if !$select_dir.is_empty(){
 
-                        if !$select_dir.contains("WeChat Files"){
-                            // 没有 WeChat Files 则尝试为路径添加 WeChat Files
-                            let mut to_path = std::path::Path::new($select_dir.as_str());
-                            let mut join_path = to_path.join("WeChat Files");
+//                         if !$select_dir.contains("WeChat Files"){
+//                             // 没有 WeChat Files 则尝试为路径添加 WeChat Files
+//                             let mut to_path = std::path::Path::new($select_dir.as_str());
+//                             let mut join_path = to_path.join("WeChat Files");
 
-                            if join_path.exists() && join_path.is_dir(){
-                               $select_dir.push_str("\\WeChat Files");
-                            }
+//                             if join_path.exists() && join_path.is_dir(){
+//                                $select_dir.push_str("\\WeChat Files");
+//                             }
 
-                        }
+//                         }
 
-                        // 判断路径下是否有 wxid_ 开头的文件夹
-                        if let Ok(rd_dir) = std::fs::read_dir($select_dir.as_str()) {
+//                         // 判断路径下是否有 wxid_ 开头的文件夹
+//                         if let Ok(rd_dir) = std::fs::read_dir($select_dir.as_str()) {
 
-                            for rd_dir in rd_dir {
-                                if let Ok(dir) = rd_dir {
-                                    is_wxid_dir= dir.file_name().to_string_lossy().contains("wxid_");
-                                    if is_wxid_dir{
-                                        break;
-                                    }
-                                }
-                            }
+//                             for rd_dir in rd_dir {
+//                                 if let Ok(dir) = rd_dir {
+//                                     is_wxid_dir= wh_mod::get_wx_user_store(dir).is_some();
+//                                     if is_wxid_dir{
+//                                         break;
+//                                     }
+//                                 }
+//                             }
 
-                            if !is_wxid_dir{
-                                // dialog::alert_default("此路径可能不是有效的WX目录 因为未发现有效的用户数据");
-                              gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",3500u64);
-                            }
+//                             if !is_wxid_dir{
+//                                 // dialog::alert_default("此路径可能不是有效的WX目录 因为未发现有效的用户数据");
+//                               gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Warning,"此WX目录 未发现有效的用户数据目录",3500u64);
+//                             }
 
-                        }else{
-                            gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",3500u64);
-                            // dialog::alert_default("目录无法被打开 请注意路径有效性");
-                        }
+//                         }else{
+//                             gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME,""),gui_util::message::IconType::Failure,"目录无法被打开 请注意路径有效性",3500u64);
+//                             // dialog::alert_default("目录无法被打开 请注意路径有效性");
+//                         }
 
-                    }
+//                     }
                    
-            is_wxid_dir
-        }
-    }
-}
+//             is_wxid_dir
+//         }
+//     }
+// }
 
 macro_rules! get_the_hwnd {
     ($class_id:expr) => {
@@ -1188,8 +1188,13 @@ pub fn manage_tool_main() -> String{
                     // 打开文件夹选择器
                     if button_open_dir.existPoint(x, y) {
                         let mut select_dir = libWxIkunPlus::openSelectFolder2();
-                        let eq_wxid_dir = eq_wxid_dir!(select_dir);
+                        
                         if !select_dir.is_empty() {
+                            let wx_search_store_root =  wh_mod::wx_search_store_root(&select_dir);                        
+                            if wx_search_store_root.is_empty() {
+                                gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Failure, "此路径下未找到有效wxid文件夹", 3500u64);
+                                return false;
+                            }
                             user_select_database_dir_input.set_value(wh_mod::get_show_mask_text(select_dir.as_str()).as_str());
 
                             select_user_data_choice.clear();
@@ -1198,7 +1203,6 @@ pub fn manage_tool_main() -> String{
                             lib::set_active_user_list(Vec::new());
                             global_var::set_string("user::config::user_select_path", select_dir.clone());
 
-                            println!("[click] existPoint {}  select_dir-> {} eq-> {}", "打开文件夹选择器", select_dir, eq_wxid_dir);
                         } else {
                             gui_util::message::sub_message(libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, ""), gui_util::message::IconType::Info, "用户取消", 3500u64);
                         }
@@ -1283,10 +1287,11 @@ pub fn manage_tool_main() -> String{
                                     return false;
                                 }
 
+
                                 // 添加到列表
                                 for active_user in active_user_list {
                                     if let Some(accinfo) = active_user.accinfo.clone() {
-                                        select_user_data_choice.add_choice(format!("{} <{}>", wh_mod::get_show_mask_text(&accinfo.wx_id), wh_mod::get_show_mask_text(&accinfo.name)).as_str());
+                                        select_user_data_choice.add_choice(format!("{} <{}>", wh_mod::get_show_mask_text(&active_user.user_wxid), wh_mod::get_show_mask_text(&accinfo.name)).as_str());
                                     } else {
                                         select_user_data_choice.add_choice( wh_mod::get_show_mask_text(&active_user.user_data).as_str());
                                     }
@@ -1381,8 +1386,9 @@ pub fn manage_tool_main() -> String{
                     }
                     let mut select_dir = global_var::get_string_default("user::config::user_select_path");
                     let mut user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
-
-                    let eq_wxid_dir = eq_wxid_dir!(select_dir);
+                    println!("{}",1385);
+                    let eq_wxid_dir = wh_mod::get_wx_user_store(format!("{}/{}",&select_dir,&user_select_wxid)).is_some();
+                    println!("{}",1387);
 
                     // 拼合路径并判断有效性 有且为文件夹
                     let mut attach_path = PathBuf::from(select_dir).join(user_select_wxid.as_str()).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
@@ -1421,6 +1427,8 @@ pub fn manage_tool_main() -> String{
                         return false;
                     }
 
+                    println!("{}",1425);
+
                     if !attach_path.exists() && !attach_path.exists() {
 
                         // dialog::alert_default("attach 目录无效");
@@ -1436,6 +1444,7 @@ pub fn manage_tool_main() -> String{
                         fltk::window::Window::delete(win.clone());
                     }
                 }
+                println!("{}",1442);
 
                 // 卡片按钮 > 备注名称 完成按钮
                 if select_attach_card.btn_remark.existPoint(x, y) {
@@ -1467,6 +1476,8 @@ pub fn manage_tool_main() -> String{
 
                     lib::set_store_user_remark(wxid, attach_id, remark_name);
                 }
+
+                println!("{}",1475);
 
                 // 卡片按钮 > 编辑命名规则
                 if select_attach_card.btn_rename.existPoint(x, y) {
@@ -1513,6 +1524,8 @@ pub fn manage_tool_main() -> String{
                     });
                     */
                 }
+
+                println!("{}",1485);
 
                 true
             }

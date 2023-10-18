@@ -190,26 +190,44 @@ pub fn text_size (data:&str) -> TextSize {
     result
 }
 
-pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
+pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64,color:Option<[i32; 3]>) {
     let mut hwnd = 0;
     let mut max_top = 0;
-
     // 消息不叠加到同个位置
     for get_window_class in get_window_class_list() {
         let hwnd = libWxIkunPlus::findWindow(get_window_class.as_str(),"");
         let rect = libWxIkunPlus::getWindowRect(hwnd);
-        // println!("hwnd->{}  rect-> {:?}",&hwnd,&rect);
         if rect.top >= max_top {
             max_top = rect.top+55;
         }
     }
     let mut new_y = if max_top!=0 {max_top} else {y};
 
-    // println!("get_window_class_list()->{:?}  new_y => {} ",get_window_class_list(),new_y);
-
+    // 创建窗口
     let mut win = window::DoubleWindow::new(x,new_y, 350, 45, None);
-    win.set_color(Color::from_rgb(25, 25, 25));
     win.set_border(false);
+
+    // 获取四个角的颜色 作为背景 以此模拟透明窗口
+
+    if color.is_none() {
+    // 背景色 / 左上角
+    let the_pint_color = libWxIkunPlus::getColor(x, new_y);
+    win.set_color(Color::from_rgb(the_pint_color.r as u8 ,the_pint_color.g as u8,the_pint_color.b as u8));
+    // 右上角
+    let the_pint_color = libWxIkunPlus::getColor(x+350-10, new_y);
+    img::ImgPreview::new_border(350-9,0,10,10,format!("<svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" fill=\"none\"><rect width=\"10\" height=\"10\" fill=\"{}\"/></svg>",the_pint_color.hex).as_str());
+    // 右下角
+    let the_pint_color = libWxIkunPlus::getColor(x+350-10, new_y+45-1);
+    img::ImgPreview::new_border(350-10,45-9,10,10,format!("<svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" fill=\"none\"><rect width=\"10\" height=\"10\" fill=\"{}\"/></svg>",the_pint_color.hex).as_str());
+    // 左下角
+    let the_pint_color = libWxIkunPlus::getColor(x, new_y+45-1);
+    img::ImgPreview::new_border(0,45-9,10,10,format!("<svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" fill=\"none\"><rect width=\"10\" height=\"10\" fill=\"{}\"/></svg>",the_pint_color.hex).as_str());
+    }
+    else{
+        let color = color.unwrap();
+        win.set_color(Color::from_rgb(color[0] as u8 ,color[1] as u8,color[2] as u8));
+    }
+   
 
     let win_id = format!("hmc_message_id<{}>",libWxIkunPlus::randomNum());
     set_item_id!(win,win_id.as_str());
@@ -217,14 +235,12 @@ pub fn message(x:i32, y:i32,icon: IconType, message: &str,close_sleep:u64) {
 
     set_window_class(win_id.as_str());
 
-    // println!("win_id->{}",&win_id);
-    // println!("{:?}",text_size(message));
-
     win.set_pos(x, new_y);
 
     let mut back_border = img::ImgPreview::new(0,0,win.w(),win.h(),"");
+
+    // 计算显示文本大小
     let mut text_size = 13;
-    // 计算文本大小
     if text_size_data.prediction_len>37 {
         text_size-=1;
     }
@@ -358,7 +374,7 @@ pub fn sub_message(hwnd:i128,icon: IconType, _message: &str,close_sleep:u64){
 
 
     let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
-    message(x,y,icon,_message,close_sleep);
+    message(x,y,icon,_message,close_sleep,Some([23, 23, 23]));
 }
 
 pub fn message_the_win(icon: IconType, _message: &str,close_sleep:u64){
@@ -366,6 +382,45 @@ pub fn message_the_win(icon: IconType, _message: &str,close_sleep:u64){
     let hwnd = libWxIkunPlus::getFocusWindow();
     let mut rect =libWxIkunPlus::getWindowRect(hwnd);
     let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
-    message(x,y,icon,_message,close_sleep);
+    message(x,y,icon,_message,close_sleep,Some([23, 23, 23]));
 }
 
+
+pub fn sub_message_set_color(hwnd:i128,icon: IconType, _message: &str,close_sleep:u64,color:[i32; 3]){
+    initialize();
+    let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    if !has_hash_message(hwnd,_message) {
+        set_hash_message(hwnd,_message);
+    }
+
+
+    let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
+    message(x,y,icon,_message,close_sleep,Some(color));
+}
+
+pub fn message_the_win_set_color(icon: IconType, _message: &str,close_sleep:u64,color:[i32; 3]){
+    initialize();
+    let hwnd = libWxIkunPlus::getFocusWindow();
+    let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
+    message(x,y,icon,_message,close_sleep,Some(color));
+}
+
+pub fn sub_message_auto(hwnd:i128,icon: IconType, _message: &str,close_sleep:u64){
+    initialize();
+    let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    if !has_hash_message(hwnd,_message) {
+        set_hash_message(hwnd,_message);
+    }
+
+    let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
+    message(x,y,icon,_message,close_sleep,None);
+}
+
+pub fn message_the_win_auto(icon: IconType, _message: &str,close_sleep:u64){
+    initialize();
+    let hwnd = libWxIkunPlus::getFocusWindow();
+    let mut rect =libWxIkunPlus::getWindowRect(hwnd);
+    let [x,y] = [rect.left + (rect.width/2)-(350/2),rect.top+50];
+    message(x,y,icon,_message,close_sleep,None);
+}

@@ -24,7 +24,7 @@ use std::{
 };
 use std::time::SystemTime;
 use chrono::{DateTime, Local};
-use crate::{global_var, util};
+use crate::{global_var, util, wh_mod};
 use crate::wh_mod::split_path;
 
 macro_rules! Sleep {
@@ -239,12 +239,20 @@ pub fn get_mask_text(text:&str) -> String{
         }
 
         let mut paths =  split_path(text);
+        let mut wx_id = String::new();
+
+        if let Some(item) = wh_mod::get_wx_user_store(paths.join("/")) {
+            wx_id =item.wxid;
+        }
+
+   
         // 对有wxid / wx root 的文件夹进行强制消敏
         for index in 0..paths.len() {
             if let Some(path) = paths.get(index) {
                 if
                     // wxid
                     path.contains("wxid_")
+                    ||path.contains(&wx_id)
 
                 {
                     paths[index] = get_mask_text(path);
@@ -475,6 +483,70 @@ impl OverloadedAnyStr for Option<&OsStr> {
     fn to_string_or(&self,or_str:String) -> String {
         if let Some(str) = self {
             return format!("{}",str.to_string_lossy().to_string());
+        }
+        or_str
+    }
+}
+
+
+impl OverloadedAnyStr for std::fs::DirEntry {
+    fn to_string(&self) -> Option<String> {
+        self.to_string()
+    }
+    fn to_string_default(&self) -> String {
+        if let Some(str) =  self.to_string() {
+            return str;
+        }
+        String::new()
+    }
+    fn to_string_or(&self,or_str:String) -> String {
+        if let Some(str) =  self.to_string() {
+            return str;
+        }
+        or_str
+    }
+}
+
+impl OverloadedAnyStr for &std::fs::DirEntry {
+    fn to_string(&self) -> Option<String> {
+        self.to_string()
+    }
+    fn to_string_default(&self) -> String {
+        if let Some(str) =  self.to_string() {
+            return str;
+        }
+        String::new()
+    }
+    fn to_string_or(&self,or_str:String) -> String {
+        if let Some(str) =  self.to_string() {
+            return str;
+        }
+        or_str
+    }
+}
+
+impl OverloadedAnyStr for Option<std::fs::DirEntry> {
+    fn to_string(&self) -> Option<String> {
+        if let Some(item) = self {
+            return  item.to_string()
+        }
+        None
+    }
+    fn to_string_default(&self) -> String {
+        if let Some(item) = self {
+            
+            if let Some(item) = item.to_string() {
+                return item ;
+            }  
+        }
+        String::new()
+    }
+    fn to_string_or(&self,or_str:String) -> String {
+        if let Some(item) = self {
+            
+            if let Some(item) = item.to_string() {
+                return item ;
+            }  
         }
         or_str
     }

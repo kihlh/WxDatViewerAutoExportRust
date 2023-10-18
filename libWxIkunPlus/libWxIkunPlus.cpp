@@ -933,3 +933,150 @@ bool _setWindowEnabled(long hwnds, bool enabled) {
 
     return !(windowLong & WS_DISABLED);
 }
+
+
+
+// 获取所有屏幕的位置
+vector<RECT> GetDeviceCapsAll()
+{
+    vector<RECT> CrectList;
+    DISPLAY_DEVICE displayDevice;
+    ZeroMemory(&displayDevice, sizeof(displayDevice));
+    displayDevice.cb = sizeof(displayDevice);
+    DEVMODE devMode;
+    ZeroMemory(&devMode, sizeof(devMode));
+    devMode.dmSize = sizeof(devMode);
+
+    for (int i = 0; EnumDisplayDevices(NULL, i, &displayDevice, 0); ++i)
+    {
+        if (EnumDisplaySettings(displayDevice.DeviceName, ENUM_CURRENT_SETTINGS, &devMode))
+        {
+            int left = devMode.dmPosition.x;
+            int top = devMode.dmPosition.y;
+            int right = devMode.dmPosition.x + devMode.dmPelsWidth;
+            int bottom = devMode.dmPosition.y + devMode.dmPelsHeight;
+            RECT rect;
+            rect.bottom = bottom;
+            rect.left = left;
+            rect.top = top;
+            rect.right = right;
+            CrectList.push_back(rect);
+        }
+    }
+    return CrectList;
+}
+
+bool isInside(int x1, int y1, int x2, int y2, int x, int y)
+{
+    if (x > x1 && x < x2 && y > y1 && y < y2)
+        return true;
+    return false;
+}
+
+struct GetColorInfo
+{
+    int r;
+    int g;
+    int b;
+    string hex;
+};
+
+// 获取屏幕上指定位置的颜色
+GetColorInfo GetColor(int x, int y)
+{
+    GetColorInfo _ColorInfo;
+    _ColorInfo.b = 0;
+    _ColorInfo.g = 0;
+    _ColorInfo.r = 0;
+    _ColorInfo.hex = "#000000";
+    // 获取屏幕DC
+    HDC hScreenDC = CreateDC(TEXT("DISPLAY"), NULL, NULL, NULL);
+    // 获取屏幕分辨率
+    int nScopeWidth = GetDeviceCaps(hScreenDC, HORZRES);
+    int nScopeHeight = GetDeviceCaps(hScreenDC, VERTRES);
+    int nScopeX = 0;
+    int nScopeY = 0;
+    // nScopeWidth = 3840;
+    //  坐标小于0肯定不对
+    if (x < 0 || y < 0)
+    {
+        return _ColorInfo;
+    }
+    // 坐标超过了第一个屏幕  则应该开始判断是在第二个屏幕还是参数过界了
+    if (nScopeHeight < y || nScopeWidth < x)
+    {
+        int is_ok = false;
+        vector<RECT> deviceCapsAll = GetDeviceCapsAll();
+        for (size_t i = 0; i < deviceCapsAll.size(); i++)
+        {
+            RECT deviceCaps = deviceCapsAll[i];
+            if (isInside(deviceCaps.left, deviceCaps.top, deviceCaps.right, deviceCaps.bottom, x, y))
+            {
+
+                nScopeWidth = deviceCaps.right;
+                nScopeHeight = deviceCaps.bottom;
+                nScopeX = deviceCaps.left;
+                nScopeY = deviceCaps.top;
+                is_ok = true;
+            }
+        }
+        if (!is_ok)
+            return _ColorInfo;
+    }
+    HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
+    HBITMAP hBitmap = CreateCompatibleBitmap(hScreenDC, nScopeWidth, nScopeHeight);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemoryDC, hBitmap);
+    BitBlt(hMemoryDC, 0, 0, nScopeWidth, nScopeHeight, hScreenDC, 0, 0, SRCCOPY);
+    COLORREF color = GetPixel(hMemoryDC, x, y);
+    SelectObject(hMemoryDC, hOldBitmap);
+    DeleteObject(hBitmap);
+    DeleteDC(hMemoryDC);
+    DeleteDC(hScreenDC);
+
+    int r = GetRValue(color);
+    int g = GetGValue(color);
+    int b = GetBValue(color);
+    char hex[8];
+    sprintf_s(hex, "#%02X%02X%02X", r, g, b);
+    _ColorInfo.b = b;
+    _ColorInfo.g = g;
+    _ColorInfo.r = r;
+    _ColorInfo.hex = hex;
+    transform(_ColorInfo.hex.begin(), _ColorInfo.hex.end(), _ColorInfo.hex.begin(), ::tolower);
+
+    return _ColorInfo;
+}
+
+const char* _getColor_json (int x, int y) {
+
+    GetColorInfo data = GetColor(x, y);
+
+    string res_json = string();
+    res_json.append("{");
+    res_json.append("\"r\":");
+    res_json.append(to_string(data.r));
+    res_json.append(",\"g\":");
+    res_json.append(to_string(data.g));
+    res_json.append(",\"b\":");
+    res_json.append(to_string(data.b));
+    res_json.append(",\"hex\":\"");
+    res_json.append(data.hex);
+    res_json.append("\"}");
+
+
+    char* pUTF8 = new char[res_json.size() + 1];
+
+    for (size_t i = 0; i < res_json.size(); i++)
+    {
+        char data = res_json[i];
+        pUTF8[i] = data;
+    }
+    const int end = res_json.size();
+
+    pUTF8[end] = *"\0";
+
+
+    return pUTF8;
+
+}
+

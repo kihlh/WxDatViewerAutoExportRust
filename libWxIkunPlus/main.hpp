@@ -70,7 +70,7 @@ IMPORT_DLL void _setWindowShake(long hwnds);
 IMPORT_DLL bool _setWindowEnabled(long hwnds, bool enabled);
 IMPORT_DLL bool _hasInitWindowIsDisplayed();
 IMPORT_DLL bool _setInitWindowIsDisplayed(bool initWindowIsDisplayed);
-
+IMPORT_DLL const char* _getColor_json(int x, int y);
 //IMPORT_DLL
 //IMPORT_DLL
 //IMPORT_DLL

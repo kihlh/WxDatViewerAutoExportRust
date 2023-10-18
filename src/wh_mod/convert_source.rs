@@ -40,8 +40,7 @@ pub fn detect_image_format(data: &[u8]) -> Option<&'static str> {
     }
 }
 
-// !请注意  异或解密算法是不开源的部分
-// 对指定的文件进行异或算法 以此获取解码的文件
+
 // 对指定的文件进行异或算法 以此获取解码的文件
 pub fn convert_bat_images(input_path: PathBuf, mut output_path: PathBuf) -> io::Result<String> {
 
@@ -150,17 +149,7 @@ pub fn get_wxid_name(user_data_path: String, wxid: String) -> Option<WxidNameAcc
     Option::None
 }
 
-// 开发者用户id
-pub fn get_user_id1() -> String {
-    // ! 这部分也是不开源的部分
-    return String::new();
-}
 
-// 开发者用户id
-pub fn get_user_id2() -> String {
-    // ! 这部分也是不开源的部分
-    return String::new();
-}
 
 // 获取活动用户信息
 #[derive(Debug)]
@@ -179,26 +168,15 @@ pub struct WxActiveUser {
 pub fn get_active_user(user_root: &str) -> Vec<WxActiveUser> {
     let mut active_users = Vec::new();
     let mut get_size = libWxIkunPlus::findAllWindow("WeChatMainWndForPC", "").len();
-    let mut read_dir_list: Vec<fs::DirEntry> = Vec::new();
-
-    // 读取包含 wxid_ 的文件夹
-    if let Ok(read_dir) = fs::read_dir(user_root) {
-        for dir in read_dir {
-            if let Ok(dir) = dir {
-                let string_lossy = format!("{:?}", dir.file_name());
-
-                if string_lossy.contains("wxid_") {
-                    read_dir_list.push(dir);
-                }
-            }
-        }
-    }
+    let mut read_dir_list = wx_search_store_root(user_root);
     
     let mut vec_wxid_list:Vec<PathBuf> = Vec::new();
     
     for value in read_dir_list {
         // 通过高更新率的文件判断出最后修改时间
-        let config_path = value.path().join("config");
+        let for_p = value.replace("wxid_::", "").replace("::","");
+
+        let config_path = Path::new(for_p.as_str()).join("config");
 
         let mut read_file_list = Vec::new();
 
@@ -260,7 +238,7 @@ pub fn get_active_user(user_root: &str) -> Vec<WxActiveUser> {
     vec_wxid_list.reverse();
 
     for value in vec_wxid_list.to_vec() {
-        if active_users.len() >= get_size &&!is_developer(){
+        if active_users.len() >= get_size &&!config::is_developer(){
             break;
         }
      

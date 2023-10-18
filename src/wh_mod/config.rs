@@ -24,5 +24,11 @@ pub fn is_click_open_preview() -> bool {
 
 // 演示模式
 pub fn is_show_dome() -> bool {
-    true
+    false
 }
+
+// 显示国际货币捐赠
+pub fn is_show_token_donate() -> bool {
+    (!is_build_52pojie()&&false)||is_developer()
+}
+

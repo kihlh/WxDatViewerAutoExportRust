@@ -63,6 +63,7 @@ extern "C" {
     fn _setWindowEnabled(_hWnd: c_long, enabled: bool) -> bool;
     fn _hasInitWindowIsDisplayed ()->bool;
     fn _setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool;
+    fn _getColor_json(x:i32,y:i32) ->PCSTR;
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -608,4 +609,33 @@ pub fn setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool{
     unsafe {
         _setInitWindowIsDisplayed(initWindowIsDisplayed)
     }
+}
+
+#[derive(Debug)]
+pub struct GetColorInfo{
+    pub r:i32,
+    pub g:i32,
+    pub b:i32,
+    pub hex:String,
+}
+
+pub fn getColor(x:i32,y:i32) ->GetColorInfo{
+    let mut color_info = GetColorInfo{
+        r:255,
+        g: 255,
+        b:255,
+        hex:"#ffffff".to_string(),
+    };
+    unsafe{
+        let c_result = _getColor_json(x,y);
+        let data = c_string_to_rust_string(c_result);
+        
+        if let Ok(c_rect) = serde_json::from_str(data.as_str()) as serde_json::Result<Value> {
+            color_info.r = c_rect["r"].as_i64().unwrap_or_else(||{0}) as i32;
+            color_info.g = c_rect["g"].as_i64().unwrap_or_else(||{0}) as i32;
+            color_info.b = c_rect["b"].as_i64().unwrap_or_else(||{0}) as i32;
+            color_info.hex = c_rect["hex"].as_str().unwrap_or("").to_string();
+        }
+    }
+    color_info
 }

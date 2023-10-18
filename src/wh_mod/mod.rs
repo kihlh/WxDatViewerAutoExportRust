@@ -108,7 +108,8 @@ pub struct WxFsRetrievalStruct {
     pub is_dat: bool,
 }
 
-pub fn split_path(input_path: String) -> Vec<String> {
+pub fn split_path<T: util::OverloadedAnyStr >(input: T) -> Vec<String> {
+    let mut input_path: String=input.to_string_default();
     let mut path2arr: Vec<String> = Vec::new();
     let mut str: String = String::new();
     // 按照 \\ / 分割路径
@@ -163,15 +164,6 @@ pub fn wx_parse_path(wx_path: String) -> WxFsRetrievalStruct {
     if let Some(last) = path2arr.last() {
         wx_fs_retrieval_struct.is_thumbnail = last.to_ascii_lowercase().contains("_t.dat");
     }
-    // if wx_path
-    //     .to_ascii_lowercase()
-    //     .contains("filestorage\\msgattach")
-    //     || wx_path
-    //         .to_ascii_lowercase()
-    //         .contains("filestorage/msgattach")
-    // {
-    //
-    // }
 
     if path2arr.len() > 1 {
         // 基础路径
@@ -222,10 +214,10 @@ pub fn wx_parse_path(wx_path: String) -> WxFsRetrievalStruct {
             }
 
             // wx id
-            if for_path_data.to_ascii_lowercase().contains("wxid_") {
-                wx_id = for_path_data.clone();
+            if let Some(item) = get_wx_user_store(wx_path.as_str()) {
+                wx_id =item.wxid;
             }
-
+       
             // 判断是否是日期 2023-05
             if (for_path_data.contains("202") && for_path_data.len() > 5) {
                 if (for_path_data.find("-") == Some(4)) {
@@ -263,16 +255,12 @@ pub fn wx_parse_path(wx_path: String) -> WxFsRetrievalStruct {
         wx_fs_retrieval_struct.user_data = user_data.join("\\");
     }
 
-    // println!("{},{} , {} , path2arr-> {:?}",wx_path.clone(),wx_path.contains("wxid_") ,wx_fs_retrieval_struct.wxid.is_empty(),path2arr.clone() );
-
-    if wx_path.contains("wxid_") && wx_fs_retrieval_struct.wxid.is_empty() {
-        for path2 in path2arr {
-            // println!("{} ->  {}",path2.clone(), path2.contains("wxid_"));
-
-            if path2.contains("wxid_") {
-                wx_fs_retrieval_struct.wxid = path2;
-            }
+    if wx_fs_retrieval_struct.wxid.is_empty() {
+         // wx id
+         if let Some(item) = get_wx_user_store(wx_path.as_str()) {
+            wx_fs_retrieval_struct.wxid =item.wxid;
         }
+
     }
 
     wx_fs_retrieval_struct
@@ -335,89 +323,94 @@ pub struct WxReadWxid {
     pub user_root: PathBuf,
 }
 
-// 格式化路径到 String
-pub fn path2string<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(path: P) -> Option<String> {
-    let s = path.as_ref().to_string_lossy();
-    if s.is_empty() { None } else { Some(s.into_owned()) }
+
+#[derive(Debug)]
+pub struct WxUserStoreInfo {
+    pub wxid: String,
+    pub user_root: PathBuf,
 }
 
-//
-pub fn list_path<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(_path: P) -> Vec<String> {
-    let path = path2string::<P,S,E>(_path).unwrap();
-    let path_str = path.replace("\\", "/");
-    let mut result = Vec::new();
+pub fn get_wx_user_store<T: util::OverloadedAnyStr >(input: T) -> Option<WxUserStoreInfo>{
+    let mut wx_user_store_info = WxUserStoreInfo{
+        wxid: String::new(),
+        user_root: PathBuf::new(),
+    };
 
-    if let Ok(entries) = fs::read_dir(path_str) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                // 如果它是一个目录，就获取它的名字
-                if entry.file_type().map(|s| s.is_dir()).unwrap_or(false) {
-                    if let Some(file_name) = entry.file_name().to_str() {
-                        let path = file_name.to_string().replace("/","\\");
-                        result.push(path);
-                    }
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-pub fn wildcard_path<P: AsRef<Path>, S: AsRef<OsStr>, E: AsRef<String>>(_path: P) -> Vec<String>{
-    let path = path2string::<P,S,E>(_path).unwrap();
-    let mut result = Vec::new();
-
-    result
-}
-
-// 格式化路径到 D:\usersData\...\WeChat Files
-pub fn format_wx_root(wx_root: &str) -> Option<path::PathBuf> {
     let match_feature = vec![
-        vec!["*","FileStorage","MsgAttach"],
-        vec!["*","config","AccInfo.dat"],
-        vec!["*","Msg"],
+        vec!["FileStorage","MsgAttach"],
+        vec!["config","AccInfo.dat"],
+        vec!["Msg"],
     ];
-    let mut split_path = split_path(wx_root.to_string());
-    let mut split_path_join_to_wfs = String::new();
+    let mut split_paths = split_path(input.to_string_default());
+    let mut new_split_paths = Vec::new();
 
-    for split in split_path.iter() {
-        if split.as_bytes().eq("WeChat Files".as_bytes()) {
+    // D:\usersData\...\WeChat Files\{wxid}
+    for (index,value) in split_paths.iter().enumerate() {
+       
+        if value.as_bytes().eq("WeChat Files".as_bytes()) {
+            new_split_paths.push("WeChat Files".to_string());
 
-            //  D:\usersData\...\WeChat Files\ 必须得是文件夹
-            if path::Path::new(split_path_join_to_wfs.as_str()).is_dir(){
-                split_path_join_to_wfs.push_str(split);
+            if let Some(wxid) = split_paths.get(index+1usize) {
+                wx_user_store_info.user_root = PathBuf::from(new_split_paths.join("\\"));
 
-                // 所有特征
-                // D:\usersData\...\WeChat Files\wxid_0x666\FileStorage\MsgAttach
-                // D:\usersData\...\WeChat Files\wxid_0x666\config\AccInfo.dat
-                // D:\usersData\...\WeChat Files\wxid_0x666\Msg
-                let mut temp_all_feature_path:Vec<String> = Vec::new();
-
-                // 循环并格式化出特征路径
-                for match_feature in match_feature.iter() {
-                    let list_path  = format!("{}\\{}",split_path_join_to_wfs,match_feature.join("\\"));
-
-                    // temp_all_feature_path.push();
-                }
-
-            }else {
+                new_split_paths.push(wxid.clone());
+                wx_user_store_info.wxid = wxid.clone();
+            }
+            else{
                 return None;
             }
+            break;
         }
-        split_path_join_to_wfs.push_str(split);
+        new_split_paths.push(value.clone());
     }
 
-    return None;
+    let mut the_match = true;
+    
+    for value in match_feature {
+        let path = format!("{}/{}",new_split_paths.join("/"),value.join("/"));
+        the_match = path::PathBuf::from(path).exists();
+        if !the_match{
+           return  None;
+        }
+    }
+
+    
+    Some(wx_user_store_info)
 }
 
-pub fn wx_search_wxid_root (wx_root: &str) -> Vec<String> {
-    let result = Vec::new();
+//  D:\usersData\...\WeChat Files\
+pub fn wx_search_store_root (wx_root: &str) -> Vec<String> {
+    let mut result = Vec::new();
     let match_feature = vec![
-        vec!["*","FileStorage","MsgAttach"],
-        vec!["*","config","AccInfo.dat"],
-        vec!["*","Msg"],
+        vec!["FileStorage","MsgAttach"],
+        vec!["config","AccInfo.dat"],
+        vec!["Msg"],
     ];
+        
+        if let Ok(read_dir) = fs::read_dir(wx_root) {
+           for DirEntry in read_dir {
+            //  D:\usersData\...\WeChat Files\{the}
+            if let Ok(entry) = DirEntry {
+              let mut path = entry.path();
+              let mut the_match = true;
+
+                for feature in match_feature.to_vec() {
+                    let feature_path = path.clone().join(feature.join("\\"));
+                    the_match = feature_path.exists();
+                    if !the_match{
+                        continue;
+                    }
+                }
+                
+                if the_match {
+                    let mut split_paths = split_path(path);
+                    result.push(split_paths.join("\\"));
+                }
+
+            }
+           }
+            
+        }
 
     result
 }
@@ -432,19 +425,20 @@ pub fn wx_read_root_wxid(wx_root: &Path) -> Vec<WxReadWxid> {
     // 获取基础路径信息
     for dir in read_dir(wx_root) {
         let dir_path = dir.path();
-        let base = dir.file_name().to_string_lossy().to_string();
+           // wx id
+           if let Some(stor) = get_wx_user_store(&dir_path) {
 
-        if base.contains("wxid_") {
             let item = WxReadWxid {
                 account_id: "".to_string(),
-                wxid: base,
+                wxid: stor.wxid,
                 update_time: UNIX_EPOCH,
                 update_time_str: "".to_string(),
                 attach: dir_path.join("FileStorage\\MsgAttach"),
                 user_root: dir_path,
             };
             wx_read_item_list.push(item);
-        }
+             }
+
     }
 
     // 读取更新时间和wxid(如果有)
@@ -1053,7 +1047,7 @@ impl Dat2VarParseMeta {
 
         result
     }
-    pub fn writeFile(ex_dir:&str,){
+    pub fn writeFile(exp_dir:&str,var2dat_path:&str,buff:&[u8]) {
 
     }
 }
