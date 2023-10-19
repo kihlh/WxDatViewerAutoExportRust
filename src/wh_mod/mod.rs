@@ -1087,6 +1087,7 @@ pub fn parse_dat2var_path<T: util::OverloadedAnyStr >(input: T) -> Dat2VarParseM
         is_all: false,
         format_path_list: Vec::new(),
     };
+    
     let mut path_dir = input.to_string_default();
     let mut path_list = Vec::new();
     let binding = split_path(path_dir).join("\\");

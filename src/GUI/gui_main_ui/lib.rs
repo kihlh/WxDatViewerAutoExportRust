@@ -136,8 +136,8 @@ pub fn push_sql_export_dir_path(name: &str, export_dir: &str, task_command: &str
         [
             name,
             Local::now().format("%Y-%m-%d").to_string().as_str(),
-            export_dir,
             task_command,
+            export_dir,
         ],
     ) {
         Ok(_) => {

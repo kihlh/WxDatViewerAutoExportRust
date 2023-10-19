@@ -16,8 +16,10 @@ type WCHAR = wchar_t;
 
 type LPCWCHAR = *const WCHAR;
 
-use self::util::{encode_lpcstr, ansi_codepage_cstring};
-pub mod util;
+use crate::util;
+
+use self::lib_util::{encode_lpcstr, ansi_codepage_cstring};
+pub mod lib_util;
 
 // #![crate_type = "staticlib"]
 //  请注意 所有传入的文本都必须是utf8
@@ -310,32 +312,32 @@ pub fn alert(title: String, message: String) -> bool {
 }
 
 // MessageBox -> confirm
-pub fn confirm(title: String, message: String) -> bool {
+pub fn confirm<T: util::OverloadedAnyStr >(title: T, message: T) -> bool {
     unsafe {
         return _Confirm(
-            rust_string_to_ansi_str(title).as_ptr(),
-            rust_string_to_ansi_str(message).as_ptr(),
+            rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
+            rust_string_to_ansi_str(message.to_string_default()).as_ptr(),
         );
     }
     return false;
 }
 
 // MessageBox -> stop
-pub fn stop(title: String, message: String) {
+pub fn stop<T: util::OverloadedAnyStr >(title: T, message: T) {
     unsafe {
         _Stop(
-            rust_string_to_ansi_str(title).as_ptr(),
-            rust_string_to_ansi_str(message).as_ptr(),
+            rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
+            rust_string_to_ansi_str(message.to_string_default()).as_ptr(),
         );
     }
 }
 
 // MessageBox -> error
-pub fn error(title: String, message: String) {
+pub fn error<T: util::OverloadedAnyStr >(title: T, message: T) {
     unsafe {
         _Error(
-            rust_string_to_ansi_str(title).as_ptr(),
-            rust_string_to_ansi_str(message).as_ptr(),
+            rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
+            rust_string_to_ansi_str(message.to_string_default()).as_ptr(),
         );
     }
 }

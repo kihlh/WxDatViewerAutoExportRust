@@ -665,9 +665,10 @@ pub fn get_vec_string_from_index(key: &str, index: usize) -> Option<String> {
 
 #[macro_export]
 macro_rules! console_log {
-    ($message:expr) => {
+    ($message:expr) => {{
         println!("{}", $message);
-        global_var::push_vec_string("console_log", $message);
+        use crate::util;
+        global_var::push_vec_string("console_log", util::to_string_default($message));
         // handle_dat::push_console_message($message);
-    };
+    }};
 }

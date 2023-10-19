@@ -1349,6 +1349,9 @@ pub fn manage_tool_main() -> String{
 
                 }
 
+                if g_the_select_attach_id.is_empty() {
+                    g_the_select_attach_id.push_str(global_var::get_string_default("user::config::user_select_attach").as_str());
+                }
 
                 // 卡片按钮 > 完成选定
                 if select_attach_card.btn_select.existPoint(x, y) {
@@ -1373,7 +1376,7 @@ pub fn manage_tool_main() -> String{
                     }
 
                     //  判断是否有Att id
-                    else if g_the_select_attach_id.is_empty() || g_the_select_attach_id.len() < 25 {
+                    else if g_the_select_attach_id.is_empty()  {
                         // fltk::dialog::alert_default("attach id 无效 （尚未选定有效聊天对象）");
                         // gui_util::message::message(x+100,y+80,gui_util::message::IconType::Warning,"attach id 无效 （尚未选定有效聊天对象）",3500u64);
                         gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "attach id 无效 （尚未选定有效聊天对象）", 3500u64);
@@ -1469,7 +1472,7 @@ pub fn manage_tool_main() -> String{
 
                     if remark_name.is_empty() {
                         // dialog::alert_default("没有备注内容 (备注将用于命名与显示对象名称)");
-                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有备注内容 (用于命名与显示对象名称)", 3500u64);
+                        gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "没有备注内容(用于命名与显示对象)", 3500u64);
 
                         return false;
                     }

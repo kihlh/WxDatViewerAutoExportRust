@@ -224,7 +224,10 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
     let mut button_test = gui_util::hotspot::create_hotspot(415i32, 275i32 , 60i32, 32i32);
     let mut button_create = gui_util::hotspot::create_hotspot(486i32, 275i32 , 60i32, 32i32);
     let mut bottom_check_hotspot = gui_util::hotspot::create_hotspot(30, 490-5,200, 30);
-
+    let mut button_config = gui_util::ImgPreview::new_border(172+15, 18, 32, 32, include_str!("./src/icon_config.svg"));
+    let mut button_coffee = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_coffee.svg"));
+    let mut button_sync = gui_util::ImgPreview::new_border(222+50+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
+    // let mut button_sync = gui_util::ImgPreview::new_border(222+100+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
 
     win.handle({
         let mut x = 0;
@@ -250,6 +253,27 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     // gc_the_window!(win);
                     libWxIkunPlus::setwinVisible(get_the_hwnd!(),false);
                 }
+                
+                if button_config.existPoint(x, y) {
+                    
+                }
+
+                if button_coffee.existPoint(x, y) {
+                    gui_donation_ui::main_init();    
+                }
+
+                if button_sync.existPoint(x, y) {
+                    if(libWxIkunPlus::confirm("立即同步", "是否立即同步所有内容")){
+                        thread::spawn(move || {
+                            let conn: Connection =
+                                Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+                            handle_dat::initialize_table(&conn);
+                            let _ = handle_dat::handle_walk_pictures(&conn);
+                            let _ = conn.close();
+                        });
+                    }    
+                }
+
                 // 向导
                 if button_wizard.existPoint(x,y) {
                     if(lib::eq_next()){
@@ -323,6 +347,9 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     let mut task_command = global_var::get_string_default("user::config::task_command");
                     let [name,export]= [win_control.name.value(),win_control.export.value()];
                     lib::push_sql_export_dir_path(name.as_str(),export.as_str(),task_command.as_str());
+                    if !libWxIkunPlus::has_auto_sync() {
+                        gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "【同步未启用】当前创建的心任务并不会处理", 2500u64);
+                    }
                 }
                 true
             }
@@ -338,6 +365,9 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     ||button_test.existPoint(x,y)
                     ||button_create.existPoint(x,y)
                     ||bottom_check_hotspot.existPoint(x,y)
+                    ||button_coffee.existPoint(x, y)
+                    ||button_config.existPoint(x, y)
+                    ||button_sync.existPoint(x, y)
                 {
                     win.set_cursor(fltk::enums::Cursor::Hand);
                 } else {

@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -180,18 +180,16 @@ fn main() -> Result<()> {
 
     // 阻塞进程状态可用 进程不退出 以及与cpp的数据更新
     loop {
-        // if(set_bool!(SYNC_IMMED_TOKEN,libWxIkunPlus::has_sync_token())){
-        //     if get_bool!(SYNC_IMMED_TOKEN) {
-        //         console_log!(format!("[用户] 立即全部扫描"));
-        //         thread::spawn(move || {
-        //             let conn: Connection =
-        //                 Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
-        //             handle_dat::initialize_table(&conn);
-        //             let _ = handle_dat::handle_walk_pictures(&conn);
-        //             let _ = conn.close();
-        //         });
-        //     }
-        // };
+        if(libWxIkunPlus::has_sync_token()){
+                console_log!(format!("[用户] 立即全部扫描"));
+                thread::spawn(move || {
+                    let conn: Connection =
+                        Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+                    handle_dat::initialize_table(&conn);
+                    let _ = handle_dat::handle_walk_pictures(&conn);
+                    let _ = conn.close();
+                });
+        };
         //
         // if(set_bool!(APP_STARTUP,libWxIkunPlus::hasStartupGlobalVar())){
         //     // println!("自启动值已经更新");

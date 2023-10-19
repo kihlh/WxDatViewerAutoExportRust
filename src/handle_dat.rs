@@ -134,13 +134,6 @@ pub fn initialize_table(conn: &Connection) {
         Err(err) => eprint!("{}", err),
     };
     
-    // if let Ok(_) = conn.execute(
-    //     "ALTER TABLE 'export_dir_path' ADD COLUMN 'rename' TEXT;",
-    //     (), // empty list of parameters.
-    // ) {
-    //     console_log!(format!("[update] {}", "表头 'rename' 已经成功添加"));
-    // };
-
     
 }
 
@@ -156,64 +149,29 @@ struct MsgAttachExport {
     user_name: String,
 }
 
-// 向log台发送信息
-// pub fn push_console_message(message: String) {
-//     let mut user_key = "ikun_user_auto_console_info";
-
-//     match env::var(user_key) {
-//         Ok(varStr) => {
-//             let mut new_value = String::new();
-//             new_value.push_str(&varStr);
-//             new_value.push_str(";;;");
-//             new_value.push_str(&message);
-//             env::set_var(user_key, new_value);
-//         }
-//         Err(_) => {
-//             env::set_var(user_key, message);
-//         }
-//     }
-// }
-
 // 获取log数据
 pub fn get_console_message() -> String {
-    // let mut user_key = "ikun_user_auto_console_info";
-
-    // match env::var(user_key) {
-    //     Ok(varStr) => {
-    //         let new_str = format!("\n{}", varStr.replace(";;;", "\n"));
-    //         env::set_var(user_key, "");
-    //         return new_str;
-    //     }
-    //     Err(_) => {
-    //         return "".to_owned();
-    //     }
-    // }
-
     global_var::retrieve_vec_string("console_log").join("\n")
 }
 
 // 处理图像 (所有)
 pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
-    //*println!*("handle [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
-    //*println!*("handle [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
-
+   
     if get_bool!(HANDLE_DAT_ING) {
         console_log!(format!("[处理]  取消处理 -> 任务重复"));
         return Ok(());
     }
 
-    if libWxIkunPlus::has_auto_sync() {
+    if !libWxIkunPlus::has_auto_sync() {
         console_log!(format!("[处理]  取消处理 -> 总同步开关要求禁用"));
         return Ok(());
     }
 
     set_bool!(HANDLE_DAT_ING, true);
 
-    //*println!*("handle2 [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
-    //*println!*("handle2 [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
-
     let mut items_dir_list: Vec<global_var_util::ExportDirItme> =
         global_var_util::update_export_dir_itme_list();
+        
     let mut handle_end_size = 0;
     let mut handle_all_size = 0;
 
@@ -224,7 +182,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
 
     for item_path in items_dir_list.iter() {
         let mut path_item = wh_mod::parse_dat2var_path(item_path.path.clone());
-
+        println!("parse_dat2var_path -> {}  {:?}",&item_path.path,&path_item);
         // 深度枚举
         let pattern = format!(
             "{}",
@@ -239,6 +197,9 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
 
             break;
         };
+
+        console_log!(format!("[开始] 当前正在处理-> {}",&pattern));
+        let mut push_break_len:usize = 0;
 
         // 处理路径
         for entry in glob(&pattern).unwrap() {
@@ -262,8 +223,8 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
             );
 
             let mut has_push = false;
-
-            Sleep(150);
+            
+            Sleep(25);
 
             match contains_value {
                 Ok(1) => has_push = false,
@@ -271,12 +232,9 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
                 Err(err) => {
                     if util::str_eq_str(format!("{}", err), "Query returned no rows".to_string()) {
                         has_push = true;
-                        // //*eprintln!*("{}", "已存在");
                     } else {
                         has_push = false;
                     }
-
-                    // //*eprintln!*("{}", err)
                 }
             }
             handle_all_size = handle_all_size + 1;
@@ -289,13 +247,13 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
             if has_push {
                 let bat_path = path.clone();
                 if path_item.exists(bat_path.clone()) {
+                    Sleep(150);
+
                     match wh_mod::convert::convert_bat_images(
                         (&bat_path.clone()).into(),
                         ouput_path.clone().into(),
                     ) {
                         Ok(path2) => {
-                            // //*println!*("{}", path);
-                            // //*println!*("{}", &ouputPath);
                             let itme: MsgAttachExport = MsgAttachExport {
                                 id: 0,
                                 time: Local::now().format("%Y-%m-%d").to_string(),
@@ -307,16 +265,25 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
                                 message: "successful".to_owned(),
                             };
 
-                            console_log!(format!(
-                                "[已处理]  {:?} -> {}",
-                                itme.user_name, itme.input
-                            ));
-                            handle_end_size = handle_end_size + 1;
-                            // push_console_message(format!(
-                            //     "[已处理]  {:?} -> {}",
-                            //     itme.user_name, itme.input
-                            // ));
-                            // //*println!*("[push]  {:?} -> {}", itme.user_name, itme.input);
+                           
+                            handle_end_size = handle_end_size+1;
+                            
+                            // 前十条直接显示处理的路径
+                            if handle_end_size < 10 {
+                                console_log!(format!(
+                                    "[已处理]  {:?} -> {}",
+                                    itme.user_name, itme.input
+                                ));
+                            }else{
+                                
+                                if handle_end_size==15{
+                                    console_log!(format!("[扩展]  本次的处理数量可能比较多 已经停止界面日志输出 改为每25条更新一次")); 
+                                }
+
+                                if handle_end_size % 25 == 0 {
+                                    console_log!(format!("[已处理]  当前已处理{}条",handle_end_size)); 
+                                }
+                            }
 
                             let _ = &conn.execute(
                                     "INSERT INTO msg_attach_export (time,name,ext,input,ouput,message,user_name) values (?1, ?2, ?3, ?4 ,?5, ?6, ?7)",
@@ -334,7 +301,7 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
                                 input: path.to_owned(),
                                 message: err.to_string().to_owned(),
                             };
-                            console_log!(format!("[失败]  {:?} -> {}", itme.user_name, itme.input));
+                            console_log!(format!("[失败]  {:?} -> {} 因为->{:?}", itme.user_name, itme.input,err.to_string()));
                             let _ = &conn.execute(
                                     "INSERT INTO msg_attach_failure (time,name,ext,input,ouput,message,user_name) values (?1, ?2, ?3, ?4 ,?5, ?6, ?7)",
                                     [itme.time,itme.name,itme.ext,itme.input,itme.ouput,itme.message,itme.user_name],
@@ -342,19 +309,29 @@ pub fn handle_walk_pictures(conn: &Connection) -> Result<()> {
                         }
                     }
                 }
+            }else{
+                push_break_len= push_break_len+1;
+
+                if push_break_len < 10 {
+                    console_log!(format!("[跳过重复]  {:?}",&ouput_path));
+                }else{
+                    
+                    if push_break_len==15{
+                        console_log!(format!("[扩展]  本次的处理重复的文件可能有点多 已经停止界面日志输出 改为每25条更新一次")); 
+                    }
+
+                    if push_break_len % 25 == 0 {
+                        console_log!(format!("[已跳过]  当前已跳过重复的文件{}条",push_break_len)); 
+                    }
+                }
             }
         }
 
-        console_log!(format!(
-            "[扫描] 当前步骤完成共计{}条 本次添加了-> [{}]",
-            handle_all_size, handle_end_size
-        ));
+        console_log!(format!( "[扫描] 当前步骤完成共计{}条 本次添加了-> [{}] 跳过 [{}]" , handle_all_size, handle_end_size,push_break_len));
+
     }
 
     set_bool!(HANDLE_DAT_ING, false);
-
-    //*println!*("handle3 [HANDLE_DAT_ING] -> {:?}", &HANDLE_DAT_ING);
-    //*println!*("handle3 [SYNC_TOKEN] -> {:?}", &SYNC_TOKEN);
 
     Ok(())
 }
@@ -365,7 +342,10 @@ pub fn handle_pictures_itme(
     expor_itme: global_var_util::ExportDirItme,
 ) -> Result<()> {
     let mut buf = false;
-
+    if !libWxIkunPlus::has_auto_sync() {
+        console_log!(format!("[跳过] 因为同步被禁用 {} 被跳过",&pic_path));
+      return Ok(());
+    }
     let base = Path::new(&pic_path).file_name().unwrap().to_str().unwrap();
 
     let ouput_path = format!(
@@ -406,8 +386,7 @@ pub fn handle_pictures_itme(
     Ok(if has_push {
         match wh_mod::convert::convert_bat_images((&pic_path).into(), ouput_path.clone().into()) {
             Ok(path2) => {
-                // //*println!*("{}", path);
-                // //*println!*("{}", &ouputPath);
+             
                 let itme: MsgAttachExport = MsgAttachExport {
                     id: 0,
                     time: Local::now().format("%Y-%m-%d").to_string(),
