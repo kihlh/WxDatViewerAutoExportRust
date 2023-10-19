@@ -225,8 +225,8 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
     let mut button_create = gui_util::hotspot::create_hotspot(486i32, 275i32 , 60i32, 32i32);
     let mut bottom_check_hotspot = gui_util::hotspot::create_hotspot(30, 490-5,200, 30);
     let mut button_config = gui_util::ImgPreview::new_border(172+15, 18, 32, 32, include_str!("./src/icon_config.svg"));
-    let mut button_coffee = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_coffee.svg"));
-    let mut button_sync = gui_util::ImgPreview::new_border(222+50+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
+    // let mut button_coffee = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_coffee.svg"));
+    let mut button_sync = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
     // let mut button_sync = gui_util::ImgPreview::new_border(222+100+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
 
     win.handle({
@@ -258,9 +258,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     
                 }
 
-                if button_coffee.existPoint(x, y) {
-                    gui_donation_ui::main_init();    
-                }
+              
 
                 if button_sync.existPoint(x, y) {
                     if(libWxIkunPlus::confirm("立即同步", "是否立即同步所有内容")){
@@ -365,7 +363,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     ||button_test.existPoint(x,y)
                     ||button_create.existPoint(x,y)
                     ||bottom_check_hotspot.existPoint(x,y)
-                    ||button_coffee.existPoint(x, y)
+                    // ||button_coffee.existPoint(x, y)
                     ||button_config.existPoint(x, y)
                     ||button_sync.existPoint(x, y)
                 {

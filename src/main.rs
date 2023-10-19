@@ -79,8 +79,6 @@ mod gui_detect_config_ui;
 #[path = "trash/gui_manage_item.rs"]
 mod gui_manage_item;
 
-#[path = "GUI/gui_donation_ui/mod.rs"]
-mod gui_donation_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
