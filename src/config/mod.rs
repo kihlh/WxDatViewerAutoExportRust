@@ -11,7 +11,7 @@ use crate::{atomic_util, get_bool,set_bool, libWxIkunPlus};
 // 配置常量
 
 // 启用开发者模式（此处为false 配置文件中的开发者模式将被忽略）
-const APP_ENABLE_DEVELOPER: bool = true;
+pub(crate) const APP_ENABLE_DEVELOPER: bool = true;
 // 编译到52破解版本
 const APP_BUILD_52POJIE: bool = false;
 
@@ -33,7 +33,7 @@ static CONFIG_SCAN_LOG_ADDING: AtomicBool = AtomicBool::new(false);
 // 授权联网
 static CONFIG_NETWORKING: AtomicBool = AtomicBool::new(false);
 // 配置不存储
-static CONFIG_CONFIG_STORE: AtomicBool = AtomicBool::new(false);
+static CONFIG_QUICK_PREVIEW: AtomicBool = AtomicBool::new(false);
 // 任务配置保留
 static CONFIG_PRESERVE_CONFIG: AtomicBool = AtomicBool::new(false);
 // 任务配置保留
@@ -71,7 +71,7 @@ pub struct Config {
     // 授权联网
     pub Networking: bool,
     // 配置不存储
-    pub ConfigStore: bool,
+    pub QuickPreview: bool,
     // 任务配置保留
     pub PreserveConfig: bool,
     // 任务配置保留
@@ -105,12 +105,12 @@ pub enum CONFIG_KEY {
     // 授权联网
      Networking,
     // 配置不存储
-     ConfigStore,
+     QuickPreview,
     // 任务配置保留
      PreserveConfig,
-    // 任务配置保留
-     CreateCont,
     // 任务连续创建
+     CreateCont,
+    // 列表保留（不GC）
      PreserveList,
     // 日志输出
      ConsoleLog,
@@ -124,7 +124,7 @@ pub enum CONFIG_KEY {
      LogOutputFile,
  }
 
-
+ 
 pub fn initialize_config() -> Config {
     let mut config = Config {
         ThreadCount: atomic_util::get_usize(&CONFIG_THREAD_COUNT),
@@ -133,7 +133,7 @@ pub fn initialize_config() -> Config {
         ScanAdding: get_bool!(CONFIG_SCAN_ADDING),
         ScanLogAdding: get_bool!(CONFIG_SCAN_LOG_ADDING),
         Networking: get_bool!(CONFIG_NETWORKING),
-        ConfigStore: get_bool!(CONFIG_CONFIG_STORE),
+        QuickPreview: get_bool!(CONFIG_QUICK_PREVIEW),
         PreserveConfig: get_bool!(CONFIG_PRESERVE_CONFIG),
         CreateCont: get_bool!(CONFIG_CREATE_CONT),
         PreserveList: get_bool!(CONFIG_PRESERVE_LIST),
@@ -153,14 +153,14 @@ pub fn initialize_config() -> Config {
 
     if config_path.exists() {
         if let Ok(file) =  std::fs::read_to_string(config_path) {
-            let mut data: serde_json::Value = serde_json::from_str(file.as_str()).unwrap();
+            let mut data: serde_json::Value = serde_json::from_str(file.as_str()).unwrap_or_else(|_|json!({}));
             config.ThreadCount = data["ThreadCount"].as_i64().unwrap_or_else(||0i64) as usize;
             config.AutoAction = data["AutoAction"].as_bool().unwrap_or_else(||false);
             config.GlobalScan = data["GlobalScan"].as_bool().unwrap_or_else(||false);
             config.ScanAdding = data["ScanAdding"].as_bool().unwrap_or_else(||false);
             config.ScanLogAdding = data["ScanLogAdding"].as_bool().unwrap_or_else(||false);
             config.Networking = data["Networking"].as_bool().unwrap_or_else(||false);
-            config.ConfigStore = data["ConfigStore"].as_bool().unwrap_or_else(||false);
+            config.QuickPreview = data["QuickPreview"].as_bool().unwrap_or_else(||false);
             config.PreserveConfig = data["PreserveConfig"].as_bool().unwrap_or_else(||false);
             config.CreateCont = data["CreateCont"].as_bool().unwrap_or_else(||false);
             config.PreserveList = data["PreserveList"].as_bool().unwrap_or_else(||false);
@@ -180,7 +180,7 @@ pub fn initialize_config() -> Config {
     set_bool!(CONFIG_SCAN_ADDING,config.ScanAdding);
     set_bool!(CONFIG_SCAN_LOG_ADDING,config.ScanLogAdding);
     set_bool!(CONFIG_NETWORKING,config.Networking);
-    set_bool!(CONFIG_CONFIG_STORE,config.ConfigStore);
+    set_bool!(CONFIG_QUICK_PREVIEW,config.QuickPreview);
     set_bool!(CONFIG_PRESERVE_CONFIG,config.PreserveConfig);
     set_bool!(CONFIG_CREATE_CONT,config.CreateCont);
     set_bool!(CONFIG_PRESERVE_LIST,config.PreserveList);
@@ -202,13 +202,13 @@ pub fn config() -> Config {
         ScanAdding: get_bool!(CONFIG_SCAN_ADDING),
         ScanLogAdding: get_bool!(CONFIG_SCAN_LOG_ADDING),
         Networking: get_bool!(CONFIG_NETWORKING),
-        ConfigStore: get_bool!(CONFIG_CONFIG_STORE),
+        QuickPreview: get_bool!(CONFIG_QUICK_PREVIEW),
         PreserveConfig: get_bool!(CONFIG_PRESERVE_CONFIG),
         CreateCont: get_bool!(CONFIG_CREATE_CONT),
         PreserveList: get_bool!(CONFIG_PRESERVE_LIST),
         ConsoleLog: get_bool!(CONFIG_CONSOLE_LOG),
         Developer: is_developer(),
-        ShowMask: get_bool!(CONFIG_DOME_PREVIEW)||get_bool!(CONFIG_SHOW_MASK),
+        ShowMask: get_bool!(CONFIG_SHOW_MASK),
         DomePreview: get_bool!(CONFIG_DOME_PREVIEW),
         LogOutputFile: get_bool!(CONFIG_LOG_OUTPUT_FILE),
     }
@@ -268,7 +268,7 @@ pub fn set_config <T:lib::LoadConfigValue > (config: CONFIG_KEY , value:T ) -> b
         CONFIG_KEY::ScanAdding=> {set_config_bool!(CONFIG_SCAN_ADDING);}
         CONFIG_KEY::ScanLogAdding=> {set_config_bool!(CONFIG_SCAN_LOG_ADDING);}
         CONFIG_KEY::Networking=> {set_config_bool!(CONFIG_NETWORKING);}
-        CONFIG_KEY::ConfigStore=> {set_config_bool!(CONFIG_CONFIG_STORE);}
+        CONFIG_KEY::QuickPreview=> {set_config_bool!(CONFIG_QUICK_PREVIEW);}
         CONFIG_KEY::PreserveConfig=> {set_config_bool!(CONFIG_PRESERVE_CONFIG);}
         CONFIG_KEY::CreateCont=> {set_config_bool!(CONFIG_CREATE_CONT);}
         CONFIG_KEY::PreserveList=> {set_config_bool!(CONFIG_PRESERVE_LIST);}
@@ -282,6 +282,26 @@ pub fn set_config <T:lib::LoadConfigValue > (config: CONFIG_KEY , value:T ) -> b
     add_usize(&CONFIG_ID, 1);
    
     true
+}
+
+pub fn get_config_bool (config: CONFIG_KEY) -> bool {
+    match config {
+        CONFIG_KEY::ThreadCount=> {return  false;}
+        CONFIG_KEY::AutoAction=> {get_bool!(CONFIG_AUTO_ACTION)}
+        CONFIG_KEY::GlobalScan=> {get_bool!(CONFIG_GLOBAL_SCAN)}
+        CONFIG_KEY::ScanAdding=> {get_bool!(CONFIG_SCAN_ADDING)}
+        CONFIG_KEY::ScanLogAdding=> {get_bool!(CONFIG_SCAN_LOG_ADDING)}
+        CONFIG_KEY::Networking=> {get_bool!(CONFIG_NETWORKING)}
+        CONFIG_KEY::QuickPreview=> {get_bool!(CONFIG_QUICK_PREVIEW)}
+        CONFIG_KEY::PreserveConfig=> {get_bool!(CONFIG_PRESERVE_CONFIG)}
+        CONFIG_KEY::CreateCont=> {get_bool!(CONFIG_CREATE_CONT)}
+        CONFIG_KEY::PreserveList=> {get_bool!(CONFIG_PRESERVE_LIST)}
+        CONFIG_KEY::ConsoleLog=> {get_bool!(CONFIG_CONSOLE_LOG)}
+        CONFIG_KEY::Developer=> {get_bool!(CONFIG_DEVELOPER)}
+        CONFIG_KEY::ShowMask=> {get_bool!(CONFIG_SHOW_MASK)}
+        CONFIG_KEY::DomePreview=> {get_bool!(CONFIG_DOME_PREVIEW)}
+        CONFIG_KEY::LogOutputFile=> {get_bool!(CONFIG_LOG_OUTPUT_FILE)}
+    }
 }
 
 pub fn store_config() -> bool {
@@ -301,7 +321,7 @@ pub fn store_config() -> bool {
     data["ScanAdding"] = serde_json::Value::Bool(config.ScanAdding);
     data["ScanLogAdding"] = serde_json::Value::Bool(config.ScanLogAdding);
     data["Networking"] = serde_json::Value::Bool(config.Networking);
-    data["ConfigStore"] = serde_json::Value::Bool(config.ConfigStore);
+    data["QuickPreview"] = serde_json::Value::Bool(config.QuickPreview);
     data["PreserveConfig"] = serde_json::Value::Bool(config.PreserveConfig);
     data["CreateCont"] = serde_json::Value::Bool(config.CreateCont);
     data["PreserveList"] = serde_json::Value::Bool(config.PreserveList);
