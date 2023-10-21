@@ -2,7 +2,6 @@
 
 pub(crate) mod convert;
 pub(crate) mod watch_path;
-pub(crate) mod config;
 mod mobile_screenshot;
 
 use crate::wh_mod::convert::detect_image_format;
@@ -24,7 +23,7 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::ffi::OsStr;
-use crate::util;
+use crate::{util, config};
 
 // lazy_static! {
 //     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());

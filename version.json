@@ -1,0 +1,25 @@
+[
+    {
+        "assets": [
+            {
+                "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv0.1.0_win32_x64/libWxIkunPlus.dll",
+                "name": "libWxIkunPlus.dll",
+                "sha1": "4dfe0ff75afa1d7ab4b234111524fc669fd8b450",
+                "sha256": "b1a85f8ce1e7cee06cbe7b340c1c9b1eb73d029d37dc634b271dd820f83d8dd1",
+                "size": 281088
+            },
+            {
+                "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv0.1.0_win32_x64/WxDatViewerAutoExportRust.exe",
+                "name": "WxDatViewerAutoExportRust.exe",
+                "sha256": "350809782ff00bd80531ab691a1d2a4cdec29f147746ba5d1317491d5e210fbc",
+                "sha1": "cccf9ec995b07c8d2eeeb5cfc476ddfecf397564",
+                "size": 4234752
+            }
+        ],
+        "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv0.1.0_win32_x64.zip",
+        "name": "WxAutoExIm",
+        "version": "0.1.0",
+        "version_code": 1,
+        "time": "2023-9-23"
+    }
+]

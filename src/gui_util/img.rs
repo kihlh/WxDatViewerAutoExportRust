@@ -208,4 +208,275 @@ impl ImgPreview {
          self
     }
 
+    pub fn resize_debug(&mut self){
+
+       self.preview.handle({
+        let mut x = 0;
+        let mut y = 0;
+        let mut _debug_activate = false;
+        let mut _re_pos = false;
+        let mut _re_size = false;
+        let mut _re_label_size = false;
+        let mut _re_fast = 0;
+        let mut _re_fast_add = false;
+        let mut log = false;
+        let mut _frame  = false;
+        let mut _re_interior = false;
+        let mut _self = self.clone();
+        let mut _self_data_x = _self.data_x;
+        let mut _self_data_y = _self.data_y;
+        let mut _self_data_width = self.width;
+        let mut _self_data_height = self.height;
+
+        move |win, ev| match ev {
+            fltk::enums::Event::Show=>{
+                if !log{
+                    println!("TextControl[debug] -> {}   单击激活/关闭  \n ShiftL/ShiftR 加减速\n Control 调整位置\n 调整大小 调整宽高\n CapsLock 调整文本 win 启用/关闭框",win.label());
+                    log=true;
+                }
+                true
+            }
+            fltk::enums::Event::Push=>{
+                _debug_activate=!_debug_activate;
+                
+                println!("<{}>启用元素debug -> {}",win.label(),_debug_activate);
+
+                true
+            }
+            
+            fltk::enums::Event::KeyUp=>{
+                
+                if(!_debug_activate){
+                    return  false;
+                }
+
+                let (mut x,mut y,mut w,mut h,mut label_size) = (0,0,0,0,0);
+                
+                // println!("fltk::app::event_key()->{:?}",fltk::app::event_key());
+
+                if fltk::app::event_key()==fltk::enums::Key::from_char('0') {
+                    _re_fast=0;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('1') {
+                    _re_fast=1;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('2') {
+                    _re_fast=2;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('3') {
+                    _re_fast=3;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('4') {
+                    _re_fast=4;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('5') {
+                    _re_fast=5;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('6') {
+                    _re_fast=6;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('7') {
+                    _re_fast=7;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('8') {
+                    _re_fast=8;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+                if fltk::app::event_key()==fltk::enums::Key::from_char('9') {
+                    _re_fast=9;
+                    println!("设置加速 值->{}",_re_fast);
+                    _re_fast_add =false;
+                }
+
+                if fltk::app::event_key()==fltk::enums::Key::Menu{
+                    _debug_activate =false;
+                }
+
+                if fltk::app::event_key()==fltk::enums::Key::MetaL{
+                    win.hide();
+                    _frame = !_frame;
+                    if _frame {
+                        win.set_frame(fltk::enums::FrameType::FlatBox);
+                        println!("框框启用");
+                    }else{
+                        win.set_frame(fltk::enums::FrameType::NoBox);
+                        println!("框框关闭");
+                    }
+                    win.show();
+                }
+
+                if fltk::app::event_key()==fltk::enums::Key::ControlL||fltk::app::event_key()==fltk::enums::Key::ControlR {
+                    _re_pos=!_re_pos;
+                    _re_size = false;
+                    _re_label_size = false;
+                    _re_fast_add = false;
+
+                    if _re_pos{
+                        println!("(√)开始  调整坐标 (x,y)",);
+                    }else{
+                        println!("( )结束  调整坐标 (x,y)");
+                    }
+                    return  true;
+                }
+                
+
+                if fltk::app::event_key()==fltk::enums::Key::ShiftL ||fltk::app::event_key()==fltk::enums::Key::ShiftR {
+                    _re_size=!_re_size;
+                    _re_pos = false;
+                    _re_label_size = false;
+                    _re_fast_add = false;
+
+                    if _re_size{
+                        println!("(√)开始  调整宽高 (w,h)",);
+                    }else{
+                        println!("( )结束  调整宽高 (w,h)");
+                    }
+                    return  true;
+                }
+
+                if fltk::app::event_key()==fltk::enums::Key::AltL || fltk::app::event_key()==fltk::enums::Key::AltR  {
+                    _re_interior=!_re_interior;
+
+                    if _re_label_size{
+                        println!("(√)开始  内径大小",);
+                    }else{
+                        println!("( )结束  内径大小");
+                    }
+                    return  true;
+                }
+
+                if fltk::app::event_key()==fltk::enums::Key::CapsLock {
+                    _re_fast_add=!_re_fast_add;
+                    _re_pos = false;
+                    _re_size = false;
+                    _re_label_size = false;
+
+                    if _re_fast_add{
+                        println!("开始设置加速");
+                    }else{
+                        println!("关闭设置加速");
+                    }
+                    return  true;
+                }
+
+
+                if _re_fast_add {
+                    if fltk::app::event_key()==fltk::enums::Key::Up {
+                        if _re_fast>20{
+                            _re_fast=20;
+                        }
+                        _re_fast+=1;
+                        println!("设置加速 增加->{}",_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Down {
+                        if _re_fast<0{
+                            _re_fast=0;
+                        }
+                        _re_fast-=1;
+                        println!("设置加速 减少->{}",_re_fast);
+                    }
+                    return false;
+                  }
+
+                else if _re_pos {
+                    if fltk::app::event_key()==fltk::enums::Key::Down {
+                        y+=(1+_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Up {
+                        y-=(1+_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Left {
+                        x-=(1+_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Right {
+                        x+=(1+_re_fast);
+                    }
+    
+                }
+              
+                else if _re_size {
+                    if fltk::app::event_key()==fltk::enums::Key::Down {
+                        h-=(1+_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Up {
+                        h+=(1+_re_fast);
+                    }else if fltk::app::event_key()==fltk::enums::Key::Left {
+                        w-=(1+_re_fast);
+                    }
+                    else if fltk::app::event_key()==fltk::enums::Key::Right {
+                        w+=(1+_re_fast);
+                    }
+                }
+              
+                else if _re_label_size {
+                if fltk::app::event_key()==fltk::enums::Key::Down {
+                    label_size+=1;
+                }
+                else if fltk::app::event_key()==fltk::enums::Key::Up {
+                    label_size-=1;
+                }
+              }
+
+               if(_re_interior&&(_re_pos||_re_size)){
+                win.hide();
+                // win.set_pos(win.x()+x,win.y()+y);
+                // win.resize(win.x()+x,win.y()+y,win.w()+w,win.h()+h);
+                // win.set_label_size(win.label_size()+label_size);
+             
+                _self_data_y-=y;
+                _self_data_x-=x;
+                _self_data_width+=w;
+                _self_data_height-=h;
+                
+                _self.from_data(_self.data.to_vec(),_self_data_x,_self_data_y,_self_data_width,_self_data_height);
+              
+                win.redraw();
+                win.redraw_label();
+
+                win.show();
+                println!("hotspot [pos]-> gui_util::ImgPreview::new({},{},{},{},'').load(String::from('img'), {},{},{},{});" ,win.x(),win.y(),win.w(),win.h() , _self_data_x,_self_data_y,_self_data_width,_self_data_height);
+               }
+               else if _re_pos||_re_size||_re_label_size{
+                win.hide();
+                // win.set_pos(win.x()+x,win.y()+y);
+                win.resize(win.x()+x,win.y()+y,win.w()+w,win.h()+h);
+                win.set_label_size(win.label_size()+label_size);
+              
+                _self.from_data(_self.data.to_vec(), 0, 0, win.w(), win.h());
+                _self_data_height = win.h();
+                _self_data_width = win.w();
+
+                win.redraw();
+                win.redraw_label();
+
+                win.show();
+                println!("hotspot [pos]-> gui_util::ImgPreview::new({},{},{},{},'');" ,win.x(),win.y(),win.w(),win.h());
+              }
+
+
+                true
+            }
+            _ => false,
+        }
+    });
+    }
+
+
 }

@@ -3,5 +3,6 @@
         ".\\Cargo.toml",
         ".\\Cargo.toml",
         ".\\Cargo.toml"
-    ]
+    ],
+    "livePreview.defaultPreviewPath": "/.lh/index.html"
 }

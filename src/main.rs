@@ -58,6 +58,7 @@ mod libWxIkunPlus;
 mod util;
 mod watching;
 mod wh_mod;
+mod config;
 
 mod gui_util;
 
@@ -76,8 +77,8 @@ mod gui_main_ui;
 #[path = "GUI/gui_detect_config_ui/mod.rs"]
 mod gui_detect_config_ui;
 
-#[path = "trash/gui_manage_item.rs"]
-mod gui_manage_item;
+#[path = "GUI/gui_config_ui/mod.rs"]
+mod gui_config_ui;
 
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
@@ -100,9 +101,11 @@ fn main() -> Result<()> {
     
     // 处理命令行
     handle_dat::handle_commandLine();
+    config::initialize_config();
 
+    
     // 拒绝软件重复启动
-    if (!wh_mod::config::is_developer()){
+    if (!config::is_developer()){
 
     if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
         libWxIkunPlus::error(
@@ -141,7 +144,7 @@ fn main() -> Result<()> {
     libWxIkunPlus::set_tray();
 
     thread::spawn(move || {
-        if (!wh_mod::config::is_developer()) {
+        if (!config::is_developer()) {
             if (!libWxIkunPlus::has_auto_sync()) {
                 let mut err_name = if !hasWeChatWin() {"WX尚未登录" } else if !hasWeChat() {"WX进程未找到"} else {"用户未启用同步"};
                 console_log!(format!("[同步暂停] 因为：{}", err_name));

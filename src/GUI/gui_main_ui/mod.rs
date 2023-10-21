@@ -87,7 +87,20 @@ struct FrameConsole{
 
 fn add_ui_control() -> UiControl {
     let btn_close = gui_util::hotspot::create_hotspot(556,26,25,25);
-    let title = gui_util::TextControl::new(60-30 , 24, 150, 20, 12, " WX 图片自动备份", [122, 120, 120]);
+    let mut title_control = String::from(" WX 图片自动备份");
+    if config::is_build_52pojie() {
+        title_control .push_str(" （吾爱版）")  
+    }else if config::is_developer() {
+        title_control .push_str(" （开发版）")  
+    }
+    // else {
+        // title_control .push_str(" （便携版）")  
+    // }
+    else {
+        title_control .push_str(" （开源版）")  
+    }
+
+    let title = gui_util::TextControl::new(60 , 24, 150, 20, 12, title_control.as_str(), [122, 120, 120]);
     let text_control_list =vec![
         TextControl::new(30-2, 80, 70, 15, 12, "创建新任务", [85,85,85]),
         TextControl::new(15, 125, 385, 15, 12, "dat 图片所在文件夹（点击右侧按钮在任务创建向导中选定）：", [85,85,85]),
@@ -143,7 +156,7 @@ fn add_ui_control() -> UiControl {
     let mut task_command_input = input::Input::new(45, 152, 423, 30, "");
     let mut export_input = input::Input::new(45, 225, 450, 30, "");
     let mut name_input = input::Input::new(96, 276, 230, 30, "");
-    task_command_input.set_readonly(!wh_mod::config::is_developer());
+    task_command_input.set_readonly(!config::is_developer());
 
     let mut buf = fltk::text::TextBuffer::default();
     buf.append(lib::get_init_text().as_str());
@@ -207,6 +220,26 @@ fn add_ui_control() -> UiControl {
 }
 }
 
+fn open_link_in_browser(link: &str) -> Result<(), Box<dyn std::error::Error>> {
+    if cfg!(target_os = "windows") {
+        Command::new("explorer.exe")
+            .args(&[link])
+            .spawn()?;
+    } else if cfg!(target_os = "macos") {
+        Command::new("open")
+            .arg(link)
+            .spawn()?;
+    } else if cfg!(target_os = "linux") {
+        Command::new("xdg-open")
+            .arg(link)
+            .spawn()?;
+    } else {
+        return Err("Unsupported operating system".into());
+    }
+
+    Ok(())
+}
+
 
 pub fn main_init() ->Option<fltk::window::DoubleWindow> {
     main_init_check!();
@@ -224,9 +257,9 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
     let mut button_test = gui_util::hotspot::create_hotspot(415i32, 275i32 , 60i32, 32i32);
     let mut button_create = gui_util::hotspot::create_hotspot(486i32, 275i32 , 60i32, 32i32);
     let mut bottom_check_hotspot = gui_util::hotspot::create_hotspot(30, 490-5,200, 30);
-    let mut button_config = gui_util::ImgPreview::new_border(172+15, 18, 32, 32, include_str!("./src/icon_config.svg"));
-    // let mut button_coffee = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_coffee.svg"));
-    let mut button_sync = gui_util::ImgPreview::new_border(222+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
+    let mut button_config = gui_util::ImgPreview::new_border(172+15+30, 18, 32, 32, include_str!("./src/icon_config.svg"));
+    let mut button_sync = gui_util::ImgPreview::new_border(222+15+30, 18, 32, 32, include_str!("./src/icon_sync.svg"));
+    let mut button_about = gui_util::ImgPreview::new_border(222+50+15+30, 18, 32, 32, include_str!("./src/icon_about.svg"));
     // let mut button_sync = gui_util::ImgPreview::new_border(222+100+15, 18, 32, 32, include_str!("./src/icon_sync.svg"));
 
     win.handle({
@@ -255,9 +288,25 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
                 
                 if button_config.existPoint(x, y) {
-                    
+                    if config::is_build_52pojie()&&!config::is_developer() {
+                        // ?待处理的安全问题
+                        // 等待解决的问题
+                        // 1. 检测更新的api不是服务器 无法动态判断编译版本 可能会导致无法下载到开源版 会暴露联系方式
+                        // 2. 开发者模式下会导致所有意见反馈方式按钮  暴露意见反馈群
+                        // 3. 检测哈希会导致下载公开版
+                        libWxIkunPlus::stop("存在BUG 作者正在处理中。。。", "配置值多处链式关联   (有启用导致违规 不启用导致软件奔溃) 的可能 \n禁用部分选项，或与非逻辑判断错误将可能导致软件无法正常工作或者奔溃 \n存在无法避免的问题，请使用默认值！\n作者会尽快解决此问题");
+                        return  false;
+                    }
+                    gui_config_ui::main_init();
                 }
 
+                if button_about.existPoint(x, y) {
+                    if config::is_build_52pojie()&&!config::is_developer() {
+                        open_link_in_browser("https://www.52pojie.cn");
+                        return  false;
+                    }
+
+                }
               
 
                 if button_sync.existPoint(x, y) {
@@ -338,7 +387,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
                 // 管理
                 if button_show_manage.existPoint(x,y) {
-                    gui_manage_item::ManageItmeMain();
+                    // gui_manage_item::ManageItmeMain();
                 }
                 // 创建
                 if button_create.existPoint(x,y) {
@@ -366,6 +415,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     // ||button_coffee.existPoint(x, y)
                     ||button_config.existPoint(x, y)
                     ||button_sync.existPoint(x, y)
+                    ||button_about.existPoint(x, y)
                 {
                     win.set_cursor(fltk::enums::Cursor::Hand);
                 } else {

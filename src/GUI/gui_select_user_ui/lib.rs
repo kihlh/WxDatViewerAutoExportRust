@@ -1,5 +1,6 @@
 use chrono::Local;
 use rusqlite::Connection;
+use crate::config;
 
 use crate::{atomic_util, get_arc_bind_variable, global_var, handle_dat, libWxIkunPlus::getFocusTopWindow, read_rw_lazy_lock, read_rw_lock, set_arc_bind_variable, set_arc_bind_variable_insert, set_arc_bind_variable_vec_clear, set_arc_bind_variable_vec_replace_data, util::{str_eq_str, Sleep}, wh_mod::{self, AttachThumbnail}, write_rw_lock, write_rw_lock_insert, gui_util, libWxIkunPlus, gui_select_user_ui::ASSETS_NOT_DATA};
 
@@ -344,7 +345,7 @@ pub fn update_thumbnail_preview_list()  {
             if let Some(mut img_preview) = img_preview_list.get(index) {
 
                 if let Some(thumbnail) = thumbnail_list.get(index) {
-                    let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.clone() };
+                    let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.clone() };
 
                     img_preview.clone().from_data(
                         pre,
@@ -354,7 +355,7 @@ pub fn update_thumbnail_preview_list()  {
                         height - 2,
                     );
                 } else {
-                    let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+                    let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
 
                     img_preview.clone().from_data(
                         pre,

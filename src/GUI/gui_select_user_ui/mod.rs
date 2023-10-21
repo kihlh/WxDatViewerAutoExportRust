@@ -1,4 +1,5 @@
 #![allow(warnings, unused)]
+use crate::config;
 
 use crate::gui_rename_ui::rename_tool_main;
 use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, atomic_util, inject_fltk_theme, gui_drag_scan2_ui, gui_detect_config_ui, util};
@@ -311,7 +312,7 @@ fn add_frame_thumbnail_preview() ->FrameThumbnailPreview {
         let [x, y, width, height] = point;
 
         let mut preview = ImgPreview::new(x, y - 52, width, height, "gui::preview_main::index::");
-        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+        let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
 
         preview.from_data(
             pre,
@@ -381,7 +382,7 @@ struct AttachThumbnailPreview{
 
 impl AttachThumbnailPreview {
     pub fn gc(&mut self) {
-        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
+        let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
 
         self.thumbnail_preview.from_data(
             pre,
@@ -413,7 +414,7 @@ impl AttachThumbnailPreview {
         self.input_attach.set_value("");
         global_var::set_string("user::config::user_select_attach",String::new());
 
-        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
+        let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
 
         // self.input_rename.set_value("");
         // 设置预览图
@@ -442,7 +443,7 @@ fn add_select_attach_card() -> AttachThumbnailPreview {
         82, 82,
         "gui_util::select_user_ui::imag<add_select_attach_card>",
     );
-    let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
+    let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_SELECT() } else{ ASSETS_NOT_SELECT() };
 
     preview.from_data(pre,
         -1,
@@ -519,7 +520,7 @@ struct PreviewData{
 impl PreviewData {
 
     pub fn gc_data(&mut self) {
-        let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+        let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
 
         let mut index = 0;
         for mut preview in self.preview_list.clone() {
@@ -550,7 +551,7 @@ impl PreviewData {
         // self.gc_data();
 
         if let Some(main_thumbnail) = thumbnail_list.get(0) {
-            let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ main_thumbnail.thumbnail.to_vec() };
+            let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_DATA() } else{ main_thumbnail.thumbnail.to_vec() };
             self.preview_main.re_data(pre/*, -1, -1, 230-2 , 230 - 2, */);
 
         }
@@ -565,12 +566,12 @@ impl PreviewData {
             // }
 
             if let Some(thumbnail) = thumbnail_list.get(index) {
-                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
+                let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_DATA() } else{ thumbnail.thumbnail.to_vec() };
 
                 preview.re_data(pre/*,-1,-1,w ,90 - 2,*/);
 
             }else {
-                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
+                let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_NOT_DATA() } else{ ASSETS_NOT_DATA() };
                 preview.re_data(pre/*,-1,-1,w ,90 - 2,*/);
             }
 
@@ -906,7 +907,7 @@ fn initialize_watch_walk_drag_path (mut preview1: AttachThumbnailPreview) {
             }
 
             if let Ok(buff_thumbnail_data) = wh_mod::convert::convert_dat_images_buff(std::path::PathBuf::from(walk_drag_path.as_str())) {
-                let pre: Vec<u8> = if wh_mod::config::is_show_dome() { ASSETS_DEMO_DATA() } else{ buff_thumbnail_data };
+                let pre: Vec<u8> = if config::is_show_dome() { ASSETS_DEMO_DATA() } else{ buff_thumbnail_data };
 
                 preview1.thumbnail_preview.from_data(pre,-1, -1, 80, 80);
             }
@@ -1174,7 +1175,7 @@ pub fn manage_tool_main() -> String{
                                     g_the_select_attach_id.clear();
                                     g_the_select_attach_id.push_str(thumbnail.attach_id.as_str());
 
-                                    if wh_mod::config::is_click_open_preview() {
+                                    if config::is_click_open_preview() {
                                         add_preview_win_show!();
                                     }
                                     break;
@@ -1389,9 +1390,7 @@ pub fn manage_tool_main() -> String{
                     }
                     let mut select_dir = global_var::get_string_default("user::config::user_select_path");
                     let mut user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
-                    println!("{}",1385);
                     let eq_wxid_dir = wh_mod::get_wx_user_store(format!("{}/{}",&select_dir,&user_select_wxid)).is_some();
-                    println!("{}",1387);
 
                     // 拼合路径并判断有效性 有且为文件夹
                     let mut attach_path = PathBuf::from(select_dir).join(user_select_wxid.as_str()).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
@@ -1430,7 +1429,6 @@ pub fn manage_tool_main() -> String{
                         return false;
                     }
 
-                    println!("{}",1425);
 
                     if !attach_path.exists() && !attach_path.exists() {
 
@@ -1447,7 +1445,6 @@ pub fn manage_tool_main() -> String{
                         fltk::window::Window::delete(win.clone());
                     }
                 }
-                println!("{}",1442);
 
                 // 卡片按钮 > 备注名称 完成按钮
                 if select_attach_card.btn_remark.existPoint(x, y) {
@@ -1480,7 +1477,6 @@ pub fn manage_tool_main() -> String{
                     lib::set_store_user_remark(wxid, attach_id, remark_name);
                 }
 
-                println!("{}",1475);
 
                 // 卡片按钮 > 编辑命名规则
                 if select_attach_card.btn_rename.existPoint(x, y) {
@@ -1511,24 +1507,7 @@ pub fn manage_tool_main() -> String{
                         }
                     });
 
-                    /*
-                    std::thread::spawn(move|| loop{
-                        std::thread::sleep(std::time::Duration::from_millis(300u64));
-                        if global_var::has_string(rename_token.as_str()) {
-                            let data = global_var::get_string_default(rename_token.as_str());
-                            if data.is_empty() {
-                                println!("{} 用户取消 data-> [{}]",&rename_token,&data);
-                            }else{
-                                input_rename.set_value(data.as_str());
-                                println!("{} 名称更新 data-> [{}]",&rename_token,&data);
-                            }
-                            break;
-                        }
-                    });
-                    */
                 }
-
-                println!("{}",1485);
 
                 true
             }
