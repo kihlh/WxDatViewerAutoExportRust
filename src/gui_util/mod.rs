@@ -10,11 +10,15 @@ pub mod text;
 pub mod hotspot;
 pub mod variable_tag_control;
 pub(crate) mod message;
+pub mod resize_debug;
+pub(crate) mod border;
+mod lib;
 
 pub use hotspot::{*};
 pub use text::{*};
 pub use img::{*};
 pub use message::{*};
+pub use border::{*};
 
 #[macro_export]
 macro_rules! inject_fltk_theme {

@@ -80,6 +80,8 @@ mod gui_detect_config_ui;
 #[path = "GUI/gui_config_ui/mod.rs"]
 mod gui_config_ui;
 
+#[path = "GUI/gui_task_manage/mod.rs"]
+mod gui_task_manage;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 
@@ -99,6 +101,7 @@ const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 // mod wh_util;
 fn main() -> Result<()> {
     
+
     // 处理命令行
     handle_dat::handle_commandLine();
     config::initialize_config();

@@ -21,6 +21,8 @@ use std::{
     thread,
 };
 
+use crate::libWxIkunPlus;
+
 pub struct ImgPreview {
     pub preview: frame::Frame,
     pub x:i32,
@@ -86,7 +88,18 @@ impl ImgPreview {
         preview.set_id(id);
         Self { preview, x, y, width, height ,data:Vec::new(), img_type: ImgPreviewDataType::NoneS, data_x: 0, data_y: 0, data_width: 0, data_height: 0 }
     }
+    pub fn default () -> Self  {
 
+        let [x, y, width, height] = [50,50,50,15];
+
+        let mut preview = frame::Frame::new(x, y, width, height, "");
+        preview.set_frame(enums::FrameType::FlatBox);
+        preview.set_color(enums::Color::from_rgb(80, 80, 80));
+        preview.set_id("");
+       let mut res =  Self { preview, x, y, width, height ,data:Vec::new(), img_type: ImgPreviewDataType::NoneS, data_x: 0, data_y: 0, data_width: 0, data_height: 0 };
+        res.resize_debug();
+        res
+    }
     pub fn new2(x: i32, y: i32, width: i32, height: i32, id: &'static str, data_x: i32, data_y: i32, data_width: i32, data_height: i32) -> Self {
         let mut preview = frame::Frame::new(x, y, width, height, "");
         preview.set_frame(enums::FrameType::FlatBox);
@@ -112,7 +125,8 @@ impl ImgPreview {
             && y < self.y.clone() + self.height.clone();
     }
 
-    pub fn load(&mut self, path: String, x: i32, y: i32, width: i32, height: i32) -> bool {
+    pub fn load <T: super::lib::OverloadedAnyStr > (&mut self, path: T, x: i32, y: i32, width: i32, height: i32) -> bool {
+        let path = path.to_string_default();
         let mut res = false;
         if let Result::Ok(data) = fs::read(path) {
             res = self.from_data(data, x, y, width, height);
@@ -172,7 +186,8 @@ impl ImgPreview {
         self.from_data(data,self.data_x,self.data_y,self.data_width,self.data_height);
     }
 
-    pub fn from_svg(&mut self, data: &str, x: i32, y: i32, width: i32, height: i32) -> bool {
+    pub fn from_svg  <T: super::lib::OverloadedAnyStr > (&mut self, data: T, x: i32, y: i32, width: i32, height: i32) -> bool {
+        let data = data.to_string_default();
         let mut res = false;
         macro_rules! re_imag {
             ($imag:expr) => {
@@ -191,7 +206,7 @@ impl ImgPreview {
                 res = true;
             };
         }
-        if let Result::Ok(mut img) = image::SvgImage::from_data(data) {
+        if let Result::Ok(mut img) = image::SvgImage::from_data(&data) {
             self.img_type = ImgPreviewDataType::Svg;
             self.data = data.as_bytes().to_vec();
 
@@ -208,7 +223,7 @@ impl ImgPreview {
          self
     }
 
-    pub fn resize_debug(&mut self){
+    pub fn resize_debug(&mut self) ->ImgPreview {
 
        self.preview.handle({
         let mut x = 0;
@@ -227,6 +242,7 @@ impl ImgPreview {
         let mut _self_data_y = _self.data_y;
         let mut _self_data_width = self.width;
         let mut _self_data_height = self.height;
+        let mut _tap_hold_shift = false;
 
         move |win, ev| match ev {
             fltk::enums::Event::Show=>{
@@ -240,7 +256,13 @@ impl ImgPreview {
                 _debug_activate=!_debug_activate;
                 
                 println!("<{}>启用元素debug -> {}",win.label(),_debug_activate);
-
+                if _debug_activate{
+                    _re_pos=!_re_pos;
+                    _re_size = false;
+                    _re_label_size = false;
+                    _re_fast_add = false;
+                }
+                
                 true
             }
             
@@ -248,6 +270,11 @@ impl ImgPreview {
                 
                 if(!_debug_activate){
                     return  false;
+                }
+
+                if (_tap_hold_shift&&fltk::app::event_key()==fltk::enums::Key::ShiftL){
+                    _tap_hold_shift= false;
+                    return false;
                 }
 
                 let (mut x,mut y,mut w,mut h,mut label_size) = (0,0,0,0,0);
@@ -396,41 +423,50 @@ impl ImgPreview {
                   }
 
                 else if _re_pos {
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {5} else {0}) ;
+
                     if fltk::app::event_key()==fltk::enums::Key::Down {
-                        y+=(1+_re_fast);
+                        y+=(1+_re_fast + fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Up {
-                        y-=(1+_re_fast);
+                        y-=(1+_re_fast+ fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Left {
-                        x-=(1+_re_fast);
+                        x-=(1+_re_fast+ fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Right {
-                        x+=(1+_re_fast);
+                        x+=(1+_re_fast+ fast_temp);
                     }
     
                 }
               
                 else if _re_size {
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {5} else {0}) ;
+
                     if fltk::app::event_key()==fltk::enums::Key::Down {
-                        h-=(1+_re_fast);
+                        h-=(1+_re_fast+ fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Up {
-                        h+=(1+_re_fast);
+                        h+=(1+_re_fast+ fast_temp);
                     }else if fltk::app::event_key()==fltk::enums::Key::Left {
-                        w-=(1+_re_fast);
+                        w-=(1+_re_fast+ fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Right {
-                        w+=(1+_re_fast);
+                        w+=(1+_re_fast+ fast_temp);
                     }
                 }
               
                 else if _re_label_size {
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {2} else {0}) ;
+
                 if fltk::app::event_key()==fltk::enums::Key::Down {
-                    label_size+=1;
+                    label_size+=1+fast_temp;
                 }
                 else if fltk::app::event_key()==fltk::enums::Key::Up {
-                    label_size-=1;
+                    label_size-=1+fast_temp;
                 }
               }
 
@@ -476,7 +512,25 @@ impl ImgPreview {
             _ => false,
         }
     });
+
+        self.clone()
     }
 
+    pub fn add_cursor_hand(&mut self,win:&window::DoubleWindow){
+        self.preview.handle({
+            let mut win = win.clone();
+
+            move |this_win, ev| match ev {
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+                _=>false
+            } });
+    }
 
 }

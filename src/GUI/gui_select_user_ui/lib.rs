@@ -1,6 +1,6 @@
 use chrono::Local;
 use rusqlite::Connection;
-use crate::config;
+use crate::config::{self, CONFIG_KEY};
 
 use crate::{atomic_util, get_arc_bind_variable, global_var, handle_dat, libWxIkunPlus::getFocusTopWindow, read_rw_lazy_lock, read_rw_lock, set_arc_bind_variable, set_arc_bind_variable_insert, set_arc_bind_variable_vec_clear, set_arc_bind_variable_vec_replace_data, util::{str_eq_str, Sleep}, wh_mod::{self, AttachThumbnail}, write_rw_lock, write_rw_lock_insert, gui_util, libWxIkunPlus, gui_select_user_ui::ASSETS_NOT_DATA};
 
@@ -437,6 +437,10 @@ macro_rules! gc_select_user_ui {
 // 自动在窗口销毁时候自动清理
 pub fn initialize_gc_select_user_ui(hwnd:i128){
 
+    if config::get_config_bool(CONFIG_KEY::PreserveConfig) {
+        return;
+    }
+    
     if atomic_util::get_bool(&HAS_SELECT_USER_WINDOW_NORMAL){
         return;
     }
@@ -483,6 +487,9 @@ pub fn initialize_img_preview_list (img_preview_list:&Vec<gui_util::img::ImgPrev
 
 // GC掉大部分高内存的存储
 pub fn gc_select_user_ui(){
+    if config::get_config_bool(CONFIG_KEY::PreserveConfig) {
+        return;
+    }
     atomic_util::set_bool(&HAS_SELECT_USER_WINDOW_NORMAL,false);
     wh_mod::gc_walk_attach_file_list();
     gc_select_user_ui!();

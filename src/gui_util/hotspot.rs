@@ -1,7 +1,10 @@
 #![allow(warnings, unused)]
 
+use fltk::{enums, window};
 use fltk::enums::FrameType;
-use fltk::prelude::{WidgetBase, WidgetExt};
+use fltk::prelude::{WidgetBase, WidgetExt, WindowExt};
+
+use crate::libWxIkunPlus;
 
 use super::img;
 
@@ -61,6 +64,44 @@ impl HotspotItmeControl {
         });
     }
 
+    pub fn add_cursor_hand(&mut self,win:& window::DoubleWindow){
+        let mut main = fltk::frame::Frame::new(self.x,self.y,self.width,self.height, "");
+        main.set_frame(FrameType::NoBox);
+        main.handle({
+            let mut win = win.clone();
+
+            move |this_win, ev| match ev {
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+                _=>false
+
+            } });
+    }
+
+    fn default(&mut self) -> Self{
+        let [ x,
+        y,
+        width,
+        height] = [15,15,50,50];
+
+        let mut check_item_control = HotspotItmeControl {
+            x,
+            y,
+            width,
+            height,
+        };
+
+        check_item_control.resize_debug();
+
+        check_item_control
+    }
+
     pub fn resize_debug(&self){
         let mut svg_view =  format!(r#"<svg width="{}" height="{}" viewBox="0 0 {} {}" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="0.5" y="0.5" width="{}" height="{}" fill='#397B84' fill-opacity="0.25" stroke='#C09898'/>
@@ -81,6 +122,7 @@ impl HotspotItmeControl {
         let mut log = false;
         let mut _frame  = false;
         let mut view = view.clone();
+        let mut _tap_hold_shift = false;
 
         move |win, ev| match ev {
             fltk::enums::Event::Show=>{
@@ -94,7 +136,13 @@ impl HotspotItmeControl {
                 _debug_activate=!_debug_activate;
                 
                 println!("<{}>启用元素debug -> {}",win.label(),_debug_activate);
-
+                if _debug_activate{
+                    _re_pos=!_re_pos;
+                    _re_size = false;
+                    _re_label_size = false;
+                    _re_fast_add = false;
+                }
+                
                 true
             }
             
@@ -102,6 +150,11 @@ impl HotspotItmeControl {
                 
                 if(!_debug_activate){
                     return  false;
+                }
+                
+                if (_tap_hold_shift&&fltk::app::event_key()==fltk::enums::Key::ShiftL){
+                    _tap_hold_shift= false;
+                    return false;
                 }
 
                 let (mut x,mut y,mut w,mut h,mut label_size) = (0,0,0,0,0);
@@ -235,6 +288,7 @@ impl HotspotItmeControl {
 
 
                 if _re_fast_add {
+
                     if fltk::app::event_key()==fltk::enums::Key::Up {
                         if _re_fast>20{
                             _re_fast=20;
@@ -253,41 +307,53 @@ impl HotspotItmeControl {
                   }
 
                 else if _re_pos {
+
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {5} else {0}) ;
+
+
                     if fltk::app::event_key()==fltk::enums::Key::Down {
-                        y+=(1+_re_fast);
+                        y+=(1+_re_fast+fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Up {
-                        y-=(1+_re_fast);
+                        y-=(1+_re_fast+fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Left {
-                        x-=(1+_re_fast);
+                        x-=(1+_re_fast+fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Right {
-                        x+=(1+_re_fast);
+                        x+=(1+_re_fast+fast_temp);
                     }
     
                 }
               
                 else if _re_size {
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {5} else {0}) ;
+
+
                     if fltk::app::event_key()==fltk::enums::Key::Down {
-                        h-=(1+_re_fast);
+                        h-=(1+_re_fast+fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Up {
-                        h+=(1+_re_fast);
+                        h+=(1+_re_fast+fast_temp);
                     }else if fltk::app::event_key()==fltk::enums::Key::Left {
-                        w-=(1+_re_fast);
+                        w-=(1+_re_fast+fast_temp);
                     }
                     else if fltk::app::event_key()==fltk::enums::Key::Right {
-                        w+=(1+_re_fast);
+                        w+=(1+_re_fast+fast_temp);
                     }
                 }
               
                 else if _re_label_size {
+                    _tap_hold_shift= libWxIkunPlus::getBasicKeys().shift;
+                    let fast_temp = (if _tap_hold_shift {2} else {0}) ;
+
                 if fltk::app::event_key()==fltk::enums::Key::Down {
-                    label_size+=1;
+                    label_size+=1+fast_temp;
                 }
                 else if fltk::app::event_key()==fltk::enums::Key::Up {
-                    label_size-=1;
+                    label_size-=1+fast_temp;
                 }
               }
 

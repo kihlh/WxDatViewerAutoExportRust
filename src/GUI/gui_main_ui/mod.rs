@@ -156,6 +156,9 @@ fn add_ui_control() -> UiControl {
     let mut task_command_input = input::Input::new(45, 152, 423, 30, "");
     let mut export_input = input::Input::new(45, 225, 450, 30, "");
     let mut name_input = input::Input::new(96, 276, 230, 30, "");
+    
+    gui_util::resize_debug::inject_input(&mut name_input);
+
     task_command_input.set_readonly(!config::is_developer());
 
     let mut buf = fltk::text::TextBuffer::default();
@@ -269,6 +272,15 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
             enums::Event::Show => {
                 env::set_var("ikunWinHwnd", format!("{}",get_the_hwnd!()).to_string());
                 libWxIkunPlus::setWinIconMain(get_the_hwnd!());
+                if config::get_config_bool(config::CONFIG_KEY::HideSetingButton) {
+                    button_about.preview.hide();
+                    button_sync.preview.hide();
+                    button_config.preview.hide();
+                }else{
+                    button_about.preview.show();
+                    button_sync.preview.show();
+                    button_config.preview.show();
+                }
 
                 true
             }
@@ -388,6 +400,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 // 管理
                 if button_show_manage.existPoint(x,y) {
                     // gui_manage_item::ManageItmeMain();
+                    gui_task_manage::ManageItmeMain();
                 }
                 // 创建
                 if button_create.existPoint(x,y) {

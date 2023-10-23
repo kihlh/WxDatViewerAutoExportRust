@@ -31,7 +31,7 @@ once_cell = "1.17.2"
 serde-json-fmt = "0.1.0"
 
 # lazy_static = "1.4.0"
-fltk-theme = { path = "src/GUI/fltk-theme-kiic" }
+fltk-theme = { path = "src/gui_util/fltk-theme-kiic" }
 protobuf = "3.2.0"
 keepcalm = "0.3.5"
 arc-swap = "1.6.0"

@@ -114,9 +114,9 @@ fn add_ui_control() -> UiControl {
 
     flex.set_pos(25, 220-15 - common_decline);
 
-    add_check!("任务连续创建", CONFIG_KEY::CreateCont);
+    add_check!("任务连续创建", CONFIG_KEY::CreateCont).deactivate();
     add_check!("保留任务配置", CONFIG_KEY::PreserveConfig);
-    add_check!("保留对象列表(缓冲)", CONFIG_KEY::PreserveList);
+    add_check!("保留对象列表(缓冲)", CONFIG_KEY::PreserveList).deactivate();
 
     flex.end();
 
@@ -126,9 +126,9 @@ fn add_ui_control() -> UiControl {
         .center_of_parent();
 
     flex.set_pos(25, 220+23 - common_decline);
-    let mut global_scan = add_check!("全局扫描", CONFIG_KEY::GlobalScan);
-    add_check!("立即预览(选定对象)", CONFIG_KEY::QuickPreview);
-    add_check!("隐藏入口( 设置/同步/关于 )", CONFIG_KEY::ScanAdding);
+    let mut global_scan = add_check!("全量扫描", CONFIG_KEY::GlobalScan);
+    add_check!("立即预览(选定对象)", CONFIG_KEY::ShowObjectPreview);
+    add_check!("隐藏设置( 仅隐藏 原按钮还在 )", CONFIG_KEY::HideSetingButton);
     global_scan.set_checked(config::get_config_bool(config::CONFIG_KEY::AutoAction));
     global_scan.set_callback({
         let mut scan_adding = scan_adding.clone();
@@ -192,7 +192,7 @@ fn add_ui_control() -> UiControl {
         }
     });
 
-    add_check!("不拦重复启动", CONFIG_KEY::LogOutputFile).deactivate();
+    add_check!("不拦重复启动", CONFIG_KEY::IgnoreMutual).deactivate();
     add_check!("日志文件输出", CONFIG_KEY::LogOutputFile).deactivate();
     flex.end();
 

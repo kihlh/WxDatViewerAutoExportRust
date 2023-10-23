@@ -23,7 +23,7 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::ffi::OsStr;
-use crate::{util, config};
+use crate::{util, config, global_var};
 
 // lazy_static! {
 //     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
@@ -1147,13 +1147,69 @@ pub fn resolve_path(path: String) -> String {
 }
 
 
+// 获取显示的文本
+pub fn get_mask_text(text:&str) -> String{
+    let mut result = format!("{}",text);
+    let text_size = util::text_size(text);
+    // abcd  -> a**d
+    if text_size.all_len ==1 {
+        result = format!("{}**",text);
+    }
+    else if text_size.all_len <= 4usize {
+        result = format!("{}",util::mask(text,1,1,"*") );
+    }
+    else if text.contains("\\wxid_")||text.contains("/wxid_") {
+        let mut wx_root = global_var::get_string_default("user::config::user_select_path");        // wx root
+
+        // wx root 消敏
+        let mut text = result.clone();
+        if !wx_root.is_empty() {
+            text = result.replace(wx_root.as_str(), get_mask_text(&wx_root).as_str());
+        }
+
+        let mut paths =  split_path(text);
+        let mut wx_id = String::new();
+
+        if let Some(item) = get_wx_user_store(paths.join("/")) {
+            wx_id =item.wxid;
+        }
+
+   
+        // 对有wxid / wx root 的文件夹进行强制消敏
+        for index in 0..paths.len() {
+            if let Some(path) = paths.get(index) {
+                if
+                    // wxid
+                    path.contains("wxid_")
+                    ||path.contains(&wx_id)
+
+                {
+                    paths[index] = get_mask_text(path);
+                }
+            }
+        }
+
+
+        result =  format!("{}",util::masks_percentage(paths.join("\\").as_str(),0.35, 0.2, "*"));
+    }
+    else if text.contains("wxid_") {
+        result =  format!("{}",util::masks_percentage(text,0.35, 0.2, "*"));
+    }
+    else{
+        result =  format!("{}",util::masks_percentage(text,0.25, 0.35, "*"));
+    }
+
+    result
+}
+
 
 
 // 自动按照设置获取显示的文本的消敏
 pub fn get_show_mask_text <T: util::OverloadedAnyStr >(input: T) -> String {
     if config::is_show_mask() {
-        format!("{}",util::get_mask_text(input.to_string_default().as_str()))
+        format!("{}",get_mask_text(input.to_string_default().as_str()))
     }else {
         input.to_string_default()
     }
 }
+

@@ -1,15 +1,15 @@
 #![allow(warnings, unused)]
 
-use std::{env, thread};
-use std::ffi::{c_int, c_long, c_void, OsStr,c_uint,};
+use libc::c_longlong;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use serde_json::Value;
+use std::ffi::{c_int, c_long, c_uint, c_void, OsStr};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use libc::c_longlong;
-use serde_json::json;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use std::{env, thread};
 
-pub type PCSTR =*const c_char;
+pub type PCSTR = *const c_char;
 
 type wchar_t = u16;
 type WCHAR = wchar_t;
@@ -18,7 +18,7 @@ type LPCWCHAR = *const WCHAR;
 
 use crate::util;
 
-use self::lib_util::{encode_lpcstr, ansi_codepage_cstring};
+use self::lib_util::{ansi_codepage_cstring, encode_lpcstr};
 pub mod lib_util;
 
 // #![crate_type = "staticlib"]
@@ -29,43 +29,45 @@ extern "C" {
     fn _setWinIconMain(_hWnd: c_long) -> c_void;
     fn _setShowWindows(_hWnd: c_long, visible: bool) -> bool;
     fn _set_tray() -> c_void;
-    fn _createMutex(mutex:PCSTR) -> bool;
-    fn _removeMutex(mutex:PCSTR) -> bool;
-    fn _hasMutex(mutex:PCSTR) -> bool;
+    fn _createMutex(mutex: PCSTR) -> bool;
+    fn _removeMutex(mutex: PCSTR) -> bool;
+    fn _hasMutex(mutex: PCSTR) -> bool;
     fn _setStartup() -> bool;
     fn _hasStartup() -> bool;
     fn _openSelectFolder() -> c_void;
     fn _setWindowsTop(_hWnd: c_long, visible: bool) -> bool;
     fn _setCloseWindow(_hWnd: c_long, closeRoot: bool) -> bool;
-    fn _openSelectFolder2() ->PCSTR;
-    fn _Error(title:PCSTR, info:PCSTR) -> c_void;
-    fn _Stop(mutex:PCSTR, info:PCSTR) -> c_void;
-    fn _Confirm(title:PCSTR, info:PCSTR) -> bool;
-    fn _Alert(mutex:PCSTR, info:PCSTR) -> bool;
-    fn _getRegistrValue(hKey: c_long, _subKey:PCSTR, _key:PCSTR)->PCSTR;
+    fn _openSelectFolder2() -> PCSTR;
+    fn _Error(title: PCSTR, info: PCSTR) -> c_void;
+    fn _Stop(mutex: PCSTR, info: PCSTR) -> c_void;
+    fn _Confirm(title: PCSTR, info: PCSTR) -> bool;
+    fn _Alert(mutex: PCSTR, info: PCSTR) -> bool;
+    fn _getRegistrValue(hKey: c_long, _subKey: PCSTR, _key: PCSTR) -> PCSTR;
     fn _hasWeChat() -> bool;
     fn _setTaskbarWin(_hWnd: c_long) -> c_void;
     fn _setMinWindows(_hWnd: c_long) -> bool;
-    fn _findWindow(className:PCSTR, title:PCSTR) -> c_long;
+    fn _findWindow(className: PCSTR, title: PCSTR) -> c_long;
     // fn _findWindowW(className:LPCWCHAR, title:LPCWCHAR) -> c_long;
     // fn _findWindowU8(className:PCSTR, title:PCSTR) -> c_long;
     fn _has_auto_sync() -> bool;
-    fn _set_auto_sync(value:bool);
-    fn _has_sync_token()-> bool;
-    fn _hasStartupGlobalVar()-> bool;
-    fn _getFocusTopWindow()->c_long;
-    fn _getFocusWindow()->c_long;
-    fn _findAllWindow(className:PCSTR, title:PCSTR) -> PCSTR;
+    fn _set_auto_sync(value: bool);
+    fn _has_sync_token() -> bool;
+    fn _hasStartupGlobalVar() -> bool;
+    fn _getFocusTopWindow() -> c_long;
+    fn _getFocusWindow() -> c_long;
+    fn _findAllWindow(className: PCSTR, title: PCSTR) -> PCSTR;
     fn _isWindow(_hWnd: c_long) -> bool;
     fn _setWindowShake(hWnd: c_long);
     fn _getWindowRect(hWnd: c_long) -> PCSTR;
-    fn _randomNum()->c_longlong;
-    fn _setWindowTransparent(hWnd:c_long,transparent:c_int);
-    fn _getfilePathSingle()->PCSTR;
+    fn _randomNum() -> c_longlong;
+    fn _setWindowTransparent(hWnd: c_long, transparent: c_int);
+    fn _getfilePathSingle() -> PCSTR;
     fn _setWindowEnabled(_hWnd: c_long, enabled: bool) -> bool;
-    fn _hasInitWindowIsDisplayed ()->bool;
-    fn _setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool;
-    fn _getColor_json(x:i32,y:i32) ->PCSTR;
+    fn _hasInitWindowIsDisplayed() -> bool;
+    fn _setInitWindowIsDisplayed(initWindowIsDisplayed: bool) -> bool;
+    fn _getColor_json(x: i32, y: i32) -> PCSTR;
+    fn _getBasicKeys() -> PCSTR;
+
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -91,7 +93,6 @@ pub fn setWinIcon(hWnd: i128) {
         }
     };
 }
-
 
 // 关闭窗口
 pub fn closeWindow(hWnd: i128, destroy: bool) {
@@ -214,7 +215,7 @@ pub fn openSelectFolder() -> String {
 }
 
 // 将C字符串转换为Rust字符串
-fn c_string_to_rust_string(ptr:PCSTR) -> String {
+fn c_string_to_rust_string(ptr: PCSTR) -> String {
     unsafe {
         let c_str = CStr::from_ptr(ptr);
         let bytes = c_str.to_bytes();
@@ -225,15 +226,15 @@ fn c_string_to_rust_string(ptr:PCSTR) -> String {
 // 启用托盘
 pub fn openSelectFolder2() -> String {
     let mut result = String::new();
-    
+
     let the_win = getFocusWindow();
 
     setwinVisible(the_win.clone(), false);
-    
+
     unsafe { result = c_string_to_rust_string(_openSelectFolder2()) };
-    
+
     setwinVisible(the_win.clone(), true);
-    
+
     return result;
 }
 
@@ -246,7 +247,7 @@ fn rust_string_to_c_string(s: String) -> CString {
     return c_ptr;
 }
 
-fn rust_string_to_ansi_str(s: String)->Vec<i8>{
+fn rust_string_to_ansi_str(s: String) -> Vec<i8> {
     if let Result::Ok(item) = ansi_codepage_cstring(s) {
         return item;
     }
@@ -271,7 +272,6 @@ fn rust_string_to_ansi_str(s: String)->Vec<i8>{
 //         None => Err("Option<Vec<u8>> is None"),
 //     }
 // }
-
 
 // // 将Rust UTF-8字符串转换为Windows API中的A字符
 // fn utf8_to_ansi(s: &str) -> Vec<c_char> {
@@ -312,7 +312,7 @@ pub fn alert(title: String, message: String) -> bool {
 }
 
 // MessageBox -> confirm
-pub fn confirm<T: util::OverloadedAnyStr >(title: T, message: T) -> bool {
+pub fn confirm<T: util::OverloadedAnyStr>(title: T, message: T) -> bool {
     unsafe {
         return _Confirm(
             rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
@@ -323,7 +323,7 @@ pub fn confirm<T: util::OverloadedAnyStr >(title: T, message: T) -> bool {
 }
 
 // MessageBox -> stop
-pub fn stop<T: util::OverloadedAnyStr >(title: T, message: T) {
+pub fn stop<T: util::OverloadedAnyStr>(title: T, message: T) {
     unsafe {
         _Stop(
             rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
@@ -333,7 +333,7 @@ pub fn stop<T: util::OverloadedAnyStr >(title: T, message: T) {
 }
 
 // MessageBox -> error
-pub fn error<T: util::OverloadedAnyStr >(title: T, message: T) {
+pub fn error<T: util::OverloadedAnyStr>(title: T, message: T) {
     unsafe {
         _Error(
             rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
@@ -349,7 +349,6 @@ pub enum HKEY {
     HKEY_USERS = 0x80000003,
 }
 
-
 pub fn getRegistrValue(hKey: HKEY, subKey: String, valueKey: String) -> String {
     let mut result = String::new();
     unsafe {
@@ -358,35 +357,35 @@ pub fn getRegistrValue(hKey: HKEY, subKey: String, valueKey: String) -> String {
             rust_string_to_ansi_str(subKey).as_ptr(),
             rust_string_to_ansi_str(valueKey).as_ptr(),
         );
-        result =c_string_to_rust_string(c_result);
+        result = c_string_to_rust_string(c_result);
     }
     result
 }
 
 // 判断wx进程是否存在
-pub fn hasWeChat()->bool {
+pub fn hasWeChat() -> bool {
     let mut result = false;
     unsafe {
-        result= _hasWeChat();
+        result = _hasWeChat();
     }
     result
 }
 
-pub fn hasWeChatWin()->bool {
+pub fn hasWeChatWin() -> bool {
     let mut result = false;
     unsafe {
         let hwnd_01 = findWindow("WeChatMainWndForPC", "");
-        if(hwnd_01!=0){
-           return true;
+        if (hwnd_01 != 0) {
+            return true;
         }
 
         let hwnd_02 = findWindow("ChatWnd", "");
-        if(hwnd_02!=0){
+        if (hwnd_02 != 0) {
             return true;
         }
 
         let hwnd_03 = findWindow("SubscriptionWnd", "");
-        if(hwnd_03!=0){
+        if (hwnd_03 != 0) {
             return true;
         }
     }
@@ -396,36 +395,34 @@ pub fn hasWeChatWin()->bool {
 // 把一个傀儡窗口变成主窗口的托盘
 pub fn setTaskbarWin(hWnd: i128) {
     unsafe {
-       _setTaskbarWin(hWnd as i32);
+        _setTaskbarWin(hWnd as i32);
     }
 }
 
 pub fn setMinWindows(hWnd: i128) -> bool {
-    unsafe {
-        _setMinWindows(hWnd as i32)
-    }
+    unsafe { _setMinWindows(hWnd as i32) }
 }
 
 pub fn isWindow(hWnd: i128) -> bool {
-    unsafe {
-        _isWindow(hWnd as i32)
-    }
+    unsafe { _isWindow(hWnd as i32) }
 }
 
-pub fn setWindowShake(hWnd: i128)  {
-    unsafe {
-        _setWindowShake(hWnd as i32)
-    }
+pub fn setWindowShake(hWnd: i128) {
+    unsafe { _setWindowShake(hWnd as i32) }
 }
 
 // 搜索窗口
-pub fn findWindow(className: &str, titleName: &str)->i128 {
-    let mut hwnd:i128 = 0;
+pub fn findWindow(className: &str, titleName: &str) -> i128 {
+    let mut hwnd: i128 = 0;
     unsafe {
         let mut className = rust_string_to_ansi_str(className.to_string());
         let mut titleName = rust_string_to_ansi_str(titleName.to_string());
-      
-        hwnd= _findWindow(className.as_ptr(), titleName.as_ptr()/*,className_len as i32,titleName_len as i32 */).into();
+
+        hwnd = _findWindow(
+            className.as_ptr(),
+            titleName.as_ptr(), /*,className_len as i32,titleName_len as i32 */
+        )
+        .into();
     }
     return hwnd;
 }
@@ -442,78 +439,68 @@ pub fn findWindow(className: &str, titleName: &str)->i128 {
 // }
 
 // 判断是否启用了自动更新（如果wx进程不存在也会返回false）
-pub fn has_auto_sync() -> bool{
+pub fn has_auto_sync() -> bool {
     let mut result = false;
     unsafe {
-        result =_has_auto_sync();
+        result = _has_auto_sync();
     }
 
     result
 }
 
 // 判断是否启用了自动更新（如果wx进程不存在也会返回false）
-pub fn has_auto_sync_all() -> bool{
+pub fn has_auto_sync_all() -> bool {
     let mut result = false;
     unsafe {
-        result = hasWeChat()&&hasWeChatWin()&&_has_auto_sync();
+        result = hasWeChat() && hasWeChatWin() && _has_auto_sync();
     }
-    println!("has_auto_sync-> {}",&result);
+    println!("has_auto_sync-> {}", &result);
     result
 }
 
 // 设置自动更新
-pub fn set_auto_sync(value: bool){
+pub fn set_auto_sync(value: bool) {
     unsafe {
-       _set_auto_sync(value);
+        _set_auto_sync(value);
     }
 }
 
 // 是否立即同步
-pub fn has_sync_token()->bool{
-    unsafe{
-        _has_sync_token()
-    }
+pub fn has_sync_token() -> bool {
+    unsafe { _has_sync_token() }
 }
 
 // 是否立即同步
-pub fn hasStartupGlobalVar()->bool{
-    unsafe{
-        _hasStartupGlobalVar()
-    }
+pub fn hasStartupGlobalVar() -> bool {
+    unsafe { _hasStartupGlobalVar() }
 }
 
-pub fn getFocusWindow()->i128{
-    unsafe{
-        _getFocusWindow() as i128
-    }
+pub fn getFocusWindow() -> i128 {
+    unsafe { _getFocusWindow() as i128 }
 }
 
-pub fn getFocusTopWindow()->i128{
-    unsafe{
-        _getFocusTopWindow() as i128
-    }
+pub fn getFocusTopWindow() -> i128 {
+    unsafe { _getFocusTopWindow() as i128 }
 }
 
-fn get_str_to_long_vec(c_result:PCSTR)->Vec<i128>{
-    let mut list:Vec<i128> = Vec::new();
-    let result =c_string_to_rust_string(c_result);
+fn get_str_to_long_vec(c_result: PCSTR) -> Vec<i128> {
+    let mut list: Vec<i128> = Vec::new();
+    let result = c_string_to_rust_string(c_result);
 
     let long_str = String::from("1234567890");
     let mut the_data = String::new();
 
     for char in result.chars() {
-        if(long_str.contains(char)){
+        if (long_str.contains(char)) {
             the_data.push(char);
-        }else{
+        } else {
             if !the_data.is_empty() {
-
                 let parsed_number: Result<i32, _> = the_data.parse();
                 if let Ok(parsed_number) = parsed_number {
                     list.push(parsed_number as i128);
                 }
                 the_data.clear();
             }
-
         }
     }
 
@@ -528,27 +515,26 @@ fn get_str_to_long_vec(c_result:PCSTR)->Vec<i128>{
     list
 }
 
-
-pub fn findAllWindow(className: &str, titleName: &str)->Vec<i128>{
-    unsafe{
+pub fn findAllWindow(className: &str, titleName: &str) -> Vec<i128> {
+    unsafe {
         let mut className = rust_string_to_ansi_str(className.to_string());
         let mut titleName = rust_string_to_ansi_str(titleName.to_string());
-        let c_result = _findAllWindow(className.as_ptr(),titleName.as_ptr());
+        let c_result = _findAllWindow(className.as_ptr(), titleName.as_ptr());
         get_str_to_long_vec(c_result)
     }
 }
 
-#[derive(Debug  )]
+#[derive(Debug)]
 pub struct RECT {
-    pub left:i32,
-    pub top:i32,
-    pub bottom:i32,
-    pub right:i32,
-    pub height:i32,
-    pub width:i32
+    pub left: i32,
+    pub top: i32,
+    pub bottom: i32,
+    pub right: i32,
+    pub height: i32,
+    pub width: i32,
 }
-pub fn getWindowRect(hWnd: i128)->RECT{
-    let mut rect = RECT{
+pub fn getWindowRect(hWnd: i128) -> RECT {
+    let mut rect = RECT {
         left: 0,
         top: 0,
         bottom: 0,
@@ -558,86 +544,115 @@ pub fn getWindowRect(hWnd: i128)->RECT{
     };
 
     unsafe {
-       let c_result_json = _getWindowRect(hWnd as c_long);
+        let c_result_json = _getWindowRect(hWnd as c_long);
 
         let data = c_string_to_rust_string(c_result_json);
 
         if let Ok(c_rect) = serde_json::from_str(data.as_str()) as serde_json::Result<Value> {
-            rect.bottom = c_rect["bottom"].as_i64().unwrap_or_else(||{0}) as i32;
-            rect.left = c_rect["left"].as_i64().unwrap_or_else(||{0}) as i32;
-            rect.top = c_rect["top"].as_i64().unwrap_or_else(||{0}) as i32;
-            rect.right = c_rect["right"].as_i64().unwrap_or_else(||{0}) as i32;
-            rect.height = c_rect["height"].as_i64().unwrap_or_else(||{0}) as i32;
-            rect.width = c_rect["width"].as_i64().unwrap_or_else(||{0}) as i32;
+            rect.bottom = c_rect["bottom"].as_i64().unwrap_or_else(|| 0) as i32;
+            rect.left = c_rect["left"].as_i64().unwrap_or_else(|| 0) as i32;
+            rect.top = c_rect["top"].as_i64().unwrap_or_else(|| 0) as i32;
+            rect.right = c_rect["right"].as_i64().unwrap_or_else(|| 0) as i32;
+            rect.height = c_rect["height"].as_i64().unwrap_or_else(|| 0) as i32;
+            rect.width = c_rect["width"].as_i64().unwrap_or_else(|| 0) as i32;
         }
-
     }
 
     rect
 }
 
 // 随机数
-pub(crate) fn randomNum() -> i128{
+pub(crate) fn randomNum() -> i128 {
+    unsafe { _randomNum() as i128 }
+}
+
+pub fn setWindowTransparent(hWnd: i128, transparent: i32) {
     unsafe {
-        _randomNum() as i128
+        _setWindowTransparent(hWnd as c_long, transparent as c_int);
     }
 }
 
-pub fn setWindowTransparent(hWnd:i128,transparent:i32){
+pub fn getClipFilePathSingle() -> String {
     unsafe {
-        _setWindowTransparent(hWnd as c_long,transparent as c_int);
-    }
-}
-
-pub fn getClipFilePathSingle()->String{
-    unsafe{
         let c_result = _getfilePathSingle();
         c_string_to_rust_string(c_result)
     }
 }
 
-pub fn setWindowEnabled(hWnd: i128, enabled: bool) -> bool{
-    unsafe {
-        _setWindowEnabled(hWnd as c_long,enabled)
-    }
+pub fn setWindowEnabled(hWnd: i128, enabled: bool) -> bool {
+    unsafe { _setWindowEnabled(hWnd as c_long, enabled) }
 }
 
-pub fn hasInitWindowIsDisplayed()->bool{
-    unsafe {
-        _hasInitWindowIsDisplayed()
-    }
+pub fn hasInitWindowIsDisplayed() -> bool {
+    unsafe { _hasInitWindowIsDisplayed() }
 }
-pub fn setInitWindowIsDisplayed(initWindowIsDisplayed:bool)->bool{
-    unsafe {
-        _setInitWindowIsDisplayed(initWindowIsDisplayed)
-    }
+pub fn setInitWindowIsDisplayed(initWindowIsDisplayed: bool) -> bool {
+    unsafe { _setInitWindowIsDisplayed(initWindowIsDisplayed) }
 }
 
 #[derive(Debug)]
-pub struct GetColorInfo{
-    pub r:i32,
-    pub g:i32,
-    pub b:i32,
-    pub hex:String,
+pub struct GetColorInfo {
+    pub r: i32,
+    pub g: i32,
+    pub b: i32,
+    pub hex: String,
 }
 
-pub fn getColor(x:i32,y:i32) ->GetColorInfo{
-    let mut color_info = GetColorInfo{
-        r:255,
+pub fn getColor(x: i32, y: i32) -> GetColorInfo {
+    let mut color_info = GetColorInfo {
+        r: 255,
         g: 255,
-        b:255,
-        hex:"#ffffff".to_string(),
+        b: 255,
+        hex: "#ffffff".to_string(),
     };
-    unsafe{
-        let c_result = _getColor_json(x,y);
+    unsafe {
+        let c_result = _getColor_json(x, y);
         let data = c_string_to_rust_string(c_result);
-        
+
         if let Ok(c_rect) = serde_json::from_str(data.as_str()) as serde_json::Result<Value> {
-            color_info.r = c_rect["r"].as_i64().unwrap_or_else(||{0}) as i32;
-            color_info.g = c_rect["g"].as_i64().unwrap_or_else(||{0}) as i32;
-            color_info.b = c_rect["b"].as_i64().unwrap_or_else(||{0}) as i32;
+            color_info.r = c_rect["r"].as_i64().unwrap_or_else(|| 0) as i32;
+            color_info.g = c_rect["g"].as_i64().unwrap_or_else(|| 0) as i32;
+            color_info.b = c_rect["b"].as_i64().unwrap_or_else(|| 0) as i32;
             color_info.hex = c_rect["hex"].as_str().unwrap_or("").to_string();
         }
     }
     color_info
+}
+
+#[derive(Debug)]
+pub struct BasicKeys {
+    pub shift:bool,
+    pub alt:bool,
+    pub ctrl:bool,
+    pub win:bool,
+    pub none:bool
+}
+
+
+pub fn getBasicKeys()->BasicKeys {
+    // let start = std::time::Instant::now();
+    let mut result =BasicKeys{
+        shift: false,
+        alt:false,
+        ctrl:false,
+        win:false,
+        none:false
+    } ;
+    unsafe {
+        let c_result_json = _getBasicKeys();
+
+        let data = c_string_to_rust_string(c_result_json);
+        if let Ok(c_rect) = serde_json::from_str(data.as_str()) as serde_json::Result<Value> {
+            result.alt = c_rect["alt"].as_bool().unwrap_or_else(||false);
+            result.shift = c_rect["shift"].as_bool().unwrap_or_else(||false);
+            result.ctrl = c_rect["ctrl"].as_bool().unwrap_or_else(||false);
+            result.win = c_rect["win"].as_bool().unwrap_or_else(||false);
+
+            result.none = !result.alt&&!result.shift&&!result.ctrl&&!result.win;
+        }
+    }
+    // 代码执行时间: 158.1µs
+    // println!("代码执行时间: {:?}", start.elapsed());
+
+    result
 }
