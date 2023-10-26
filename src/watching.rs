@@ -271,7 +271,7 @@ fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
 
                 let mut leng = new_lazy_value_list.len();
 
-                loop {
+                for index in 0..10000 {
                     let itme = new_lazy_value_list.get(leng);
                     if (itme.is_some()) {
                         lazy_value.insert(itme.unwrap().to_string());
@@ -280,6 +280,7 @@ fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
                     if (leng > 500) {
                         break;
                     };
+                    Sleep(30);
                 }
                 new_lazy_value_list.clear();
             }

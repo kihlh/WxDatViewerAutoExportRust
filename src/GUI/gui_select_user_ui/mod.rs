@@ -1401,9 +1401,9 @@ pub fn manage_tool_main() -> String{
                     if let Some(attach_path_str) = attach_path.to_str() {
                         result_data.push_str(attach_path_str);
                         // 识标
-                        if frame_check.thumbnail.is_checked() {
+                        // if frame_check.thumbnail.is_checked() {
                             result_data.push_str("*wizards");
-                        }
+                        // }
                         // 可选项
                         if frame_check.thumbnail.is_checked() {
                             result_data.push_str("*thumbnail");

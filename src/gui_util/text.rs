@@ -3,6 +3,7 @@
 use fltk::enums::{Color, Cursor, Event, FrameType, Key};
 use fltk::{prelude::*, *};
 use fltk::app::event_key;
+use fltk::frame::Frame;
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
 
 use crate::libWxIkunPlus;
@@ -435,6 +436,27 @@ impl TextControl {
         self.text.handle({
             let mut win = win.clone();
             move |this_win, ev| match ev {
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+
+                _=>false
+            } });
+    }
+
+    pub fn add_cursor_hand_callback (&mut self,win:& window::DoubleWindow,back:fn(win:window::DoubleWindow,frame:Frame)){
+        self.text.handle({
+            let mut win = win.clone();
+            move |this_win, ev| match ev {
+                enums::Event::Push => {
+                    back(win.clone(),this_win.clone());
+                    true
+                }
                 enums::Event::Move => {
                     win.set_cursor(fltk::enums::Cursor::Hand);
                     true

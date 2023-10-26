@@ -400,7 +400,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 // 管理
                 if button_show_manage.existPoint(x,y) {
                     // gui_manage_item::ManageItmeMain();
-                    gui_task_manage::ManageItmeMain();
+                    gui_task_manage::ManageItemMain();
                 }
                 // 创建
                 if button_create.existPoint(x,y) {
@@ -408,7 +408,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     let [name,export]= [win_control.name.value(),win_control.export.value()];
                     lib::push_sql_export_dir_path(name.as_str(),export.as_str(),task_command.as_str());
                     if !libWxIkunPlus::has_auto_sync() {
-                        gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "【同步未启用】当前创建的心任务并不会处理", 2500u64);
+                        gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "【同步未启用】当前创建的新任务并不会处理", 2500u64);
                     }
                 }
                 true

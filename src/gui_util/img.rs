@@ -516,7 +516,28 @@ impl ImgPreview {
         self.clone()
     }
 
-    pub fn add_cursor_hand(&mut self,win:&window::DoubleWindow){
+    pub fn add_cursor_hand_callback(&mut self,win:&window::DoubleWindow,back:fn(win:window::DoubleWindow,frame:Frame)){
+        self.preview.handle({
+            let mut win = win.clone();
+
+            move |this_win, ev| match ev {
+                enums::Event::Push => {
+                    back(win.clone(),this_win.clone());
+                    true
+                }
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+                _=>false
+            } });
+    }
+
+    pub fn add_cursor_hand(&mut self,win:&window::DoubleWindow) ->ImgPreview {
         self.preview.handle({
             let mut win = win.clone();
 
@@ -531,6 +552,7 @@ impl ImgPreview {
                 }
                 _=>false
             } });
+            self.clone()
     }
 
 }

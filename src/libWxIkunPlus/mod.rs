@@ -67,6 +67,7 @@ extern "C" {
     fn _setInitWindowIsDisplayed(initWindowIsDisplayed: bool) -> bool;
     fn _getColor_json(x: i32, y: i32) -> PCSTR;
     fn _getBasicKeys() -> PCSTR;
+    fn _selectFile() -> PCSTR;
 
 }
 
@@ -655,4 +656,13 @@ pub fn getBasicKeys()->BasicKeys {
     // println!("代码执行时间: {:?}", start.elapsed());
 
     result
+}
+
+pub fn selectFile() -> String {
+    let the_win = getFocusWindow();
+
+    setwinVisible(the_win.clone(), false);
+    let c_result = unsafe {_selectFile()};
+    setwinVisible(the_win.clone(), true);
+    c_string_to_rust_string(c_result)
 }

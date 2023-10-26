@@ -83,7 +83,29 @@ impl HotspotItmeControl {
 
             } });
     }
+    pub fn add_cursor_hand_callback(&mut self,win:& window::DoubleWindow,back:fn(win:window::DoubleWindow,frame:fltk::frame::Frame)){
+        let mut main = fltk::frame::Frame::new(self.x,self.y,self.width,self.height, "");
+        main.set_frame(FrameType::NoBox);
+        main.handle({
+            let mut win = win.clone();
 
+            move |this_win, ev| match ev {
+                enums::Event::Push => {
+                    back(win.clone(),this_win.clone());
+                    true
+                }
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+                _=>false
+
+            } });
+    }
     fn default(&mut self) -> Self{
         let [ x,
         y,

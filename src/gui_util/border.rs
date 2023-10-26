@@ -116,7 +116,28 @@ impl BorderPreview{
          } });
 
     }
+    pub fn add_cursor_hand_callback(&mut self,win:& window::DoubleWindow,back:fn(win:window::DoubleWindow,frame:fltk::frame::Frame)){
 
+        self.preview.handle({
+            let mut win = win.clone();
+
+            move |this_win, ev| match ev {
+                enums::Event::Push => {
+                    back(win.clone(),this_win.clone());
+                    true
+                }
+                enums::Event::Move => {
+                    win.set_cursor(fltk::enums::Cursor::Hand);
+                    true
+                }
+                enums::Event::Leave=>{
+                    win.set_cursor(fltk::enums::Cursor::Default);
+                    true
+                }
+                _=>false
+            } });
+
+    }
     pub fn from_svg <T: super::lib::OverloadedAnyStr > (&mut self, data: T, x: i32, y: i32, width: i32, height: i32) -> bool {
         let data = data.to_string_default();
 

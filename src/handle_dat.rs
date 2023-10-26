@@ -91,7 +91,8 @@ pub fn initialize_table(conn: &Connection) {
             name  TEXT NOT NULL,
             path TEXT NOT NULL UNIQUE,
             ouput TEXT NOT NULL,
-            rename	TEXT
+            rename	TEXT,
+            thumbnail	BLOB
         );
         ",
         (), // empty list of parameters.
@@ -134,6 +135,13 @@ pub fn initialize_table(conn: &Connection) {
         Err(err) => eprint!("{}", err),
     };
     
+    match conn.execute(
+        "ALTER TABLE 'export_dir_path' ADD COLUMN 'thumbnail' BLOB;",
+        (), // empty list of parameters.
+    ) {
+        Ok(_) => {}
+        Err(err) => {},
+    };
     
 }
 

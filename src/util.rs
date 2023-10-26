@@ -580,3 +580,13 @@ pub fn get_time_info () ->time_info {
 
     result
 }
+
+pub fn load_thumbnai_data (open:&str) -> Result< Vec<u8> ,image::ImageError>{
+    let img = image::open(open)?;
+    let resized_img = img.resize_exact(128, 128, image::imageops::FilterType::CatmullRom);
+    let mut output = std::io::Cursor::new(Vec::new());
+    resized_img.write_to(&mut output, image::ImageFormat::Png)?;
+    return Ok(output.into_inner());
+
+    Ok(Vec::new())
+} 
