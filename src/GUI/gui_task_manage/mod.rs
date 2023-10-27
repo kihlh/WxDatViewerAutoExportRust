@@ -427,10 +427,10 @@ fn create_card (y:i32) -> CardItem{
         let mut card_item = card_item.clone();
         let mut is_save = false;
         let mut OID_FOCUS_ITEM_ID = 0;
-
+        let mut select_file_ing = false; 
         move |win, ev| match ev {
             enums::Event::Show => {
-                if get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
+                if !select_file_ing&&get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
                     is_save = false;
                     icon_save.preview.hide();
                     // icon_remove.preview.hide();
@@ -445,7 +445,7 @@ fn create_card (y:i32) -> CardItem{
                 false
             }
             enums::Event::Hide => {
-                if get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
+                if !select_file_ing&&get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
                     is_save = false;
                     icon_save.preview.hide();
                     // icon_remove.preview.hide();
@@ -618,7 +618,11 @@ fn create_card (y:i32) -> CardItem{
 
                 // 
                 if btn_select_dir.existPoint(x, y){
+                    select_file_ing= true;
+
                     let select_dir = libWxIkunPlus::openSelectFolder2();
+                    select_file_ing= false;
+
                     if select_dir.is_empty() {
                         gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Info,"用户取消选择", 3500u64);
                     }else{
@@ -675,8 +679,10 @@ fn create_card (y:i32) -> CardItem{
                 }
 
                 if card_item.user_thumbnail_preview.existPoint(x, y){
-                    
+                    select_file_ing= true;
                     let path = libWxIkunPlus::selectFile();
+                    select_file_ing= false;
+
                    if(!path.is_empty()) {
                     std::thread::spawn({
                         let mut user_thumbnail_preview= card_item.user_thumbnail_preview.clone();
@@ -1015,8 +1021,6 @@ pub fn ManageItemMain() ->Option<ManageItemMain> {
                 false
             }
             enums::Event::Hide => {
-                fltk::window::Window::delete(win.clone());
-
                 if win_empty.visible() &&next_btn_text.get_label().contains("知道了"){
                     fltk::window::Window::delete(win.clone());
                 }

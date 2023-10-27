@@ -11,13 +11,13 @@ use crate::{atomic_util, get_bool,set_bool, libWxIkunPlus, global_var, global_va
 // 配置常量
 
 // 启用开发者模式（此处为false 配置文件中的开发者模式将被忽略）
-pub(crate) const APP_ENABLE_DEVELOPER: bool = true;
+pub(crate) const APP_ENABLE_DEVELOPER: bool = false;
 // 编译到52破解版本
 const APP_BUILD_52POJIE: bool = false;
 
 const APP_STORE_NAME: &str = "config.json";
 const APP_STORE_DIR: &str = "./";
-const APP_SOFTWARE_UPDATE_DETECTION: [&str;3] = ["https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json","https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json","https://x-1300389275.cos.ap-shanghai.myqcloud.com/assets/WxAutoExIm/version.json"];
+const APP_SOFTWARE_UPDATE_DETECTION: [&str;2] = ["https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json","https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json"];
 
 
 // 并发线程数
