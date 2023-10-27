@@ -1,6 +1,6 @@
 # 微信图片自动备份为普通图片
 
-## <u>**2.0版本已经发布内测  与意见反馈 请加：QQ群：649020539**</u>  
+## [**2.0版本已经发布内测  与意见反馈 请加：QQ群：649020539**](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=1O3SxDJNYzosdMENt_uQ3tFRkGKpEfz7&authKey=SgwpdTjJU7JESwDTtQ3VkuMUt%2Bm8AJCKxBnieAcMH0oanft8%2Bcr53cC37pEnOzXR&noverify=0&group_code=649020539)  
 
 ##### 由于我的一个朋友需要自动扫描老板发送的图片为文本，然后找到了dat文件浏览器，但是他不支持自动化，也不开源 运行效率也很低，所以就开发了一款用于自动备份聊天图片为普通图片的工具
 
@@ -29,7 +29,7 @@
 
 * 更新检测API 01 ：https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json
 * 更新检测API 02 ：https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json
-* 内测 / 公测 / 意见反馈：QQ群：649020539  
+* 内测 / 公测 / 意见反馈：QQ群：649020539   [加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=1O3SxDJNYzosdMENt_uQ3tFRkGKpEfz7&authKey=SgwpdTjJU7JESwDTtQ3VkuMUt%2Bm8AJCKxBnieAcMH0oanft8%2Bcr53cC37pEnOzXR&noverify=0&group_code=649020539)
   
 ------------------------------
 
