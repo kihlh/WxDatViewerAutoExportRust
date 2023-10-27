@@ -157,8 +157,6 @@ fn add_ui_control() -> UiControl {
     let mut export_input = input::Input::new(45, 225, 450, 30, "");
     let mut name_input = input::Input::new(96, 276, 230, 30, "");
     
-    gui_util::resize_debug::inject_input(&mut name_input);
-
     task_command_input.set_readonly(!config::is_developer());
 
     let mut buf = fltk::text::TextBuffer::default();
@@ -300,37 +298,59 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
                 
                 if button_config.existPoint(x, y) {
-                    if config::is_build_52pojie()&&!config::is_developer() {
-                        // ?待处理的安全问题
-                        // 等待解决的问题
-                        // 1. 检测更新的api不是服务器 无法动态判断编译版本 可能会导致无法下载到开源版 会暴露联系方式
-                        // 2. 开发者模式下会导致所有意见反馈方式按钮  暴露意见反馈群
-                        // 3. 检测哈希会导致下载公开版
-                        libWxIkunPlus::stop("存在BUG 作者正在处理中。。。", "配置值多处链式关联   (有启用导致违规 不启用导致软件奔溃) 的可能 \n禁用部分选项，或与非逻辑判断错误将可能导致软件无法正常工作或者奔溃 \n存在无法避免的问题，请使用默认值！\n作者会尽快解决此问题");
-                        return  false;
+                    app::add_timeout3(0.1, {
+                        
+                        move|cb|{
+                        if libWxIkunPlus::isKeyDown(1) {
+                           println!("左键未释放");
+                           return ;  
+                        }
+                        if config::is_build_52pojie()&&!config::is_developer() {
+                            // ?待处理的安全问题
+                            // 等待解决的问题
+                            // 1. 检测更新的api不是服务器 无法动态判断编译版本 可能会导致无法下载到开源版 会暴露联系方式
+                            // 2. 开发者模式下会导致所有意见反馈方式按钮  暴露意见反馈群
+                            // 3. 检测哈希会导致下载公开版
+                            libWxIkunPlus::stop("存在BUG 作者正在处理中。。。", "配置值多处链式关联   (有启用导致违规 不启用导致软件奔溃) 的可能 \n禁用部分选项，或与非逻辑判断错误将可能导致软件无法正常工作或者奔溃 \n存在无法避免的问题，请使用默认值！\n作者会尽快解决此问题");
+                            return  ;
+                        }
+                        gui_config_ui::main_init();
                     }
-                    gui_config_ui::main_init();
+
+                });
+                    
                 }
 
-                if button_about.existPoint(x, y) {
+                if button_about.existPoint(x, y){
+                    app::add_timeout3(0.1, {move|cb|{
+                        if libWxIkunPlus::isKeyDown(1) {
+                           println!("左键未释放");
+                           return ;  
+                        }
                     if config::is_build_52pojie()&&!config::is_developer() {
                         open_link_in_browser("https://www.52pojie.cn");
-                        return  false;
+                        return  ;
                     }
-
+                }});
                 }
               
 
                 if button_sync.existPoint(x, y) {
+                    app::add_timeout3(0.1, {move|cb|{
+                        if libWxIkunPlus::isKeyDown(1) {
+                           println!("左键未释放");
+                           return ;  
+                        }
                     if(libWxIkunPlus::confirm("立即同步", "是否立即同步所有内容")){
                         thread::spawn(move || {
                             let conn: Connection =
                                 Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
                             handle_dat::initialize_table(&conn);
-                            let _ = handle_dat::handle_walk_pictures(&conn);
-                            let _ = conn.close();
+                            handle_dat::handle_walk_pictures();
+                            conn.close();
                         });
                     }    
+                }});
                 }
 
                 // 向导
@@ -461,5 +481,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
         }
     }
 
+    gui_util::redraw_win(&win);
+    
     Option::None
 }

@@ -15,10 +15,12 @@ use crate::atomic_util::{add_i32, add_usize, get_i32, get_usize, set_i32};
 mod lib;
 use crate::util;
 
-pub(crate) const THE_WIN_CLASS_NAME: &str = "wx_auto_ex_im::gui_util::main::gui_task_manage<658683>";
+pub(crate) const THE_WIN_CLASS_NAME: &str = "wx_auto_ex_im::gui_util::main::gui_task_manage<2103>";
 pub(crate) const THE_NEXT_ID: &str = "wx_auto_ex_im::gui_task_manage::next_btn<2103>";
 pub(crate) const THE_TASK_MANAGE_PAGE_CLASS_NAME: &str = "wx_auto_ex_im::gui_task_manage::task_manage_page<2103>";
 pub(crate) const THE_EMPTY_PAGE_CLASS_NAME: &str = "wx_auto_ex_im::gui_task_manage::empty_page_item<2103>";
+pub(crate) const THE_ATATUS_INFO_ID: &str = "wx_auto_ex_im::task_manage_page_result.info_text.text<2103>";
+
 pub(crate) static EXPORT_LIST_PAGE_NEXT_ID:AtomicI32 = AtomicI32::new(1);
 pub(crate) static FOCUS_ITEM_ID:AtomicI32 = AtomicI32::new(-1);
 
@@ -249,7 +251,7 @@ impl CardItem{
         self.win.set_label("");
         self.win.hide();
     }
-    pub fn re_data(&mut self,item:&global_var_util::ExportDirItme){
+    pub fn re_data(&mut self,item:&global_var_util::ExportTaskItem){
             self.to_gc();
             // self.user_thumbnail_preview
             self.input_task_name.set_value(item.name.as_str());
@@ -268,11 +270,17 @@ impl CardItem{
             .replace("<NNN>","001")
             .replace("<NN>","01")
             .replace("<N>","1")
+            .replace("<哈希>","16a6a6a6a6a6a66a6a66a6a6a6a6a66a")
             .replace("<类型>","图片");
 
             self.input_rename.set_value(input.as_str());            
             
-            self.user_thumbnail_preview.from_data(global_var_util::get_export_from_id_thumbnail(item.id),0,0,65,65);
+            std::thread::spawn({
+                let mut id = item.id.clone();
+                let mut user_thumbnail_preview_copy =self.user_thumbnail_preview.clone();
+                move||{
+                user_thumbnail_preview_copy.from_data(global_var_util::get_export_from_id_thumbnail(id),0,0,65,65);
+            }});
 
 
             self.input_select_dir.set_value(item.ouput.as_str());
@@ -280,6 +288,37 @@ impl CardItem{
             self.win.show();
 
     }
+
+    pub fn re_data_v2(&mut self,item:&global_var_util::ExportTaskItemThumbnail){
+        self.to_gc();
+        // self.user_thumbnail_preview
+        self.input_task_name.set_value(item.name.as_str());
+        // let
+        let mut parse = wh_mod::parse_dat2var_path(item.path.as_str());
+
+        // 赋值
+        self.check_item.check_button_sync.set_checked(parse.is_sync);
+        self.check_item.check_button_the_month.set_checked(parse.is_the_month);
+        self.check_item.check_button_thumbnail.set_checked(parse.is_thumbnail);
+        self.check_item.check_button_video.set_checked(parse.is_video);
+        self.check_item.check_button_source.set_checked(parse.is_source);
+        let mut input = parse.get_rename_output()
+        .replace("<任务名>",item.name.as_str())
+        .replace("<NNNN>","0001")
+        .replace("<NNN>","001")
+        .replace("<NN>","01")
+        .replace("<N>","1")
+        .replace("<哈希>","16a6a6a6a6a6a66a6a66a6a6a6a6a66a")
+        .replace("<类型>","图片");
+
+        self.input_rename.set_value(input.as_str());            
+        self.user_thumbnail_preview.from_data(item.thumbnail.to_vec(),0,0,65,65);
+
+        self.input_select_dir.set_value(item.ouput.as_str());
+        self.win.set_label(&format!("[{},{}]",item.id,0));
+        self.win.show();
+
+}
 }
 
 pub struct TaskManagePageItem {
@@ -320,9 +359,9 @@ fn create_card (y:i32) -> CardItem{
     let mut icon_open = gui_util::ImgPreview::new_border(474,70,33,32,include_str!("src/open_icon.svg")).add_cursor_hand(&mut win);
     let mut icon_set_rename = gui_util::ImgPreview::new_border(532,33,17,16,include_str!("src/set_rename_icon.svg")).add_cursor_hand(&mut win);
 
-    let mut icon_remove = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/remove_icon.svg")).resize_debug().add_cursor_hand(&mut win);
-    let mut icon_save = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/save_icon.svg")).resize_debug().add_cursor_hand(&mut win);
-    let mut icon_backup = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/backup_icon.svg")).resize_debug().add_cursor_hand(&mut win);
+    let mut icon_remove = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/remove_icon.svg")).add_cursor_hand(&mut win);
+    let mut icon_save = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/save_icon.svg")).add_cursor_hand(&mut win);
+    let mut icon_backup = gui_util::ImgPreview::new_border(518,70,33,32,include_str!("src/backup_icon.svg")).add_cursor_hand(&mut win);
     icon_save.preview.hide();
     // icon_remove.preview.hide();
     icon_backup.preview.hide();
@@ -391,6 +430,14 @@ fn create_card (y:i32) -> CardItem{
 
         move |win, ev| match ev {
             enums::Event::Show => {
+                if get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
+                    is_save = false;
+                    icon_save.preview.hide();
+                    // icon_remove.preview.hide();
+                    icon_backup.preview.hide();
+                    icon_remove.preview.show();
+                    OID_FOCUS_ITEM_ID = get_i32(&FOCUS_ITEM_ID);
+                }
                 true
             }
             enums::Event::Close => {
@@ -437,7 +484,7 @@ fn create_card (y:i32) -> CardItem{
                             // v2接口错误使用v1代替v2
                             if back_up.is_none() {
                                 if let Some(item) = global_var_util::get_export_dir_itme_from_id(get_i32(&FOCUS_ITEM_ID)) {
-                                    let mut data = global_var_util::ExportDirItemThumbnail{
+                                    let mut data = global_var_util::ExportTaskItemThumbnail{
                                         id: item.id,
                                         time: item.time,
                                         name: item.name,
@@ -475,7 +522,7 @@ fn create_card (y:i32) -> CardItem{
                             gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure,"撤回缓冲已被清空", 3500u64);
                         }else{
                             let mut data = back_up.as_mut().unwrap();
-                            match global_var_util::insert_export_from_id_thumbnail1(data.clone()) {
+                            match global_var_util::insert_export_task_from_id_thumbnail1(data.clone()) {
                                 Ok(_) =>{
                                     gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Success,"撤回成功", 3500u64);
                                     card_item.to_ok();
@@ -543,7 +590,7 @@ fn create_card (y:i32) -> CardItem{
                                 return false;
                         }
 
-                        if let Err(item) = global_var_util::update_export_from_id_thumbnail(item.id,&input_task_name,&new_path,&input_select_dir,None) {
+                        if let Err(item) = global_var_util::update_export_task_from_id_thumbnail(item.id,&input_task_name,&new_path,&input_select_dir,None) {
                             
                             eprintln!("item->{:?}",item);
                             gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "更新失败", 3500u64);
@@ -588,7 +635,7 @@ fn create_card (y:i32) -> CardItem{
                     println!("[click] existPoint {}", "卡片按钮 > 编辑命名规则");
                     let mut point_rename_value = String::new();
 
-                    for  value in global_var_util::get_export_dir_itme_list() {
+                    for  value in global_var_util::get_export_task_item_list() {
                             if value.id == get_i32(&FOCUS_ITEM_ID) {
                                 point_rename_value=  wh_mod::parse_dat2var_path(value.path).rename_rule;       
                             }
@@ -630,16 +677,21 @@ fn create_card (y:i32) -> CardItem{
                 if card_item.user_thumbnail_preview.existPoint(x, y){
                     
                     let path = libWxIkunPlus::selectFile();
-                    let mut user_thumbnail_preview= card_item.user_thumbnail_preview.clone();
-                    app::add_timeout3(0.3, move|cb|{
-                        if let Ok(data) = util::load_thumbnai_data(&path) {
-                            global_var_util::set_export_from_id_thumbnail(get_i32(&FOCUS_ITEM_ID), Some(data.to_vec()));
-                            user_thumbnail_preview.re_data(data)
-                        }else{
-                            gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "图片打开失败", 2500u64);
-    
-                        }
-                    });
+                   if(!path.is_empty()) {
+                    std::thread::spawn({
+                        let mut user_thumbnail_preview= card_item.user_thumbnail_preview.clone();
+                        let mut path = path.clone();
+                        move||{
+                            if let Ok(data) = util::load_thumbnai_data(&path) {
+                                global_var_util::set_export_from_id_thumbnail(get_i32(&FOCUS_ITEM_ID), Some(data.to_vec()));
+                                user_thumbnail_preview.re_data(data)
+                            }else{
+                                gui_util::sub_message(get_the_hwnd!(),gui_util::IconType::Failure, "图片打开失败", 2500u64);
+        
+                            }
+                        }});
+                    
+                    }
                    
                 }
                 true
@@ -656,6 +708,15 @@ fn create_card (y:i32) -> CardItem{
                 x = coords.0;
                 y = coords.1;
 
+                if get_i32(&FOCUS_ITEM_ID)!=OID_FOCUS_ITEM_ID {
+                    is_save = false;
+                    icon_save.preview.hide();
+                    // icon_remove.preview.hide();
+                    icon_backup.preview.hide();
+                    icon_remove.preview.show();
+                    OID_FOCUS_ITEM_ID = get_i32(&FOCUS_ITEM_ID);
+                }
+                
                 true
             }
             enums::Event::Drag => {
@@ -700,7 +761,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
     result.back_btn_text.add_cursor_hand(&win_copy);
     
     //强制更新到最新
-    global_var_util::update_export_dir_itme_list();
+    global_var_util::update_export_task_item_list();
 
     let mut export_dir_path_list = global_var_util::get_group_export_task_value_list(2);
 
@@ -710,7 +771,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
     let mut info_text = result.info_text.text.clone();
     info_text.set_label(&header);
 
-    result.info_text.text.set_id("{{task_manage_page_result.info_text.text}}");
+    result.info_text.text.set_id(THE_ATATUS_INFO_ID);
     result.win.end();
     result.win.show();
     
@@ -729,7 +790,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
                     if let Some(export_dir_path_list) = export_dir_path_list.get(0) {
                         for index in 0..card_list.len() {
                             if let Some(item) =export_dir_path_list.get(index)  {
-                                card_list[index].re_data(&item);
+                                card_list[index].re_data_v2(&global_var_util::export_task_item_to_v2(&item));
                             }else{
                                 card_list[index].to_gc();
                             }
@@ -776,7 +837,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
 
                 // 下一页
                 if next_btn.existPoint(x,y) {
-                    
+                  
                     // 更新数据
                     export_dir_path_list.clear();
                     for value in global_var_util::get_group_export_task_value_list(2) {
@@ -791,7 +852,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
                     }else {
                         add_i32(&EXPORT_LIST_PAGE_NEXT_ID,1);
             
-                        if let Some(mut info_text) = app::widget_from_id("{{task_manage_page_result.info_text.text}}") as Option<Frame> {
+                        if let Some(mut info_text) = app::widget_from_id(THE_ATATUS_INFO_ID) as Option<Frame> {
                             let mut header = format!("{:02} / {:02} 页",get_i32(&EXPORT_LIST_PAGE_NEXT_ID),export_dir_path_list.len());
                             info_text.set_label(&header);
                         }
@@ -805,7 +866,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
                     if let Some(export_dir_path_list) = export_dir_path_list.get((export_index-1) as usize) {
                         for index in 0..card_list.len() {
                             if let Some(item) =export_dir_path_list.get(index)  {
-                                card_list[index].re_data(&item);
+                                card_list[index].re_data_v2(&global_var_util::export_task_item_to_v2(&item));
                             }else {
                                 card_list[index].to_gc();
                             }
@@ -815,7 +876,8 @@ pub fn task_manage_page() -> TaskManagePageItem {
 
                 // 上一页
                 if back_btn.existPoint(x,y) {
-                    
+        
+
                     export_dir_path_list.clear();
                     for value in global_var_util::get_group_export_task_value_list(2) {
                         export_dir_path_list.push(value)
@@ -830,7 +892,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
                         if data>1 {
                             set_i32(&EXPORT_LIST_PAGE_NEXT_ID,data-1);
         
-                            if let Some(mut info_text) = app::widget_from_id("{{task_manage_page_result.info_text.text}}") as Option<Frame> {
+                            if let Some(mut info_text) = app::widget_from_id(THE_ATATUS_INFO_ID) as Option<Frame> {
                                 let mut header = format!("{:02} / {:02} 页",get_i32(&EXPORT_LIST_PAGE_NEXT_ID),export_dir_path_list.len());
                                 info_text.set_label(&header);
                             }
@@ -843,7 +905,7 @@ pub fn task_manage_page() -> TaskManagePageItem {
                     if let Some(export_dir_path_list) = export_dir_path_list.get((export_index-1) as usize) {
                         for index in 0..card_list.len() {
                             if let Some(item) =export_dir_path_list.get(index)  {
-                                card_list[index].re_data(&item);
+                                card_list[index].re_data_v2(&global_var_util::export_task_item_to_v2(&item));
                             }else {
                                 card_list[index].to_gc();
                             }
@@ -851,16 +913,6 @@ pub fn task_manage_page() -> TaskManagePageItem {
                     }
 
                 }
-
-                // for index in 0..card_list.len() {
-                //     if let Some(item) =card_list.get_mut(index)  {
-                //         if item.btn_remove.existPoint(x, y) {
-                //            lib::remove_export_id(get_i32(&FOCUS_ITEM_ID));
-                //         }
-
-                //     }
-                 
-                // }
 
                 true
             }
@@ -937,6 +989,8 @@ pub fn ManageItemMain() ->Option<ManageItemMain> {
     let mut win_empty_page = default_empty_page();
     let mut win_task_manage_page = task_manage_page();
 
+    let mut win_copy = win.clone();
+
     win.end();
     win.show();
 
@@ -956,10 +1010,13 @@ pub fn ManageItemMain() ->Option<ManageItemMain> {
                 true
             }
             enums::Event::Close => {
+                fltk::window::Window::delete(win.clone());
+
                 false
             }
             enums::Event::Hide => {
-                
+                fltk::window::Window::delete(win.clone());
+
                 if win_empty.visible() &&next_btn_text.get_label().contains("知道了"){
                     fltk::window::Window::delete(win.clone());
                 }
@@ -999,9 +1056,12 @@ pub fn ManageItemMain() ->Option<ManageItemMain> {
         task_manage_page: win_task_manage_page,
     };
 
-    if global_var_util::get_export_dir_itme_len()==0 {
+    if global_var_util::get_export_task_item_len()==0 {
         result.to_empty_page(true);
     }
 
+    gui_util::redraw_win(&result.win);
+
+    
     Some(result)
 }

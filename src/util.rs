@@ -1,14 +1,5 @@
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_parens,
-    unused_variables,
-    unused_mut,
-    unused_must_use,
-    unused_assignments,
-    non_snake_case,
-    unreachable_code
-)]
+
+#![allow(warnings, unused)]
 
 use std::{
     env,

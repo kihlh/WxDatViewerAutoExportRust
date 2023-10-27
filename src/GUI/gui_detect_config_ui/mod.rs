@@ -224,4 +224,6 @@ pub fn main_window() {
 
     win.end();
     win.show();
+    gui_util::redraw_win(&win);
+
 }

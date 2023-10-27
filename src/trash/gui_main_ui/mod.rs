@@ -910,7 +910,7 @@ pub fn mianWindow(show: bool) -> Result<MianWindowItme> {
                         }
     
                         conn.close();
-                        global_var_util::update_export_dir_itme_list();
+                        global_var_util::update_export_task_item_list();
 
                      }else{
                         //  libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程 拒绝提供选取方案".to_owned())

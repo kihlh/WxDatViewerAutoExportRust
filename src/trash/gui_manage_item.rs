@@ -256,7 +256,7 @@ pub fn ManageItmeMain() {
     win.set_border(false);
     win.set_id ("gui::DoubleWindow::manage_item::main");
 
-    let mut export_dir_path_list: Vec<global_var_util::ExportDirItme> =
+    let mut export_dir_path_list: Vec<global_var_util::ExportTaskItem> =
     global_var_util::get_export_dir_itme_list();
 
     // 偏移量
@@ -502,7 +502,7 @@ pub fn ManageItmeMain() {
                                     ));
 
                                     export_dir_path_list.clear();
-                                    for cat in global_var_util::update_export_dir_itme_list() {
+                                    for cat in global_var_util::update_export_task_item_list() {
                                         export_dir_path_list.push(cat);
                                     }
 

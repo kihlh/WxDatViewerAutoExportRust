@@ -10,7 +10,7 @@ pub(crate) fn remove_export_path(path_string:String) {
         [path_string.clone()],
     ) {
         Ok(updated) => {
-            global_var_util::update_export_dir_itme_list();
+            global_var_util::update_export_task_item_list();
         }
         Err(err) => {
 
@@ -31,7 +31,7 @@ pub(crate) fn remove_export_id(id:i32)->bool {
         [id.clone()],
     ) {
         Ok(updated) => {
-            global_var_util::update_export_dir_itme_list();
+            global_var_util::update_export_task_item_list();
             println!("成功{}",updated);
             result=true;
         }

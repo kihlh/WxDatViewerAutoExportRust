@@ -25,10 +25,8 @@
 
 * 直链 ：[下载](https://vip.123pan.cn/1816369032/assets/WxDatViewerAutoExportRust.zip)
 
-* 更新检测API 01 ：https://x-1300389275.cos.ap-shanghai.myqcloud.com/assets/WxAutoExIm/version.json
-* 更新检测API 02 ：https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json
-* 更新检测API 03 ：https://cos.kiic.top/assets/WxAutoExIm/version.json
-* 更新检测API 04 ：https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json
+* 更新检测API 01 ：https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json
+* 更新检测API 02 ：https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json
 * 内测 / 公测 / 意见反馈：QQ群：649020539  
   
 ------------------------------

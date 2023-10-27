@@ -563,6 +563,7 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
 
     libWxIkunPlus::setWinIcon(get_the_hwnd!());
     libWxIkunPlus::setWinTop(get_the_hwnd!(),true);
+    gui_util::redraw_win(&win);
 
     Some(win)
 }

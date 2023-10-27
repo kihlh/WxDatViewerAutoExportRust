@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicUsize, Ordering}
 use std::sync::{Arc, Condvar, Mutex, RwLock, OnceLock};
 mod lib;
 use crate::atomic_util::{add_usize,set_usize, get_usize};
-use crate::{atomic_util, get_bool,set_bool, libWxIkunPlus};
+use crate::{atomic_util, get_bool,set_bool, libWxIkunPlus, global_var, global_var_util};
 // 配置常量
 
 // 启用开发者模式（此处为false 配置文件中的开发者模式将被忽略）
@@ -60,6 +60,9 @@ static CONFIG_ID: AtomicUsize = AtomicUsize::new(0);
 
 // 已经初始化
 static VARIABLE_INITIALIZE: OnceLock<bool> = OnceLock::new();
+
+static USER_EXPORT_MAX_ID: AtomicUsize = AtomicUsize::new(0);
+
 
 
 #[derive(Debug)]
@@ -429,3 +432,20 @@ pub fn is_show_dome() -> bool {
     get_bool!(CONFIG_DOME_PREVIEW)
 }
 
+
+pub fn is_load_history()-> bool {
+    global_var::get_bool_default("user::config::exise_history")&&
+    (get_config_bool(CONFIG_KEY::CreateCont) ||get_config_bool(CONFIG_KEY::PreserveConfig))
+}
+
+pub fn get_user_export_max_id()-> usize {
+   let mut this_id = get_usize(&USER_EXPORT_MAX_ID);
+    
+    if this_id==0 {
+        this_id = (global_var_util::get_max_id()+1) as usize;
+        set_usize(&USER_EXPORT_MAX_ID,this_id);    
+    }
+    add_usize(&USER_EXPORT_MAX_ID, 1);
+
+    return this_id;
+}

@@ -1,5 +1,5 @@
 use crate::util::str_eq_ostr;
-use crate::{console_log, global_var_util, gui_util, handle_dat, libWxIkunPlus, wh_mod};
+use crate::{console_log, global_var_util, gui_util, handle_dat, libWxIkunPlus, wh_mod, watching};
 use chrono::Local;
 use glob::glob;
 use rusqlite::{params, Connection, Result};
@@ -138,7 +138,7 @@ pub fn push_sql_export_dir_path(name: &str, export_dir: &str, task_command: &str
         [
             name,
             Local::now().format("%Y-%m-%d").to_string().as_str(),
-            task_command,
+            task_command.clone(),
             export_dir,
         ],
     ) {
@@ -175,7 +175,36 @@ pub fn push_sql_export_dir_path(name: &str, export_dir: &str, task_command: &str
     }
 
     conn.close();
-    global_var_util::update_export_dir_itme_list();
+    let mut export_task_item_list =global_var_util::update_export_task_item_list();
+    let mut task_command = format!("{}",task_command.clone());
+
+    // 立即日志扫描
+    if config::get_config_bool(config::CONFIG_KEY::AutoAction) {
+        
+    std::thread::spawn(move ||{
+        // Sleep(500);
+        watching::update_watch_path_token(false);
+    });
+
+    }
+    
+    // 立即全量扫描
+    if config::get_config_bool(config::CONFIG_KEY::GlobalScan) {
+
+        std::thread::spawn({
+            // let mut task_command = task_command.clone();
+            // let mut export_task_item_list = export_task_item_list.clone();
+     
+            move ||{
+            for value in export_task_item_list {
+                if value.path.as_bytes().eq(task_command.as_bytes()) {
+                    handle_dat::handle_walk_pictures_from_vec(vec![value]);
+                }
+            }
+            
+        }});
+    }
+
 }
 
 pub fn eq_next() -> bool {

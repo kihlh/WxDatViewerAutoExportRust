@@ -46,5 +46,16 @@ macro_rules! set_item_id {
     };
 }
 
-
+// 用来解决小概率窗口显示不完整
+pub fn redraw_win(win: &fltk::window::DoubleWindow) {
+    fltk::app::add_timeout3(0.05, {
+        let mut win = win.clone();
+        move |cb| {
+            win.resize(win.x(), win.y(), win.w(), win.h() - 1);
+            win.redraw();
+            win.redraw_label();
+            win.resize(win.x(), win.y(), win.w(), win.h() + 1);
+        }
+    });
+}
 

@@ -65,9 +65,10 @@ extern "C" {
     fn _setWindowEnabled(_hWnd: c_long, enabled: bool) -> bool;
     fn _hasInitWindowIsDisplayed() -> bool;
     fn _setInitWindowIsDisplayed(initWindowIsDisplayed: bool) -> bool;
-    fn _getColor_json(x: i32, y: i32) -> PCSTR;
+    fn _getColor_json(x: c_int, y: c_int) -> PCSTR;
     fn _getBasicKeys() -> PCSTR;
     fn _selectFile() -> PCSTR;
+    fn _isKeyDown(key: c_int)-> bool;
 
 }
 
@@ -665,4 +666,8 @@ pub fn selectFile() -> String {
     let c_result = unsafe {_selectFile()};
     setwinVisible(the_win.clone(), true);
     c_string_to_rust_string(c_result)
+}
+
+pub fn isKeyDown(key:i32) -> bool {
+    unsafe {_isKeyDown(key)}
 }

@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -177,7 +177,7 @@ fn main() -> Result<()> {
                 Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
 
             handle_dat::initialize_table(&conn);
-            let _ = handle_dat::handle_walk_pictures(&conn);
+            let _ = handle_dat::handle_walk_pictures();
             let _ = conn.close();
         });
     });
@@ -190,7 +190,7 @@ fn main() -> Result<()> {
                     let conn: Connection =
                         Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
                     handle_dat::initialize_table(&conn);
-                    let _ = handle_dat::handle_walk_pictures(&conn);
+                    let _ = handle_dat::handle_walk_pictures();
                     let _ = conn.close();
                 });
         };

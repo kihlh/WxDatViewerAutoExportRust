@@ -23,7 +23,7 @@ use std::{
     sync::{atomic::AtomicUsize, OnceLock},
 };
 use std::ffi::OsStr;
-use crate::{util, config, global_var};
+use crate::{util, config, global_var, global_var_util, libWxIkunPlus};
 
 // lazy_static! {
 //     static ref WALK_ATTACH_FILE_LIST: Mutex<HashMap<String, Vec<PathBuf>>> = Mutex::new(HashMap::new());
@@ -1046,8 +1046,112 @@ impl Dat2VarParseMeta {
 
         result
     }
-    pub fn writeFile(exp_dir:&str,var2dat_path:&str,buff:&[u8]) {
 
+    pub fn writeFile(dat:&str,export_task:global_var_util::ExportTaskItem) -> Result<String,std::io::Error> {
+        
+
+        let dat2var = parse_dat2var_path(&export_task.path);
+        let data_base = util::to_string_default(PathBuf::from(dat).file_name());
+
+        let mut rename_rule =dat2var.rename_rule;
+        if rename_rule.is_empty() {
+            rename_rule = format!("<现在>[<哈希>]_<NNN>") 
+        }
+        let mut the_data = HashMap::new();
+        let time_info =util::get_time_info();
+
+        the_data.insert("<现在>",time_info.time);
+        the_data.insert("<年>",time_info.years);
+        the_data.insert("<月>",time_info.month);
+        the_data.insert("<日>",time_info.day);
+        the_data.insert("<时>",time_info.hour);
+        the_data.insert("<分>",time_info.minutes);
+
+        let mut mk_time_years = time_info.time_years;
+        the_data.insert("<创建月>",mk_time_years);
+        the_data.insert("<哈希>",dat2var.attach_id.clone().replace("_t.dat","").replace(".dat", "").replace("_m.dat", ""));
+
+        for (key,data) in the_data {
+            rename_rule = rename_rule.replace(key,data.as_str());
+        }
+
+        let buff = convert::convert_dat_images_buff(std::path::PathBuf::from(dat))?;
+        
+        // 判断是否是手机截图尺寸
+        if mobile_screenshot::has_mobile_screenshot(&buff) {
+            rename_rule=rename_rule.replace("<类型>","手机截图")
+        }else{
+            let mut _type = "图片";
+
+            if dat2var.is_video {
+                _type = "视频"
+            }
+
+            if data_base.contains("_t.dat") {
+                _type = "缩略图"
+            }
+
+            if data_base.contains("_m.dat") {
+                _type = "超大图"
+            }
+            
+            rename_rule=rename_rule.replace("<类型>",_type)
+        }
+
+        rename_rule=rename_rule.replace("<任务名>",&export_task.name);
+        
+        if rename_rule.contains("<别名>") {
+            rename_rule=rename_rule.replace("<别名>","");
+        }
+
+        let path = {
+            let ext = util::to_string_default(convert::detect_image_format(&buff.clone()));
+            
+            fn replace(index:i32,rename_rule:&str) -> String {
+                rename_rule
+                .replace("<NNNNN>",&format!("{:05}",index))
+                .replace("<NNNN>",&format!("{:04}",index))
+                .replace("<NNN>",&format!("{:03}",index))
+                .replace("<NN>",&format!("{:02}",index))
+                .replace("<N>",&format!("{}",index))
+            }
+
+            let mut path_c = format!("{}/{}.{}",&export_task.ouput,replace(config::get_user_export_max_id() as i32 ,&rename_rule),&ext);
+            
+                for index in 0..550  {
+                    if PathBuf::from(&path_c).exists() {
+                    path_c = format!("{}/{}.{}",&export_task.ouput,replace(config::get_user_export_max_id() as i32 ,&rename_rule),&ext);
+                }else{
+                    break;
+                }
+            }
+
+
+            for index in 0..50  {
+                if PathBuf::from(&path_c).exists() {
+                    //路径无法避免的重复生成随机字符
+                   path_c = format!("{}/{}（{}{}）.{}",&export_task.ouput,&rename_rule,libWxIkunPlus::randomNum(),libWxIkunPlus::randomNum(),&ext);
+    
+                }else{
+                    break;
+                }
+            }
+
+            path_c
+        };
+
+        let write_file_path =Path::new(path.as_str());
+        let write_dir_path = write_file_path.join("..").to_path_buf();
+
+        if !write_dir_path.exists() {
+            fs::create_dir_all(write_dir_path)?;
+        }
+        
+        fs::write(&write_file_path,&buff)?;
+
+        // println!("writeFile-> {} ",path);
+
+       return Ok(util::to_string_default(write_file_path))
     }
 }
 

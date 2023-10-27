@@ -80,4 +80,6 @@ pub fn manage_tool_main() {
     });
 
     win.show();
+    gui_util::redraw_win(&win);
+
 }

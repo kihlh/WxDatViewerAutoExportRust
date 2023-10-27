@@ -1,5 +1,7 @@
 // use lazy_static::lazy_static;
 use rusqlite::Connection;
+use rusqlite::OptionalExtension;
+use rusqlite::params;
 // use once_cell::sync::OnceCell;
 // use std::cell::LazyCell;
 use std::collections::HashMap;
@@ -12,19 +14,21 @@ use std::sync::OnceLock;
 
 use crate::global_var::insert_vec_string;
 use crate::global_var::push_vec_string;
+use crate::libWxIkunPlus;
+use crate::wh_mod;
 
 // lazy_static! {
-//     static ref VARIABLE_VEC_EXPORT_DIR_ITME: Mutex<Vec<ExportDirItme>> = Mutex::new(Vec::new());
+//     static ref VARIABLE_VEC_EXPORT_DIR_ITME: Mutex<Vec<ExportTaskItem>> = Mutex::new(Vec::new());
 // }
 
-static mut VARIABLE_VEC_EXPORT_DIR_ITME: Vec<ExportDirItme> = Vec::new();
+static mut VARIABLE_VEC_EXPORT_DIR_ITME: Vec<ExportTaskItem> = Vec::new();
 static VARIABLE_VEC_EXPORT_DIR_ITME_BIND: AtomicUsize = AtomicUsize::new(0);
 
 static VARIABLE_INITIALIZE: OnceLock<bool> = OnceLock::new();
 static INITIALIZE_GET_EXPORT_DIR_TIME_LIST: OnceLock<bool> = OnceLock::new();
 #[derive(Debug)]
 // 用户任务
-pub struct ExportDirItme {
+pub struct ExportTaskItem {
     pub id: i32,
     pub time: String,
     pub name: String,
@@ -32,9 +36,9 @@ pub struct ExportDirItme {
     pub ouput: String,
 }
 
-impl Clone for ExportDirItme {
+impl Clone for ExportTaskItem {
     fn clone(&self) -> Self {
-        ExportDirItme {
+        ExportTaskItem {
             id: self.id.clone(),
             time: self.time.clone(),
             name: self.name.clone(),
@@ -44,15 +48,26 @@ impl Clone for ExportDirItme {
     }
 }
 
+impl ExportTaskItem{
+   pub fn is_sync(&self)->bool{
+    wh_mod::parse_dat2var_path(&self.path).is_sync
+   }
+   
+   pub fn dat_parse_meta(&self)->wh_mod::Dat2VarParseMeta {
+     wh_mod::parse_dat2var_path(&self.path)
+   }
+
+}
+
 // 从数据库中获取用户任务
-fn get_export_dir_path_itme_sql_lib(
+fn get_export_task_item_sql_lib(
     conn: &Connection,
-) -> Result<Vec<ExportDirItme>, rusqlite::Error> {
-    let mut result: Vec<ExportDirItme> = Vec::new();
+) -> Result<Vec<ExportTaskItem>, rusqlite::Error> {
+    let mut result: Vec<ExportTaskItem> = Vec::new();
     let mut stmt = conn.prepare("SELECT id, time, name, path, ouput  FROM export_dir_path")?;
 
     let cats = stmt.query_map([], |row| {
-        Ok(ExportDirItme {
+        Ok(ExportTaskItem {
             id: row.get(0)?,
             time: row.get(1)?,
             name: row.get(2)?,
@@ -70,8 +85,8 @@ fn get_export_dir_path_itme_sql_lib(
 }
 
 // 获取用户任务 （刷新）
-pub fn update_export_dir_itme_list() -> Vec<ExportDirItme> {
-    let mut itme_list: Vec<ExportDirItme> = Vec::new();
+pub fn update_export_task_item_list() -> Vec<ExportTaskItem> {
+    let mut itme_list: Vec<ExportTaskItem> = Vec::new();
 
     let conn: Connection = match Connection::open("ikun_user_data.db") {
         Ok(conn) => conn,
@@ -84,7 +99,7 @@ pub fn update_export_dir_itme_list() -> Vec<ExportDirItme> {
         }
     };
 
-    match get_export_dir_path_itme_sql_lib(&conn) {
+    match get_export_task_item_sql_lib(&conn) {
         Ok(data) => {
             for value in data {
                 itme_list.push(value);
@@ -141,16 +156,16 @@ pub fn update_export_dir_itme_list() -> Vec<ExportDirItme> {
 }
 
 // 获取用户任务 （不刷新 除非为0）
-pub fn get_export_dir_itme_list() -> Vec<ExportDirItme> {
+pub fn get_export_task_item_list() -> Vec<ExportTaskItem> {
     if !*(INITIALIZE_GET_EXPORT_DIR_TIME_LIST
         .get()
         .unwrap_or_else(|| &false))
     {
         INITIALIZE_GET_EXPORT_DIR_TIME_LIST.set(true);
-        return update_export_dir_itme_list();
+        return update_export_task_item_list();
     }
 
-    let mut itme_list: Vec<ExportDirItme> = Vec::new();
+    let mut itme_list: Vec<ExportTaskItem> = Vec::new();
 
     let mutex = Arc::new(Mutex::new(&VARIABLE_VEC_EXPORT_DIR_ITME_BIND));
     let _ = mutex.lock();
@@ -168,13 +183,13 @@ pub fn get_export_dir_itme_list() -> Vec<ExportDirItme> {
 }
 
 // 获取用户任务 （不刷新 除非为0）
-pub fn get_export_dir_itme_len() -> usize {
+pub fn get_export_task_item_len() -> usize {
     if !*(INITIALIZE_GET_EXPORT_DIR_TIME_LIST
         .get()
         .unwrap_or_else(|| &false))
     {
         INITIALIZE_GET_EXPORT_DIR_TIME_LIST.set(true);
-        return update_export_dir_itme_list().len();
+        return update_export_task_item_list().len();
     }
     let mut itme_list_len = 0;
 
@@ -191,7 +206,7 @@ pub fn get_export_dir_itme_len() -> usize {
 }
 
 // 获取指定数量
-pub fn get_group_export_task_value(index: i32, len: usize) -> Vec<ExportDirItme> {
+pub fn get_group_export_task_value(index: i32, len: usize) -> Vec<ExportTaskItem> {
     if let Some(item) = get_group_export_task_value_list(len).get(index as usize) {
         return item.clone();
     }
@@ -200,9 +215,9 @@ pub fn get_group_export_task_value(index: i32, len: usize) -> Vec<ExportDirItme>
 }
 
 // 拆分导出类别为xx一组方便计算
-pub fn get_group_export_task_value_list(len: usize) -> Vec<Vec<ExportDirItme>> {
+pub fn get_group_export_task_value_list(len: usize) -> Vec<Vec<ExportTaskItem>> {
     let mut list = Vec::new();
-    let mut export_dir_path_list = get_export_dir_itme_list();
+    let mut export_dir_path_list = get_export_task_item_list();
 
     let mut temp = Vec::new();
 
@@ -221,8 +236,8 @@ pub fn get_group_export_task_value_list(len: usize) -> Vec<Vec<ExportDirItme>> {
     list
 }
 
-pub fn get_export_dir_itme_from_id(id: i32) -> Option<ExportDirItme> {
-    for value in get_export_dir_itme_list() {
+pub fn get_export_dir_itme_from_id(id: i32) -> Option<ExportTaskItem> {
+    for value in get_export_task_item_list() {
         if value.id.eq(&id.to_owned()) {
             return Some(value);
         }
@@ -233,7 +248,7 @@ pub fn get_export_dir_itme_from_id(id: i32) -> Option<ExportDirItme> {
 
 #[derive(Debug)]
 // 用户任务
-pub struct ExportDirItemThumbnail {
+pub struct ExportTaskItemThumbnail {
     pub id: i32,
     pub time: String,
     pub name: String,
@@ -242,9 +257,9 @@ pub struct ExportDirItemThumbnail {
     pub thumbnail:Vec<u8>
 }
 
-impl Clone for ExportDirItemThumbnail {
+impl Clone for ExportTaskItemThumbnail {
     fn clone(&self) -> Self {
-        ExportDirItemThumbnail {
+        ExportTaskItemThumbnail {
             id: self.id.clone(),
             time: self.time.clone(),
             name: self.name.clone(),
@@ -255,7 +270,7 @@ impl Clone for ExportDirItemThumbnail {
     }
 }
 
-pub fn get_thumbnail_from_id (id:i32) -> Result<Vec<ExportDirItemThumbnail>, rusqlite::Error> {
+pub fn get_thumbnail_from_id (id:i32) -> Result<Vec<ExportTaskItemThumbnail>, rusqlite::Error> {
     
     let conn: Connection = match Connection::open("ikun_user_data.db") {
         Ok(conn) => conn,
@@ -268,7 +283,7 @@ pub fn get_thumbnail_from_id (id:i32) -> Result<Vec<ExportDirItemThumbnail>, rus
     let mut res = Vec::new();
 
     let cats = stmt.query_map([id], |row| {
-        Ok(ExportDirItemThumbnail {
+        Ok(ExportTaskItemThumbnail {
             id: row.get(0)?,
             time: row.get(1)?,
             name: row.get(2)?,
@@ -307,12 +322,12 @@ pub fn set_export_from_id_thumbnail(id: i32,thumbnail:Option<Vec<u8>>)-> Result<
         "UPDATE export_dir_path SET thumbnail = ? WHERE id = ?",
         rusqlite::params![thumbnail, id],
     )?;
-    update_export_dir_itme_list();
+    update_export_task_item_list();
     conn.close();
     Ok(())
 }
 
-pub fn insert_export_from_id_thumbnail1(input:ExportDirItemThumbnail)-> Result<(), rusqlite::Error> {
+pub fn insert_export_task_from_id_thumbnail1(input:ExportTaskItemThumbnail)-> Result<(), rusqlite::Error> {
    
     let conn: Connection = Connection::open("ikun_user_data.db")?;
     let mut stmt = conn.execute(
@@ -320,12 +335,12 @@ pub fn insert_export_from_id_thumbnail1(input:ExportDirItemThumbnail)-> Result<(
         VALUES (?, ?, ?, ?, ?, ?)",
         rusqlite::params![input.id,input.time, input.name, input.path, input.ouput, input.thumbnail],
     )?;
-    update_export_dir_itme_list();
+    update_export_task_item_list();
     conn.close();
     Ok(())
 }
 
-pub fn insert_export_from_id_thumbnail2(input:ExportDirItme)-> Result<(), rusqlite::Error> {
+pub fn insert_export_task_from_id_thumbnail2(input:ExportTaskItem)-> Result<(), rusqlite::Error> {
    
     let conn: Connection = Connection::open("ikun_user_data.db")?;
     let mut stmt = conn.execute(
@@ -333,12 +348,13 @@ pub fn insert_export_from_id_thumbnail2(input:ExportDirItme)-> Result<(), rusqli
         VALUES (?, ?, ?, ?, ?, ?)",
         rusqlite::params![input.id,input.time, input.name, input.path, input.ouput],
     )?;
-    update_export_dir_itme_list();
+    update_export_task_item_list();
     conn.close();
     Ok(())
 }
 
-pub fn update_export_from_id_thumbnail(id: i32,name:&str,path:&str,ouput:&str,thumbnail:Option<Vec<u8>>)-> Result<(), rusqlite::Error> {
+pub fn update_export_task_from_id_thumbnail(id: i32,name:&str,path:&str,ouput:&str,thumbnail:Option<Vec<u8>>)-> Result<(), rusqlite::Error> {
+    
     let conn: Connection = Connection::open("ikun_user_data.db")?;
    if thumbnail.is_some() {
     let mut stmt = conn.execute(
@@ -355,7 +371,51 @@ pub fn update_export_from_id_thumbnail(id: i32,name:&str,path:&str,ouput:&str,th
 
    }
    
-    update_export_dir_itme_list();
+    update_export_task_item_list();
     conn.close();
     Ok(())
+}
+
+// 任务1.0(无缩略图) 转v2(自带缩略图)
+pub fn export_task_item_to_v2(input:&ExportTaskItem) ->ExportTaskItemThumbnail {
+    ExportTaskItemThumbnail{
+        id: input.id.clone(),
+        time: input.time.clone(),
+        name: input.name.clone(),
+        path: input.path.clone(),
+        ouput: input.ouput.clone(),
+        thumbnail: get_export_from_id_thumbnail(input.id),
+    }
+}
+
+
+impl ExportTaskItemThumbnail{
+    pub fn is_sync(&self)->bool{
+     wh_mod::parse_dat2var_path(&self.path).is_sync
+    }
+    
+    pub fn dat_parse_meta(&self)->wh_mod::Dat2VarParseMeta {
+      wh_mod::parse_dat2var_path(&self.path)
+    }
+ 
+ }
+
+
+ fn _get_max_id() -> Result<Option<i32>, rusqlite::Error> {
+    let conn = Connection::open("ikun_user_data.db")?;
+
+    let query = "SELECT MAX(id) FROM msg_attach_export";
+    let mut stmt = conn.prepare(query)?;
+    let max_id: Option<i32> = stmt.query_row(params![], |row| row.get(0)).optional()?;
+
+    Ok(max_id)
+}
+
+pub fn get_max_id()-> i32 {
+    if let Ok(item) = _get_max_id() {
+        if let Some(item) = item {
+            return item;
+        }
+    }
+    return 0i32;
 }

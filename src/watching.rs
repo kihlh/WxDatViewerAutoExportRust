@@ -176,10 +176,17 @@ fn get_all_watch_token_path() -> Vec<String> {
 }
 
 // 更新路径令牌
-fn update_watch_path_token(initialize: bool) {
+pub(crate) fn update_watch_path_token(initialize: bool) {
     initialize_watch_path_token();
-    let export_dir_itme_list: Vec<global_var_util::ExportDirItme> =
-        global_var_util::get_export_dir_itme_list();
+    let export_dir_itme_list_all: Vec<global_var_util::ExportTaskItem> = global_var_util::get_export_task_item_list();
+    let mut export_dir_itme_list = Vec::new();
+    for value in export_dir_itme_list_all {
+        if value.is_sync() {
+            export_dir_itme_list.push(value)
+        }else{
+            console_log!(format!("[同步取消(task-t)]{}",value.name));
+        }
+    }
 
     // 添加新的已有token
     if (initialize) {
@@ -194,6 +201,8 @@ fn update_watch_path_token(initialize: bool) {
     for value in export_dir_itme_list.clone() {
         let mut token = false;
         let path = value.path.clone();
+
+       
 
         // 判断是否存在
         for value in token_path_list.clone() {
@@ -241,7 +250,13 @@ fn update_watch_path_token(initialize: bool) {
 }
 
 // 处理更新的文件的路径
-fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
+fn change_watch_path(path: String, exp_itme: global_var_util::ExportTaskItem) {
+    
+    if !exp_itme.is_sync() {
+        console_log!(format!("[同步取消(新增)]{}",&exp_itme.name));
+         return;
+    }
+
     initialize_watch_path_token();
 
     let mutex = Arc::new(Mutex::new(&WARCHER_CHANGE_LIST_BIND));
@@ -250,6 +265,7 @@ fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
     unsafe {
         if let Some(lazy_value) = WARCHER_CHANGE_LIST.as_mut() {
             // let mut lazy_value = WARCHER_CHANGE_LIST.lock().unwrap();
+          
 
             if (lazy_value.insert(path.clone())) {
                 // console_log!(format!("[检测] 检测到文件更新-> {}", path.clone()));
@@ -294,7 +310,7 @@ fn change_watch_path(path: String, exp_itme: global_var_util::ExportDirItme) {
 // 启动文件系统日志模式
 pub fn initialize_file_system_Change() {
     let mut warcher_len = 0;
-    let mut itme_list = global_var_util::update_export_dir_itme_list();
+    let mut itme_list = global_var_util::update_export_task_item_list();
 
     update_watch_path_token(true);
     for value in itme_list.clone() {
@@ -314,21 +330,26 @@ pub fn initialize_file_system_Change() {
         itme_list.len()
     ));
 
-    thread::spawn(move || loop {
-        Sleep(500);
-        update_watch_path_token(false);
-    });
+    // thread::spawn(move || loop {
+    //     Sleep(500);
+    //     update_watch_path_token(false);
+    // });
 }
 
 // 对文件夹个体进行处理
 pub fn watch<P: AsRef<Path>>(
     path: P,
-    exp_item: global_var_util::ExportDirItme,
+    exp_item: global_var_util::ExportTaskItem,
 ) -> notify::Result<()> {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
     let dir_path = path.as_ref().display().to_string();
     let mut dat_parse_meta = wh_mod::parse_dat2var_path(dir_path.clone());
+   
+    if !dat_parse_meta.is_sync {
+        console_log!(format!("[同步取消(watch)]{}",&exp_item.name));
+        return Ok(());
+    }
 
     println!("dir_path-> {}", dir_path.clone());
     watcher.watch(

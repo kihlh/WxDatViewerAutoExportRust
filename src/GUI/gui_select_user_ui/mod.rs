@@ -272,11 +272,18 @@ fn add_check_button() -> FrameCheck {
         global_var::set_bool("user::config::check_button_the_month",win.is_checked());
     });
 
-    check_button_source.set_checked(true);
-    check_button_sync.set_checked(true);
-    
-    global_var::set_bool("user::config::check_button_source",true);
-    global_var::set_bool("user::config::check_button_sync",true);
+    if config::is_load_history()
+     {
+        check_button_the_month.set_checked(global_var::get_bool_default("user::config::check_button_the_month"));
+        check_button_source.set_checked(global_var::get_bool_default("user::config::check_button_source"));
+        check_button_thumbnail.set_checked(global_var::get_bool_default("user::config::check_button_thumbnail"));
+        check_button_video.set_checked(global_var::get_bool_default("user::config::check_button_video"));
+        check_button_sync.set_checked(global_var::get_bool_default("user::config::check_button_sync"));
+    }
+    else{
+        check_button_source.set_checked(true);
+        check_button_sync.set_checked(true);
+    }
 
     flex.end();
 
@@ -996,7 +1003,12 @@ pub fn manage_tool_main() -> String{
     // 按钮 > 开始
     let mut button_start = gui_util::hotspot::create_hotspot(451, 73 , 57, 32);
 
-    select_attach_card.input_rename.set_value("<创建月>/<任务名>/<类型>_<NN>");
+    if config::is_load_history() {
+        select_attach_card.input_rename.set_value(&global_var::get_string_default("user::config::input_task_rename"));
+    }else{
+        select_attach_card.input_rename.set_value("<任务名>_<NN>");
+    }
+    
 
     let mut move_select_attach_card = select_attach_card.clone();
 
@@ -1355,7 +1367,7 @@ pub fn manage_tool_main() -> String{
                     g_the_select_attach_id.push_str(global_var::get_string_default("user::config::user_select_attach").as_str());
                 }
 
-                // 卡片按钮 > 完成选定
+                // 卡片按钮 > 完成选定 (创建任务选定)
                 if select_attach_card.btn_select.existPoint(x, y) {
                     println!("[click] existPoint {}", "卡片按钮 > 完成选定");
 
@@ -1425,6 +1437,18 @@ pub fn manage_tool_main() -> String{
                             result_data.push_str(format!("*rename_rule={}*", &rename_rule).as_str());
                         }
 
+                        if config::get_config_bool(config::CONFIG_KEY::CreateCont) || config::get_config_bool(config::CONFIG_KEY::PreserveConfig) {
+                            global_var::set_bool("user::config::check_button_thumbnail",frame_check.thumbnail.is_checked());
+                            global_var::set_bool("user::config::check_button_source",frame_check.source.is_checked());
+                            global_var::set_bool("user::config::check_button_video",frame_check.video.is_checked());
+                            global_var::set_bool("user::config::check_button_sync",frame_check.sync.is_checked());
+                            global_var::set_bool("user::config::check_button_the_month",frame_check.the_month.is_checked());
+
+                            global_var::set_string("user::config::input_task_rename", select_attach_card.input_rename.value());
+                            global_var::set_bool("user::config::exise_history", true);
+
+                        }
+                        
                     }else{
                         gui_util::message::sub_message(hwnd, gui_util::message::IconType::Warning, "路径转义失败 错误代码[3061]", 3500u64);
                         return false;
@@ -1621,6 +1645,7 @@ pub fn manage_tool_main() -> String{
     });
 
 
+    gui_util::redraw_win(&win);
 
     initialize_window_hwnd!(hwnd);
     the_token

@@ -258,6 +258,7 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
 
     win.end();
     win.show();
+    gui_util::redraw_win(&win);
 
     Some(win)
 }

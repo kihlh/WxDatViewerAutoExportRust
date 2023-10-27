@@ -287,7 +287,7 @@ pub fn rename_tool_main(input:&str) -> String {
 
                 true
             }
-
+            
             enums::Event::Drag => {
                 if y < 69 {
                     win.clone()
@@ -301,6 +301,7 @@ pub fn rename_tool_main(input:&str) -> String {
     });
 
     win.show();
+    gui_util::redraw_win(&win);
 
     the_token.clone()
 }
