@@ -298,7 +298,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
                 
                 if button_config.existPoint(x, y) {
-                    app::add_timeout3(0.1, {
+                    app::add_timeout3(0.2, {
                         
                         move|cb|{
                         if libWxIkunPlus::isKeyDown(1) {
@@ -322,21 +322,26 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 }
 
                 if button_about.existPoint(x, y){
-                    app::add_timeout3(0.1, {move|cb|{
+                    app::add_timeout3(0.2, {move|cb|{
                         if libWxIkunPlus::isKeyDown(1) {
                            println!("左键未释放");
                            return ;  
                         }
                     if config::is_build_52pojie()&&!config::is_developer() {
+                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Failure, "因发布平台规则当前版本不提供关于", 3500u64);
+                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "正在打开52破解论坛链接", 3500u64);
+
                         open_link_in_browser("https://www.52pojie.cn");
                         return  ;
                     }
+                    gui_about_ui::main_init();
+                    
                 }});
                 }
               
 
                 if button_sync.existPoint(x, y) {
-                    app::add_timeout3(0.1, {move|cb|{
+                    app::add_timeout3(0.2, {move|cb|{
                         if libWxIkunPlus::isKeyDown(1) {
                            println!("左键未释放");
                            return ;  
@@ -344,7 +349,7 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                     if(libWxIkunPlus::confirm("立即同步", "是否立即同步所有内容")){
                         thread::spawn(move || {
                             let conn: Connection =
-                                Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+                                Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
                             handle_dat::initialize_table(&conn);
                             handle_dat::handle_walk_pictures();
                             conn.close();
@@ -356,38 +361,89 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                 // 向导
                 if button_wizard.existPoint(x,y) {
                     if(lib::eq_next()){
-                        let mut token_id =  gui_select_user_ui::manage_tool_main();
-                        println!("token_id-> {}",&token_id);
-                        if(!token_id.is_empty()){
-
-                            let mut task_command =  win_control.task_command.clone();
-                            app::add_timeout3(0.3,move|handle|{
-                                if !gui_select_user_ui::has_window(){
-
-                                    let data = global_var::get_string_default(token_id.as_str());
-                                    if !data.is_empty() {
-                                        println!("{}",data);
-                                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "向导任务命令已赋值", 3500u64);
-                                        task_command.set_value(wh_mod::get_show_mask_text(data.as_str()).as_str());
-                                        global_var::set_string("user::config::task_command",data.clone());
-                                    }else {
-                                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "用户取消任务创建", 3500u64);
+                        // 创建单例
+                        if !config::get_config_bool(config::CONFIG_KEY::CreateCont){
+                            let mut token_id =  gui_select_user_ui::manage_tool_main(None);
+                        
+                            println!("token_id-> {}",&token_id);
+                            if(!token_id.is_empty()){
+    
+                                let mut task_command =  win_control.task_command.clone();
+                                app::add_timeout3(0.3,move|handle|{
+                                    if !gui_select_user_ui::has_window(){
+    
+                                        let data = global_var::get_string_default(token_id.as_str());
+                                        if !data.is_empty() {
+                                            println!("{}",data);
+                                            gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "向导任务命令已赋值", 3500u64);
+                                            task_command.set_value(wh_mod::get_show_mask_text(data.as_str()).as_str());
+                                            global_var::set_string("user::config::task_command",data.clone());
+                                        }else {
+                                            gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "用户取消任务创建", 3500u64);
+                                        }
+    
+                                        app::remove_timeout3(handle);
+                                        return ;
                                     }
-
-                                    app::remove_timeout3(handle);
-                                    return ;
-                                }
-                                app::repeat_timeout3(0.3, handle);
-                            });
-
-                        }else {
-                            if gui_select_user_ui::has_window(){
-                                gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "窗口重复创建", 3500u64);
+                                    app::repeat_timeout3(0.3, handle);
+                                });
+    
                             }else {
-                                gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "创建任务id失败", 3500u64);
+                                if gui_select_user_ui::has_window(){
+                                    gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "窗口重复创建", 3500u64);
+                                }else {
+                                    gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "创建任务id失败", 3500u64);
+                                }
                             }
                         }
+                        // 连续创建
+                        else{
 
+                            let (tx, rx) = mpsc::channel();
+
+                            let mut token_id =  gui_select_user_ui::manage_tool_main(Some(tx));
+                            println!("token_id(mpsc::channel)-> {}",&token_id);
+
+                            if(!token_id.is_empty()){
+    
+                                let mut task_command =  win_control.task_command.clone();
+                                app::add_timeout3(0.3,{
+                                   let mut win = win.clone();
+                                    move|handle|{
+                                        if gui_select_user_ui::has_window(){
+        
+                                            if let Ok(data) = rx.try_recv() {
+
+                                                if !data.is_empty() {
+                                                    println!("{}",data);
+                                                    gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "向导任务命令已赋值", 3500u64);
+                                                    task_command.set_value(wh_mod::get_show_mask_text(data.as_str()).as_str());
+                                                    global_var::set_string("user::config::task_command",data.clone());
+                                                    win.set_visible_focus();
+                                                }
+                                            }
+                                            
+                                        }else{
+                                            // 释放ipc通道
+                                            drop(&rx);
+                                            app::remove_timeout3(handle);
+                                            gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "任务创建(连续)已释放", 3500u64);
+                                            return ;
+                                        }
+                                        app::repeat_timeout3(0.3, handle);
+                                    }
+                                });
+    
+                            }else {
+                                drop(&rx);
+
+                                if gui_select_user_ui::has_window(){
+                                    gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "窗口重复创建", 3500u64);
+                                }else {
+                                    gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Warning, "创建任务id失败", 3500u64);
+                                }
+                            }
+                        }
                     }else{
                         libWxIkunPlus::stop("错误".to_owned(),"当前未发现wx进程或者未登录 拒绝提供选取方案".to_owned());
                     }

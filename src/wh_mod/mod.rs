@@ -1153,6 +1153,20 @@ impl Dat2VarParseMeta {
 
        return Ok(util::to_string_default(write_file_path))
     }
+
+    pub fn is_sync(export_task:&global_var_util::ExportTaskItem) -> bool {
+        let mut result = true;
+        
+        if export_task.version > 200usize {
+            if !export_task.path.contains("*Sync") {
+                return  false;
+            }
+        }
+
+        result
+    }
+
+
 }
 
 impl Clone for Dat2VarParseMeta {

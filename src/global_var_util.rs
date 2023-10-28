@@ -12,6 +12,8 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
+use crate::APP_DB_NAME;
+use crate::APP_VERSION;
 use crate::global_var::insert_vec_string;
 use crate::global_var::push_vec_string;
 use crate::libWxIkunPlus;
@@ -34,6 +36,7 @@ pub struct ExportTaskItem {
     pub name: String,
     pub path: String,
     pub ouput: String,
+    pub version:usize
 }
 
 impl Clone for ExportTaskItem {
@@ -44,13 +47,14 @@ impl Clone for ExportTaskItem {
             name: self.name.clone(),
             path: self.path.clone(),
             ouput: self.ouput.clone(),
+            version: self.version.clone(),
         }
     }
 }
 
 impl ExportTaskItem{
    pub fn is_sync(&self)->bool{
-    wh_mod::parse_dat2var_path(&self.path).is_sync
+    wh_mod::parse_dat2var_path(&self.path).is_sync&&self.version>200usize
    }
    
    pub fn dat_parse_meta(&self)->wh_mod::Dat2VarParseMeta {
@@ -64,7 +68,7 @@ fn get_export_task_item_sql_lib(
     conn: &Connection,
 ) -> Result<Vec<ExportTaskItem>, rusqlite::Error> {
     let mut result: Vec<ExportTaskItem> = Vec::new();
-    let mut stmt = conn.prepare("SELECT id, time, name, path, ouput  FROM export_dir_path")?;
+    let mut stmt = conn.prepare("SELECT id, time, name, path, ouput, version  FROM export_dir_path")?;
 
     let cats = stmt.query_map([], |row| {
         Ok(ExportTaskItem {
@@ -73,6 +77,7 @@ fn get_export_task_item_sql_lib(
             name: row.get(2)?,
             path: row.get(3)?,
             ouput: row.get(4)?,
+            version: row.get(5).unwrap_or_else(|_|{0}) as usize,
         })
     })?;
 
@@ -88,7 +93,7 @@ fn get_export_task_item_sql_lib(
 pub fn update_export_task_item_list() -> Vec<ExportTaskItem> {
     let mut itme_list: Vec<ExportTaskItem> = Vec::new();
 
-    let conn: Connection = match Connection::open("ikun_user_data.db") {
+    let conn: Connection = match Connection::open(APP_DB_NAME) {
         Ok(conn) => conn,
         Err(e) => {
             push_vec_string(
@@ -254,7 +259,8 @@ pub struct ExportTaskItemThumbnail {
     pub name: String,
     pub path: String,
     pub ouput: String,
-    pub thumbnail:Vec<u8>
+    pub thumbnail:Vec<u8>,
+    pub version:usize
 }
 
 impl Clone for ExportTaskItemThumbnail {
@@ -266,20 +272,21 @@ impl Clone for ExportTaskItemThumbnail {
             path: self.path.clone(),
             ouput: self.ouput.clone(),
             thumbnail: self.thumbnail.clone(),
+            version:self.version.clone(),
         }
     }
 }
 
 pub fn get_thumbnail_from_id (id:i32) -> Result<Vec<ExportTaskItemThumbnail>, rusqlite::Error> {
     
-    let conn: Connection = match Connection::open("ikun_user_data.db") {
+    let conn: Connection = match Connection::open(APP_DB_NAME) {
         Ok(conn) => conn,
         Err(e) => {
             return Ok(Vec::new());
         }
     };
 
-    let mut stmt = conn.prepare("SELECT id, time, name, path, ouput, thumbnail  FROM export_dir_path WHERE id = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, time, name, path, ouput, thumbnail,version  FROM export_dir_path WHERE id = ?1")?;
     let mut res = Vec::new();
 
     let cats = stmt.query_map([id], |row| {
@@ -289,7 +296,8 @@ pub fn get_thumbnail_from_id (id:i32) -> Result<Vec<ExportTaskItemThumbnail>, ru
             name: row.get(2)?,
             path: row.get(3)?,
             ouput: row.get(4)?,
-            thumbnail: row.get_ref(5)?.as_bytes()?.to_vec()
+            thumbnail: row.get_ref(5)?.as_bytes()?.to_vec(),
+            version:row.get(6).unwrap_or_else(|_|{0}),
         })
     })?;
 
@@ -317,7 +325,7 @@ pub fn get_export_from_id_thumbnail(id: i32) -> Vec<u8> {
 
 
 pub fn set_export_from_id_thumbnail(id: i32,thumbnail:Option<Vec<u8>>)-> Result<(), rusqlite::Error> {
-    let conn: Connection = Connection::open("ikun_user_data.db")?;
+    let conn: Connection = Connection::open(APP_DB_NAME)?;
     let mut stmt = conn.execute(
         "UPDATE export_dir_path SET thumbnail = ? WHERE id = ?",
         rusqlite::params![thumbnail, id],
@@ -329,11 +337,11 @@ pub fn set_export_from_id_thumbnail(id: i32,thumbnail:Option<Vec<u8>>)-> Result<
 
 pub fn insert_export_task_from_id_thumbnail1(input:ExportTaskItemThumbnail)-> Result<(), rusqlite::Error> {
    
-    let conn: Connection = Connection::open("ikun_user_data.db")?;
+    let conn: Connection = Connection::open(APP_DB_NAME)?;
     let mut stmt = conn.execute(
-        "INSERT INTO export_dir_path (id,time, name, path, ouput, thumbnail)
-        VALUES (?, ?, ?, ?, ?, ?)",
-        rusqlite::params![input.id,input.time, input.name, input.path, input.ouput, input.thumbnail],
+        "INSERT INTO export_dir_path (id,time, name, path, ouput, thumbnail,version)
+        VALUES (?, ?, ?, ?, ?, ? ,?)",
+        rusqlite::params![input.id,input.time, input.name, input.path, input.ouput, input.thumbnail,APP_VERSION],
     )?;
     update_export_task_item_list();
     conn.close();
@@ -342,11 +350,11 @@ pub fn insert_export_task_from_id_thumbnail1(input:ExportTaskItemThumbnail)-> Re
 
 pub fn insert_export_task_from_id_thumbnail2(input:ExportTaskItem)-> Result<(), rusqlite::Error> {
    
-    let conn: Connection = Connection::open("ikun_user_data.db")?;
+    let conn: Connection = Connection::open(APP_DB_NAME)?;
     let mut stmt = conn.execute(
-        "INSERT INTO export_dir_path (id,time, name, path, ouput)
-        VALUES (?, ?, ?, ?, ?, ?)",
-        rusqlite::params![input.id,input.time, input.name, input.path, input.ouput],
+        "INSERT INTO export_dir_path (id,time, name, path, ouput,version)
+        VALUES (?, ?, ?, ?, ?, ? ,?)",
+        rusqlite::params![input.id,input.time, input.name, input.path, input.ouput,APP_VERSION],
     )?;
     update_export_task_item_list();
     conn.close();
@@ -355,18 +363,18 @@ pub fn insert_export_task_from_id_thumbnail2(input:ExportTaskItem)-> Result<(), 
 
 pub fn update_export_task_from_id_thumbnail(id: i32,name:&str,path:&str,ouput:&str,thumbnail:Option<Vec<u8>>)-> Result<(), rusqlite::Error> {
     
-    let conn: Connection = Connection::open("ikun_user_data.db")?;
+    let conn: Connection = Connection::open(APP_DB_NAME)?;
    if thumbnail.is_some() {
     let mut stmt = conn.execute(
-        "UPDATE export_dir_path SET name = ? , path = ? , ouput = ? ,thumbnail = ? WHERE id = ?",
-        rusqlite::params![name,path,ouput,thumbnail, id],
+        "UPDATE export_dir_path SET name = ? , path = ? , version = ? , ouput = ? ,thumbnail = ? WHERE id = ?",
+        rusqlite::params![name,path,APP_VERSION,ouput,thumbnail, id],
     )?;
 
    }else{
    
     let mut stmt = conn.execute(
-        "UPDATE export_dir_path SET name = ? , path = ? , ouput = ?  WHERE id = ?",
-        rusqlite::params![name,path,ouput, id],
+        "UPDATE export_dir_path SET name = ? , path = ? , version = ?, ouput = ?  WHERE id = ?",
+        rusqlite::params![name,path,APP_VERSION,ouput, id],
     )?;
 
    }
@@ -385,13 +393,14 @@ pub fn export_task_item_to_v2(input:&ExportTaskItem) ->ExportTaskItemThumbnail {
         path: input.path.clone(),
         ouput: input.ouput.clone(),
         thumbnail: get_export_from_id_thumbnail(input.id),
+        version: input.version.clone(),
     }
 }
 
 
 impl ExportTaskItemThumbnail{
     pub fn is_sync(&self)->bool{
-     wh_mod::parse_dat2var_path(&self.path).is_sync
+     wh_mod::parse_dat2var_path(&self.path).is_sync&&self.version>200usize
     }
     
     pub fn dat_parse_meta(&self)->wh_mod::Dat2VarParseMeta {
@@ -402,7 +411,7 @@ impl ExportTaskItemThumbnail{
 
 
  fn _get_max_id() -> Result<Option<i32>, rusqlite::Error> {
-    let conn = Connection::open("ikun_user_data.db")?;
+    let conn = Connection::open(APP_DB_NAME)?;
 
     let query = "SELECT MAX(id) FROM msg_attach_export";
     let mut stmt = conn.prepare(query)?;

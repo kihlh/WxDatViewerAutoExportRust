@@ -1,5 +1,5 @@
 use crate::util::str_eq_ostr;
-use crate::{console_log, global_var_util, gui_util, handle_dat, libWxIkunPlus, wh_mod, watching};
+use crate::{console_log, global_var_util, gui_util, handle_dat, libWxIkunPlus, wh_mod, watching, APP_DB_NAME};
 use chrono::Local;
 use glob::glob;
 use rusqlite::{params, Connection, Result};
@@ -130,16 +130,18 @@ pub fn push_sql_export_dir_path(name: &str, export_dir: &str, task_command: &str
         return;
     }
 
-    let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+    let conn: Connection = Connection::open(APP_DB_NAME).unwrap();
 
     handle_dat::initialize_table(&conn);
+    
     match conn.execute(
-        "INSERT INTO export_dir_path (name,time,path,ouput) values (?1, ?2, ?3, ?4)",
-        [
+        "INSERT INTO export_dir_path (name,time,path,ouput,version) values (?1, ?2, ?3, ?4 , ?5)",
+        rusqlite::params![
             name,
             Local::now().format("%Y-%m-%d").to_string().as_str(),
             task_command.clone(),
             export_dir,
+            201
         ],
     ) {
         Ok(_) => {

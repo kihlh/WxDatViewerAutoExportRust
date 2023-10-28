@@ -1,8 +1,9 @@
 #![allow(warnings, unused)]
 
-use crate::{libWxIkunPlus, set_bool};
+use crate::{libWxIkunPlus, set_bool, APP_DB_NAME};
 use chrono::Local;
 use core::sync::atomic::Ordering;
+use std::arch::x86_64::CpuidResult;
 use fltk::app::handle;
 use fltk::button::Button;
 use fltk::draw::font;
@@ -134,16 +135,72 @@ pub fn initialize_table(conn: &Connection) {
         Ok(_) => {}
         Err(err) => eprint!("{}", err),
     };
-    
-    match conn.execute(
-        "ALTER TABLE 'export_dir_path' ADD COLUMN 'thumbnail' BLOB;",
-        (), // empty list of parameters.
-    ) {
-        Ok(_) => {}
-        Err(err) => {},
-    };
-    
+    make_header_key("export_dir_path","version","NUMERIC");
+    make_header_key("export_dir_path","thumbnail","BLOB");
 }
+
+pub fn has_header_key(table_name:&str,key:&str) -> bool {
+    let mut result = false;
+
+    let conn: Connection = match Connection::open(APP_DB_NAME) {
+        Ok(conn) => conn,
+        Err(e) => {
+            console_log!(format!("[格式判断] 数据库内部错误因为 ->  {:?}", e));
+            return result;
+        }
+    };
+
+
+    if let Ok(mut stmt) = conn.prepare("
+        SELECT 
+            CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS has_key_column
+        FROM 
+           pragma_table_info(?1)
+        WHERE
+            name = ?2
+     ") {
+       
+        let has_key_column: bool = stmt.query_row(rusqlite::params![table_name,key], |row| row.get(0)).unwrap_or_else(|_|{false});
+        result=has_key_column
+    }
+    conn.close();
+    result 
+}
+
+pub fn make_header_key(table_name:&str,key:&str,type_name:&str) -> bool{
+    let mut result = false;
+
+    let conn: Connection = match Connection::open(APP_DB_NAME) {
+        Ok(conn) => conn,
+        Err(e) => {
+            console_log!(format!("[配置格式] 数据库内部错误因为 ->  {:?}", e));
+            return result;
+        }
+    };
+
+      if let Ok(mut stmt) = conn.prepare("
+        SELECT 
+            CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS has_key_column
+        FROM 
+           pragma_table_info(?1)
+        WHERE
+            name = ?2
+     ") {
+       
+        let has_key_column: bool = stmt.query_row(rusqlite::params![table_name,key], |row| row.get(0)).unwrap_or_else(|_|{false});
+        if has_key_column {
+            return false;
+        }
+    }
+
+    if let Ok(mut stmt) = conn.execute(&format!("ALTER TABLE '{}' ADD COLUMN {} {};",table_name,key,type_name),rusqlite::params![]) {
+        result=true;
+    }
+   
+    conn.close();
+    result 
+}
+
 
 #[derive(Debug)]
 struct MsgAttachExport {
@@ -176,7 +233,7 @@ pub fn handle_walk_pictures() -> Result<()> {
 // 处理图像 (选择)
 pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportTaskItem>) -> Result<()> {
    
-    let conn: Connection = match Connection::open("ikun_user_data.db") {
+    let conn: Connection = match Connection::open(APP_DB_NAME) {
         Ok(conn) => conn,
         Err(e) => {
             console_log!(format!("[处理图像] 数据库内部错误因为 ->  {:?}", e));
@@ -204,15 +261,14 @@ pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportT
         items_dir_list.len()
     ));
 
-    for item_path in items_dir_list.iter() {
-        let mut path_item = wh_mod::parse_dat2var_path(item_path.path.clone());
+    for task_item in items_dir_list.iter() {
+        let mut path_item = wh_mod::parse_dat2var_path(task_item.path.clone());
 
-        if !path_item.is_sync {
-            console_log!(format!("[同步取消(全量)]{}",&item_path.name));
+        if !task_item.is_sync() {
+            console_log!(format!("[同步取消(全量)]{}",&task_item.name));
             continue;
         }
 
-        println!("parse_dat2var_path -> {}  {:?}",&item_path.path,&path_item);
         // 深度枚举
         let pattern = format!(
             "{}",
@@ -235,14 +291,6 @@ pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportT
         for entry in glob(&pattern).unwrap() {
             let path = entry.unwrap().display().to_string();
             let base = Path::new(&path).file_name().unwrap().to_str().unwrap();
-
-            // let ouput_path = format!(
-            //     "{}\\{}@{}",
-            //     &item_path.ouput.as_str(),
-            //     Local::now().format("%Y-%m-%d_%H_%M_%S_%3f").to_string(),
-            //     base
-            // );
-
 
             let contains_value = conn.query_row(
                 &format!(
@@ -282,14 +330,14 @@ pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportT
 
 
                     // match wh_mod::convert::convert_bat_images(  (&bat_path.clone()).into(), ouput_path.clone().into(),) 
-                    match  wh_mod::Dat2VarParseMeta::writeFile(&bat_path, item_path.clone())
+                    match  wh_mod::Dat2VarParseMeta::writeFile(&bat_path, task_item.clone())
                     {
                         Ok(path2) => {
                             let itme: MsgAttachExport = MsgAttachExport {
                                 id: 0,
                                 time: Local::now().format("%Y-%m-%d").to_string(),
                                 name: base.to_owned(),
-                                user_name: item_path.name.to_owned(),
+                                user_name: task_item.name.to_owned(),
                                 ouput: path2.clone(),
                                 ext: util::path_extension_str(&path2),
                                 input: path.to_owned(),
@@ -325,7 +373,7 @@ pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportT
                             let itme: MsgAttachExport = MsgAttachExport {
                                 id: 0,
                                 time: Local::now().format("%Y-%m-%d").to_string(),
-                                user_name: item_path.name.to_owned(),
+                                user_name: task_item.name.to_owned(),
                                 name: base.to_owned(),
                                 ouput: "".to_owned(),
                                 ext: "".to_owned(),
@@ -344,7 +392,7 @@ pub fn handle_walk_pictures_from_vec(items_dir_list:Vec<global_var_util::ExportT
                 push_break_len= push_break_len+1;
 
                 if push_break_len < 10 {
-                    console_log!(format!("[跳过重复]  {:?}",&item_path.ouput));
+                    console_log!(format!("[跳过重复]  {:?}",&task_item.ouput));
                 }else{
                     
                     if push_break_len==15{
@@ -375,7 +423,7 @@ pub fn handle_pictures_itme(pic_path: String,ouput_dir: String,expor_itme: globa
       return Ok(());
     }
 
-    if !wh_mod::parse_dat2var_path(expor_itme.path.clone()).is_sync {
+    if !expor_itme.is_sync() {
         // console_log!(format!("[同步取消]{}",&expor_itme.name));
         return Ok(());
     }
@@ -391,7 +439,7 @@ pub fn handle_pictures_itme(pic_path: String,ouput_dir: String,expor_itme: globa
     // );
 
    
-    let conn: Connection = Connection::open("ikun_user_data.db")?; //.expect("无法 创建/打开 数据库");
+    let conn: Connection = Connection::open(APP_DB_NAME)?; //.expect("无法 创建/打开 数据库");
 
     let contains_value = conn.query_row(
         &format!(
@@ -483,38 +531,6 @@ pub fn handle_commandLine() -> Result<()> {
         // env::set_var("K9V7OKIIMR1E1_theInitializationWindowIsDisplayed", "true");
     }
 
-    if args.len() > 1 {
-        assert_eq!(args.len(), 4 , "添加 处理的文件夹需要传入3个参数 [ 用户别名  用户图片路径  用户图片存储位置 ] 当前传入为 {} ",args.len());
-    }
-    // push export_dir_path
-
-    if args.len() == 4 {
-        process::exit(0);
-        let conn: Connection =
-            Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
-        initialize_table(&conn);
-
-        let itme: global_var_util::ExportTaskItem = global_var_util::ExportTaskItem {
-            name: args[1].to_owned(),
-            id: 0,
-            time: Local::now().format("%Y-%m-%d").to_string(),
-            path: args[2].to_owned(),
-            ouput: args[3].to_owned(),
-        };
-
-        match conn.execute(
-            "INSERT INTO export_dir_path (name,time,path,ouput) values (?1, ?2, ?3, ?4)",
-            [itme.name, itme.time, itme.path, itme.ouput],
-        ) {
-            Ok(_) => {
-                //*eprintln!*("创建成功");
-            }
-            Err(err) => {
-                //*eprintln!*("创建失败 因为=> {} ", err)
-            }
-        }
-        process::exit(0);
-    }
     Ok(())
 }
 

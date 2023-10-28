@@ -1,5 +1,6 @@
 use chrono::Local;
 use rusqlite::Connection;
+use crate::APP_DB_NAME;
 use crate::config::{self, CONFIG_KEY};
 
 use crate::{atomic_util, get_arc_bind_variable, global_var, handle_dat, libWxIkunPlus::getFocusTopWindow, read_rw_lazy_lock, read_rw_lock, set_arc_bind_variable, set_arc_bind_variable_insert, set_arc_bind_variable_vec_clear, set_arc_bind_variable_vec_replace_data, util::{str_eq_str, Sleep}, wh_mod::{self, AttachThumbnail}, write_rw_lock, write_rw_lock_insert, gui_util, libWxIkunPlus, gui_select_user_ui::ASSETS_NOT_DATA};
@@ -69,7 +70,7 @@ pub fn get_wx_user_history_path() -> Result<UserWxRootHistory, rusqlite::Error> 
         name: "".to_string(),
     };
 
-    let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+    let conn: Connection = Connection::open(APP_DB_NAME).unwrap();
     handle_dat::initialize_table(&conn);
     if let Ok(mut stmt) =
         conn.prepare("SELECT time,name,path  FROM user_wx_root_history ORDER BY time DESC LIMIT 1")
@@ -97,7 +98,7 @@ pub fn get_wx_user_history_path() -> Result<UserWxRootHistory, rusqlite::Error> 
 // 保存读取历史
 pub fn store_wx_user_path_history(select_path: String, user_name: String) {
     thread::spawn(move || {
-        let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+        let conn: Connection = Connection::open(APP_DB_NAME).unwrap();
         handle_dat::initialize_table(&conn);
 
         match conn.execute(
@@ -127,7 +128,7 @@ pub fn store_wx_user_path_history(select_path: String, user_name: String) {
 // 保存备注
 pub fn set_store_user_remark(wxid: String, attach_id: String, remark_name: String) {
     // thread::spawn(move || {
-        let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+        let conn: Connection = Connection::open(APP_DB_NAME).unwrap();
         handle_dat::initialize_table(&conn);
 
         match conn.execute(
@@ -173,7 +174,7 @@ struct UserRemark {
 pub fn get_store_user_remark(wxid: String, attach_id: String) -> Option<String> {
     let mut res_data = Option::None;
 
-    let conn: Connection = Connection::open("ikun_user_data.db").unwrap();
+    let conn: Connection = Connection::open(APP_DB_NAME).unwrap();
     handle_dat::initialize_table(&conn);
     if let Ok(mut stmt) =
         conn.prepare("SELECT time,wxid,attach_id,remark_name  FROM user_remark  WHERE wxid = ?1 AND attach_id = ?2")

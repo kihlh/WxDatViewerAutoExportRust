@@ -2,6 +2,7 @@
 use crate::config;
 
 use crate::gui_rename_ui::rename_tool_main;
+use crate::gui_util::sub_message;
 use crate::{gui_util, libWxIkunPlus, global_var, wh_mod, get_arc_bind_variable, atomic_util, inject_fltk_theme, gui_drag_scan2_ui, gui_detect_config_ui, util};
 use crate::gui_util::img::ImgPreview;
 use crate::gui_util::text::TextControl;
@@ -12,6 +13,7 @@ use fltk::{prelude::*, *};
 use fltk_theme::{color_themes, ColorTheme, SchemeType, ThemeType, WidgetScheme, WidgetTheme};
 use crate::libWxIkunPlus::findWindow;
 use std::ptr::null_mut;
+use std::sync::mpsc::Sender;
 use once_cell::sync::Lazy;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -283,6 +285,9 @@ fn add_check_button() -> FrameCheck {
     else{
         check_button_source.set_checked(true);
         check_button_sync.set_checked(true);
+        global_var::set_bool("user::config::check_button_sync",check_button_sync.is_checked());
+        global_var::set_bool("user::config::check_button_source",check_button_source.is_checked());
+
     }
 
     flex.end();
@@ -947,7 +952,10 @@ macro_rules! the_token {
     }
 }
 
-pub fn manage_tool_main() -> String{
+
+
+pub fn manage_tool_main (sender:Option< Sender<String> > ) -> String {
+
     let the_token = the_token!();
     // 禁止创建多个窗口
     if let hwnd = libWxIkunPlus::findWindow(THE_WINDOW_CLASS_NAME, "") {
@@ -1463,12 +1471,21 @@ pub fn manage_tool_main() -> String{
                         return false;
                     }
 
-                    if is_effective && eq_wxid_dir {
+                    if is_effective && eq_wxid_dir && sender.is_none() {
                         println!("result_data->{}",&result_data);
-                        global_var::set_string(the_token.as_str(),result_data);
+                        global_var::set_string(the_token.as_str(),result_data.clone());
                         lib::gc_select_user_ui();
                         fltk::window::Window::delete(win.clone());
+                        return false;
                     }
+
+                    // 创建多个任务
+                    if is_effective && eq_wxid_dir {
+                        let mut rx = sender.clone().unwrap();
+                        rx.send(result_data);
+                        sub_message(get_the_hwnd!(), gui_util::IconType::Success,"(连续创建) 已发送到主页选取框 ", 3500u64);
+                    }
+
                 }
 
                 // 卡片按钮 > 备注名称 完成按钮

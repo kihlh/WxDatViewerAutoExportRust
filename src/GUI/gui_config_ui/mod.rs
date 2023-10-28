@@ -102,8 +102,8 @@ fn add_ui_control() -> UiControl {
     flex.set_pos(25, 165-7 - common_decline);
 
     let mut scan_adding = add_check!("立即扫描(任务创建)", CONFIG_KEY::ScanAdding);
-    add_check!("实时更新(任务创建)", CONFIG_KEY::ScanLogAdding).deactivate();
-    add_check!("授权联网(更新/检测哈希)", CONFIG_KEY::Networking);
+    add_check!("实时更新(任务创建)", CONFIG_KEY::ScanLogAdding);
+    add_check!("授权联网(更新/检测哈希)", CONFIG_KEY::Networking).deactivate();
 
     flex.end();
 
@@ -114,7 +114,7 @@ fn add_ui_control() -> UiControl {
 
     flex.set_pos(25, 220-15 - common_decline);
 
-    add_check!("任务连续创建", CONFIG_KEY::CreateCont).deactivate();
+    add_check!("任务连续创建", CONFIG_KEY::CreateCont);
     add_check!("保留任务配置", CONFIG_KEY::PreserveConfig);
     add_check!("保留对象列表(缓冲)", CONFIG_KEY::PreserveList).deactivate();
 

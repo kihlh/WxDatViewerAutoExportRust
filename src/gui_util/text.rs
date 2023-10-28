@@ -97,12 +97,14 @@ impl TextPreview {
             && y > self.preview.y()
             && y < self.preview.y() + self.preview.height();
     }
+
+    // 设置背景颜色
     pub fn set_back_color(&mut self, r: u8, g: u8, b: u8) -> &mut TextPreview {
         self.preview.set_color(Color::from_rgb(r,g,b));
         self
     }
 
-    pub fn resize_debug (&mut self){
+    pub fn resize_debug (&mut self) -> Self{
 
         self.preview.handle({
             let mut x = 0;
@@ -355,11 +357,13 @@ impl TextPreview {
     
                     // win.redraw();
                     win.show();
-    
+                    
+                    let buf =  win.buffer().unwrap_or_else(||{fltk::text::TextBuffer::default()});
+
                     println!(
                         "win [pos]-> gui_util::TextPreview::new({},{},{},{},{},\"{}\",[122, 120, 120]); "
                         ,win.x(),win.y(),win.w(),win.h(),
-                        win.text_size(),win.text_size()
+                        buf.text(),win.text_size()
                     );
     
                   }
@@ -370,6 +374,8 @@ impl TextPreview {
                 _ => false,
             }
         });
+
+        self.clone()
        }
 
        

@@ -4,7 +4,7 @@ use fltk::{prelude::*, window::Window, *};
 use fltk::frame::Frame;
 use fltk::window::DoubleWindow;
 use crate::gui_util::{*};
-use crate::{gui_util, libWxIkunPlus, wh_mod, config, gui_rename_ui, global_var};
+use crate::{gui_util, libWxIkunPlus, wh_mod, config, gui_rename_ui, global_var, APP_VERSION};
 use crate::inject_fltk_theme;
 use crate::set_item_id;
 use crate::global_var_util;
@@ -491,6 +491,7 @@ fn create_card (y:i32) -> CardItem{
                                         path: item.path,
                                         ouput: item.ouput,
                                         thumbnail: include_bytes!("./src/task_icon.png").to_vec(),
+                                        version:APP_VERSION
                                     };
                                     back_up.replace(data);
                                 }

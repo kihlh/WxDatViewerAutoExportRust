@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -83,7 +83,13 @@ mod gui_config_ui;
 #[path = "GUI/gui_task_manage/mod.rs"]
 mod gui_task_manage;
 
+#[path = "GUI/gui_about_ui/mod.rs"]
+mod gui_about_ui;
+
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
+const APP_DB_NAME: &str = "ikun_user_data.db";
+const APP_NAME: &str = "WxAutoExlm";
+const APP_VERSION: usize = 201;
 
 // static SYNC_TOKEN:AtomicBool = AtomicBool::new(false);
 // static SYNC_IMMED_TOKEN:AtomicBool = AtomicBool::new(false);
@@ -105,8 +111,11 @@ fn main() -> Result<()> {
     // 处理命令行
     handle_dat::handle_commandLine();
     config::initialize_config();
-
     
+    let conn: Connection = Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
+    handle_dat::initialize_table(&conn);
+    conn.close();
+
     // 拒绝软件重复启动
     if (!config::is_developer()){
 
@@ -174,7 +183,7 @@ fn main() -> Result<()> {
             util::Sleep(global_var::get_u64_or("SLEEP_SCAN_ALL", 30000));
 
             let conn: Connection =
-                Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+                Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
 
             handle_dat::initialize_table(&conn);
             let _ = handle_dat::handle_walk_pictures();
@@ -188,7 +197,7 @@ fn main() -> Result<()> {
                 console_log!(format!("[用户] 立即全部扫描"));
                 thread::spawn(move || {
                     let conn: Connection =
-                        Connection::open("ikun_user_data.db").expect("无法 创建/打开 数据库");
+                        Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
                     handle_dat::initialize_table(&conn);
                     let _ = handle_dat::handle_walk_pictures();
                     let _ = conn.close();
