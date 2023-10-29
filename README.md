@@ -19,8 +19,8 @@
 
 ### 下载链接
 
-* 蓝奏：[V 1.0.0 下载](https://kiic.lanzouw.com/iVywr19jnfkd)   [V 2.0.0 下载](https://kiic.lanzouw.com/i2Bn81d6naed)
-* 123： [V 1.0.0 下载](https://www.123pan.com/s/UCaqVv-9AoMA.html)   [V 2.0.0 下载](https://www.123pan.com/s/UCaqVv-aPoMA.html)
+* 蓝奏：[V 1.0.0 下载](https://kiic.lanzouw.com/iVywr19jnfkd)   [V 2.0.0 下载](https://kiic.lanzouw.com/ixA341d704gh)
+* 123： [V 1.0.0 下载](https://www.123pan.com/s/UCaqVv-9AoMA.html)   [V 2.0.0 下载](https://www.123pan.com/s/UCaqVv-nPoMA.html)
 * 直链  [V 1.0.0 下载](https://vip.123pan.cn/1816369032/assets/WxDatViewerAutoExportRust.zip)     [V 2.0.0 下载](https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExIm_v2.0.0_win32_x64.zip)
 * 更新检测API 01 ：https://vip.123pan.cn/1816369032/assets/WxAutoExIm/version.json
 * 更新检测API 02 ：https://raw.githubusercontent.com/kihlh/WxDatViewerAutoExportRust/master/version.json
