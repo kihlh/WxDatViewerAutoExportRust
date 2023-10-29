@@ -61,15 +61,15 @@
             },
             {
                 "url": "",
-                "name": "WxDatViewerAutoExportRust@52.exe",
-                "sha256": "a587d55df1c1ce621bf091f15369652630e28eb6d52446e7560ae17d5ab55778",
-                "sha1": "97f97fc06b108324c2556c3147f5a6002293abe6",
-                "size": 8849408
+                "name": "WxDatViewerAutoExportRust@debug.exe",
+                "sha256": "b64ce445cef60adc1a1aefbe7e0023d5c1820189fcf2e79a723ed9448fd3d675",
+                "sha1": "b1611a5a6e5362ad862ddd7c4245ef5e324b1c25",
+                "size": 11818496
             },
             {
                 "url": "",
                 "name": "WxDatViewerAutoExportRust@debug.exe",
-                "sha256": "b64ce445cef60adc1a1aefbe7e0023d5c1820189fcf2e79a723ed9448fd3d675",
+                "sha256": "fd36462c219a5428c65c21fb85f688ace677943f6dfbe0f2f2959c3726c61b3c",
                 "sha1": "b1611a5a6e5362ad862ddd7c4245ef5e324b1c25",
                 "size": 11818496
             }
