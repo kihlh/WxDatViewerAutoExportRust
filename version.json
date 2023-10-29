@@ -51,9 +51,31 @@
                 "sha1": "7e21db65275870ea17eebe7b43c3bfc13ee05edf",
                 "size": 11818496
             }
+            ,
+            {
+                "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64/WxDatViewerAutoExportRust.exe",
+                "name": "WxDatViewerAutoExportRust.exe",
+                "sha256": "5efe15226cf3d93a8ca01de2df2998bb77dcc6a9c495ddf5e4ed994f2c19f12f",
+                "sha1": "6efe2ccee369103169c83b00269979a0faa622d0",
+                "size": 11819520
+            },
+            {
+                "url": "",
+                "name": "WxDatViewerAutoExportRust@52.exe",
+                "sha256": "a587d55df1c1ce621bf091f15369652630e28eb6d52446e7560ae17d5ab55778",
+                "sha1": "97f97fc06b108324c2556c3147f5a6002293abe6",
+                "size": 8849408
+            },
+            {
+                "url": "",
+                "name": "WxDatViewerAutoExportRust@debug.exe",
+                "sha256": "b64ce445cef60adc1a1aefbe7e0023d5c1820189fcf2e79a723ed9448fd3d675",
+                "sha1": "b1611a5a6e5362ad862ddd7c4245ef5e324b1c25",
+                "size": 11818496
+            }
         ],
         "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64.zip",
-        "download_url": "https://www.123pan.com/s/UCaqVv-fPoMA.html",
+        "download_url": "https://www.123pan.com/s/UCaqVv-nPoMA.html",
         "name": "WxAutoExIm",
         "version": "2.0.0",
         "version_code": 201,

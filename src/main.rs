@@ -96,7 +96,7 @@ mod gui_about2_ui;
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 const APP_DB_NAME: &str = "ikun_user_data.db";
 const APP_NAME: &str = "WxAutoExlm";
-const APP_VERSION: usize = 99201;
+const APP_VERSION: usize = 201;
 
 // static SYNC_TOKEN:AtomicBool = AtomicBool::new(false);
 // static SYNC_IMMED_TOKEN:AtomicBool = AtomicBool::new(false);

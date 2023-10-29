@@ -1,5 +1,6 @@
 #![allow(warnings, unused)]
 
+use crate::util::Sleep;
 use crate::{get_arc_bind_variable, get_bool, get_option_arc_bind_variable, get_option_arc_bind_variable_or, global_var, gui_util, inject_fltk_theme, libWxIkunPlus, set_arc_bind_variable, set_arc_bind_variable_string_replace_data, set_bool, set_item_id, set_option_arc_bind_variable, wh_mod};
 use fltk::enums::{Color, FrameType};
 use fltk::window::DoubleWindow;
@@ -393,6 +394,7 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
         move |win, ev| match ev {
             enums::Event::Show => {
                 win.set_visible_focus();
+              
                 true
             }
             enums::Event::Close => {
@@ -521,7 +523,13 @@ pub fn main_window(match_input:&str)->Option<DoubleWindow> {
 
     win.end();
     win.show();
-
+      std::thread::spawn( {
+         move||loop{
+            Sleep(100);
+             if !gui_select_user_ui::has_window() {
+            libWxIkunPlus::setwinVisible(get_the_hwnd!(), false);
+              return ;
+            } }});
     // 支持传值
     if !match_input.is_empty(){
 

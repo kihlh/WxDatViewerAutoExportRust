@@ -1383,6 +1383,10 @@ pub fn manage_tool_main (sender:Option< Sender<String> > ) -> String {
                     let mut is_effective = true;
 
                     let mut rename_rule = select_attach_card.input_rename.value();
+                    
+                    if !global_var::get_string_default("user::config::user_select_attach").is_empty() {
+                         g_the_select_attach_id = global_var::get_string_default("user::config::user_select_attach");
+                    }
 
                     // 没有选定的路径
                     if user_select_database_dir_input.value().is_empty() {
@@ -1412,6 +1416,7 @@ pub fn manage_tool_main (sender:Option< Sender<String> > ) -> String {
                     let mut select_dir = global_var::get_string_default("user::config::user_select_path");
                     let mut user_select_wxid = global_var::get_string_default("user::config::user_select_wxid");
                     let eq_wxid_dir = wh_mod::get_wx_user_store(format!("{}/{}",&select_dir,&user_select_wxid)).is_some();
+                 
 
                     // 拼合路径并判断有效性 有且为文件夹
                     let mut attach_path = PathBuf::from(select_dir).join(user_select_wxid.as_str()).join("FileStorage\\MsgAttach").join(g_the_select_attach_id.as_str());
