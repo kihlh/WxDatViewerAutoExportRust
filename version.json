@@ -21,5 +21,35 @@
         "version": "0.1.0",
         "version_code": 1,
         "time": "2023-9-23"
+    }, {
+        "assets": [
+            {
+                "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64/libWxIkunPlus.dll",
+                "name": "libWxIkunPlus.dll",
+                "sha1": "c4c39535c7ae4ab91644b471fac162f9946a9ada",
+                "sha256": "fc918aa46d59c9b7ec57b191d891df7feb56d6fae01c2e92aa4b6d46ff4a9bde",
+                "size": 392704
+            },
+            {
+                "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64/WxDatViewerAutoExportRust.exe",
+                "name": "WxDatViewerAutoExportRust.exe",
+                "sha256": "b6c8c113382a549b3aeb70e0af60b0dd10e7ff019d0e0e0aae0ab7e16a43e49f",
+                "sha1": "f546c0c95fbe6c3dfbc63f8870a0d801cca58777",
+                "size": 11819520
+            },
+            {
+                "url": "",
+                "name": "WxDatViewerAutoExportRust@52.exe",
+                "sha256": "a587d55df1c1ce621bf091f15369652630e28eb6d52446e7560ae17d5ab55778",
+                "sha1": "97f97fc06b108324c2556c3147f5a6002293abe6",
+                "size": 8849408
+            }
+        ],
+        "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64.zip",
+        "download_url": "https://www.123pan.com/s/UCaqVv-fPoMA.html",
+        "name": "WxAutoExIm",
+        "version": "2.0.0",
+        "version_code": 201,
+        "time": "2023-10-29"
     }
 ]

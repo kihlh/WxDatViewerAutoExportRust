@@ -124,7 +124,7 @@ impl HotspotItmeControl {
         check_item_control
     }
 
-    pub fn resize_debug(&self){
+    pub fn resize_debug(&self) -> Self{
         let mut svg_view =  format!(r#"<svg width="{}" height="{}" viewBox="0 0 {} {}" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="0.5" y="0.5" width="{}" height="{}" fill='#397B84' fill-opacity="0.25" stroke='#C09898'/>
         </svg>
@@ -404,6 +404,7 @@ impl HotspotItmeControl {
             _ => false,
         }
     });
+    self.clone()
     }
 }
 

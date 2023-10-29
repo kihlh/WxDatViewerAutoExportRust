@@ -14,7 +14,7 @@ use fltk::examples::tile;
 use crate::libWxIkunPlus;
 use crate::gui_util::{*};
 use crate::{*};
-mod lib;
+pub(crate) mod lib;
 
 
 pub(crate) const THE_WIN_CLASS_NAME: &str = "wx_auto_ex_im::gui_util::main::main<55216>";
@@ -221,25 +221,6 @@ fn add_ui_control() -> UiControl {
 }
 }
 
-fn open_link_in_browser(link: &str) -> Result<(), Box<dyn std::error::Error>> {
-    if cfg!(target_os = "windows") {
-        Command::new("explorer.exe")
-            .args(&[link])
-            .spawn()?;
-    } else if cfg!(target_os = "macos") {
-        Command::new("open")
-            .arg(link)
-            .spawn()?;
-    } else if cfg!(target_os = "linux") {
-        Command::new("xdg-open")
-            .arg(link)
-            .spawn()?;
-    } else {
-        return Err("Unsupported operating system".into());
-    }
-
-    Ok(())
-}
 
 
 pub fn main_init() ->Option<fltk::window::DoubleWindow> {
@@ -305,15 +286,15 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                            println!("左键未释放");
                            return ;  
                         }
-                        if config::is_build_52pojie()&&!config::is_developer() {
+                        // if config::is_build_52pojie()&&!config::is_developer() {
                             // ?待处理的安全问题
                             // 等待解决的问题
                             // 1. 检测更新的api不是服务器 无法动态判断编译版本 可能会导致无法下载到开源版 会暴露联系方式
                             // 2. 开发者模式下会导致所有意见反馈方式按钮  暴露意见反馈群
                             // 3. 检测哈希会导致下载公开版
-                            libWxIkunPlus::stop("存在BUG 作者正在处理中。。。", "配置值多处链式关联   (有启用导致违规 不启用导致软件奔溃) 的可能 \n禁用部分选项，或与非逻辑判断错误将可能导致软件无法正常工作或者奔溃 \n存在无法避免的问题，请使用默认值！\n作者会尽快解决此问题");
-                            return  ;
-                        }
+                            // libWxIkunPlus::stop("存在BUG 作者正在处理中。。。", "配置值多处链式关联   (有启用导致违规 不启用导致软件奔溃) 的可能 \n禁用部分选项，或与非逻辑判断错误将可能导致软件无法正常工作或者奔溃 \n存在无法避免的问题，请使用默认值！\n作者会尽快解决此问题");
+                            // return  ;
+                        // }
                         gui_config_ui::main_init();
                     }
 
@@ -327,14 +308,12 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                            println!("左键未释放");
                            return ;  
                         }
-                    if config::is_build_52pojie()&&!config::is_developer() {
-                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Failure, "因发布平台规则当前版本不提供关于", 3500u64);
-                        gui_util::sub_message(get_the_hwnd!(), gui_util::IconType::Success, "正在打开52破解论坛链接", 3500u64);
-
-                        open_link_in_browser("https://www.52pojie.cn");
-                        return  ;
-                    }
-                    gui_about_ui::main_init();
+                  
+                  if Path::new("./WxAutoExIm_not_about").exists() {
+                      gui_about2_ui::main_init();
+                  }else{
+                     gui_about_ui::main_init();
+                  }
                     
                 }});
                 }
@@ -420,9 +399,11 @@ pub fn main_init() ->Option<fltk::window::DoubleWindow> {
                                                     task_command.set_value(wh_mod::get_show_mask_text(data.as_str()).as_str());
                                                     global_var::set_string("user::config::task_command",data.clone());
                                                     win.set_visible_focus();
+                                                    libWxIkunPlus::setwinVisible(get_the_hwnd!(), true);
+                                                    
                                                 }
                                             }
-                                            
+
                                         }else{
                                             // 释放ipc通道
                                             drop(&rx);

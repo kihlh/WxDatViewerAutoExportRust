@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
@@ -24,6 +24,7 @@ use fltk::{prelude::*, window::Window, *};
 use magic_crypt::MagicCryptTrait;
 use msgbox::IconType;
 use notify::{RecursiveMode, Watcher};
+use reqwest;
 use serde_json::json;
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
@@ -45,12 +46,16 @@ use winapi::{
     um::{errhandlingapi::GetLastError, handleapi::INVALID_HANDLE_VALUE, synchapi::CreateMutexW},
 };
 
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering,AtomicI64};
-use std::sync::{Arc, Condvar, Mutex,RwLock};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicUsize, Ordering};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 
-use crate::{util::{str_eq_str, Sleep}, libWxIkunPlus::{hasWeChatWin, hasWeChat}};
+use crate::{
+    libWxIkunPlus::{hasWeChat, hasWeChatWin},
+    util::{str_eq_str, Sleep},
+};
 
 mod atomic_util;
+mod config;
 mod global_var;
 mod global_var_util;
 mod handle_dat;
@@ -58,7 +63,6 @@ mod libWxIkunPlus;
 mod util;
 mod watching;
 mod wh_mod;
-mod config;
 
 mod gui_util;
 
@@ -83,8 +87,11 @@ mod gui_config_ui;
 #[path = "GUI/gui_task_manage/mod.rs"]
 mod gui_task_manage;
 
-#[path = "GUI/gui_about_ui/mod.rs"]
+#[path = "GUI/gui_about2_ui/mod.rs"]
 mod gui_about_ui;
+
+#[path = "GUI/gui_about_ui/mod.rs"]
+mod gui_about2_ui;
 
 const APP_MUTEX_NAME: &str = "ikun::^_^::wx_auto_export_image:^_^::end";
 const APP_DB_NAME: &str = "ikun_user_data.db";
@@ -104,42 +111,40 @@ const APP_VERSION: usize = 201;
 // 代码执行时间: 1.0077ms
 // println!("代码执行时间: {:?}", start.elapsed());
 
+
+
+
 // mod wh_util;
 fn main() -> Result<()> {
-    
-
     // 处理命令行
     handle_dat::handle_commandLine();
     config::initialize_config();
-    
+
     let conn: Connection = Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
     handle_dat::initialize_table(&conn);
     conn.close();
 
     // 拒绝软件重复启动
-    if (!config::is_developer()){
-
-    if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
-        libWxIkunPlus::error(
-            "启动失败".to_owned(),
-            "已经存在了一个 <WxAutoExIm> 进程".to_owned(),
-        );
-        process::exit(0);
-    } else {
-        libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
-    }
-
-   }else {
+    if (!config::is_developer()) {
         if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
-        if !libWxIkunPlus::confirm(
-            "进程存在".to_owned(),
-            "(开发者模式) 已经存在了一个 <WxAutoExIm> 进程 是否继续启动".to_owned(),
-        ) {
+            libWxIkunPlus::error(
+                "启动失败".to_owned(),
+                "已经存在了一个 <WxAutoExIm> 进程".to_owned(),
+            );
             process::exit(0);
+        } else {
+            libWxIkunPlus::createMutex(APP_MUTEX_NAME.to_owned());
         }
+    } else {
+        if (libWxIkunPlus::hasMutex(APP_MUTEX_NAME.to_owned())) {
+            if !libWxIkunPlus::confirm(
+                "进程存在".to_owned(),
+                "(开发者模式) 已经存在了一个 <WxAutoExIm> 进程 是否继续启动".to_owned(),
+            ) {
+                process::exit(0);
+            }
         }
     }
-
 
     // 窗口部分
     thread::spawn(move || {
@@ -147,6 +152,13 @@ fn main() -> Result<()> {
         let appMain = app::App::default();
         // gui_donation_ui::main_init();
         gui_main_ui::main_init();
+        
+        if config::get_config_bool(config::CONFIG_KEY::Networking)&&!config::APP_ENABLE_DEVELOPER &&!config::is_build_52pojie() {
+        
+            util::update_app(false);
+            
+        }
+
         appMain.run().unwrap();
     });
 
@@ -158,20 +170,23 @@ fn main() -> Result<()> {
     thread::spawn(move || {
         if (!config::is_developer()) {
             if (!libWxIkunPlus::has_auto_sync()) {
-                let mut err_name = if !hasWeChatWin() {"WX尚未登录" } else if !hasWeChat() {"WX进程未找到"} else {"用户未启用同步"};
+                let mut err_name = if !hasWeChatWin() {
+                    "WX尚未登录"
+                } else if !hasWeChat() {
+                    "WX进程未找到"
+                } else {
+                    "用户未启用同步"
+                };
                 console_log!(format!("[同步暂停] 因为：{}", err_name));
 
                 loop {
-                    if (libWxIkunPlus::has_auto_sync()||libWxIkunPlus::has_sync_token()) {
+                    if (libWxIkunPlus::has_auto_sync() || libWxIkunPlus::has_sync_token()) {
                         break;
                     }
                     Sleep(5000);
                 }
-
             }
         }
-
-
 
         // 启动文件系统日志模式
         thread::spawn(move || {
@@ -182,8 +197,7 @@ fn main() -> Result<()> {
         thread::spawn(move || {
             util::Sleep(global_var::get_u64_or("SLEEP_SCAN_ALL", 30000));
 
-            let conn: Connection =
-                Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
+            let conn: Connection = Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
 
             handle_dat::initialize_table(&conn);
             let _ = handle_dat::handle_walk_pictures();
@@ -193,15 +207,15 @@ fn main() -> Result<()> {
 
     // 阻塞进程状态可用 进程不退出 以及与cpp的数据更新
     loop {
-        if(libWxIkunPlus::has_sync_token()){
-                console_log!(format!("[用户] 立即全部扫描"));
-                thread::spawn(move || {
-                    let conn: Connection =
-                        Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
-                    handle_dat::initialize_table(&conn);
-                    let _ = handle_dat::handle_walk_pictures();
-                    let _ = conn.close();
-                });
+        if (libWxIkunPlus::has_sync_token()) {
+            console_log!(format!("[用户] 立即全部扫描"));
+            thread::spawn(move || {
+                let conn: Connection =
+                    Connection::open(APP_DB_NAME).expect("无法 创建/打开 数据库");
+                handle_dat::initialize_table(&conn);
+                let _ = handle_dat::handle_walk_pictures();
+                let _ = conn.close();
+            });
         };
         //
         // if(set_bool!(APP_STARTUP,libWxIkunPlus::hasStartupGlobalVar())){

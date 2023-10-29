@@ -69,7 +69,7 @@ extern "C" {
     fn _getBasicKeys() -> PCSTR;
     fn _selectFile() -> PCSTR;
     fn _isKeyDown(key: c_int)-> bool;
-
+    fn _openUrl(url:PCSTR) -> bool;
 }
 
 // 设置主窗口图标 从当前二进制获取
@@ -303,11 +303,11 @@ fn rust_string_to_ansi_str(s: String) -> Vec<i8> {
 // }
 
 // MessageBox -> alert
-pub fn alert(title: String, message: String) -> bool {
+pub fn alert<T: util::OverloadedAnyStr>(title: T, message: T) -> bool {
     unsafe {
         return _Alert(
-            rust_string_to_ansi_str(title).as_ptr(),
-            rust_string_to_ansi_str(message).as_ptr(),
+            rust_string_to_ansi_str(title.to_string_default()).as_ptr(),
+            rust_string_to_ansi_str(message.to_string_default()).as_ptr(),
         );
     }
     return false;
@@ -414,11 +414,11 @@ pub fn setWindowShake(hWnd: i128) {
 }
 
 // 搜索窗口
-pub fn findWindow(className: &str, titleName: &str) -> i128 {
+pub fn findWindow<T: util::OverloadedAnyStr>(className: T, titleName: T) -> i128 {
     let mut hwnd: i128 = 0;
     unsafe {
-        let mut className = rust_string_to_ansi_str(className.to_string());
-        let mut titleName = rust_string_to_ansi_str(titleName.to_string());
+        let mut className = rust_string_to_ansi_str(className.to_string_default());
+        let mut titleName = rust_string_to_ansi_str(titleName.to_string_default());
 
         hwnd = _findWindow(
             className.as_ptr(),
@@ -517,10 +517,10 @@ fn get_str_to_long_vec(c_result: PCSTR) -> Vec<i128> {
     list
 }
 
-pub fn findAllWindow(className: &str, titleName: &str) -> Vec<i128> {
+pub fn findAllWindow<T: util::OverloadedAnyStr>(className: T, titleName:T) -> Vec<i128> {
     unsafe {
-        let mut className = rust_string_to_ansi_str(className.to_string());
-        let mut titleName = rust_string_to_ansi_str(titleName.to_string());
+        let mut className = rust_string_to_ansi_str(className.to_string_default());
+        let mut titleName = rust_string_to_ansi_str(titleName.to_string_default());
         let c_result = _findAllWindow(className.as_ptr(), titleName.as_ptr());
         get_str_to_long_vec(c_result)
     }
@@ -670,4 +670,14 @@ pub fn selectFile() -> String {
 
 pub fn isKeyDown(key:i32) -> bool {
     unsafe {_isKeyDown(key)}
+}
+
+
+pub fn openUrl<T: util::OverloadedAnyStr>(url:T) -> bool{
+   
+   let mut url_p = rust_string_to_ansi_str(url.to_string_default());
+
+    unsafe{
+        _openUrl(url_p.as_ptr())
+    }
 }

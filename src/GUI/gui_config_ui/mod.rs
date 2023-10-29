@@ -102,8 +102,14 @@ fn add_ui_control() -> UiControl {
     flex.set_pos(25, 165-7 - common_decline);
 
     let mut scan_adding = add_check!("立即扫描(任务创建)", CONFIG_KEY::ScanAdding);
+
     add_check!("实时更新(任务创建)", CONFIG_KEY::ScanLogAdding);
-    add_check!("授权联网(更新/检测哈希)", CONFIG_KEY::Networking).deactivate();
+
+    if config::is_build_52pojie() {
+        add_check!("授权联网(更新/检测哈希)", CONFIG_KEY::Networking).deactivate();
+    }else{
+        add_check!("授权联网(更新/检测哈希)", CONFIG_KEY::Networking);
+    }
 
     flex.end();
 

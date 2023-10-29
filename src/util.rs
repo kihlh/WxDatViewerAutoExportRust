@@ -6,7 +6,7 @@ use std::{
     ffi::{c_int, c_long, OsStr},
     fs,
     hash::{Hash, Hasher},
-    io,
+    io::{self, Read},
     path::{Path, PathBuf},
     process,
     process::{Command, Stdio},
@@ -15,7 +15,9 @@ use std::{
 };
 use std::time::SystemTime;
 use chrono::{DateTime, Local};
-use crate::{util};
+use clipboard::ClipboardProvider;
+use serde_json::json;
+use crate::{util, config, APP_VERSION, libWxIkunPlus};
 
 macro_rules! Sleep {
     ($b:expr) => {{
@@ -581,3 +583,225 @@ pub fn load_thumbnai_data (open:&str) -> Result< Vec<u8> ,image::ImageError>{
 
     Ok(Vec::new())
 } 
+
+pub(crate) fn get_file_hash256<T:OverloadedAnyStr >(file_path:T) -> String {
+
+    if let Ok(mut file) = std::fs::File::open(file_path.to_string_or("".to_string())) {
+         // 创建SHA-256上下文
+    let mut context = ring::digest::Context::new(&ring::digest::SHA256);
+
+    // 读取文件内容并更新上下文
+    let mut buffer = [0; 8192]; // 定义缓冲区
+
+    loop {
+       // 读取文件内容到缓冲区
+        if let Ok(bytes_read) = file.read(&mut buffer) {
+            if bytes_read == 0 {
+                break;
+            }
+            context.update(&buffer[..bytes_read]);
+        }
+        else{
+            break;
+        }
+       
+    }
+
+    // 计算哈希值
+    let digest = context.finish();
+
+    // 将哈希值打印为十六进制字符串
+    println!("file_path->{}  SHA-256: {:?}",file_path.to_string_default(), digest);
+    return  format!("{:?}",digest).replace("SHA256:", "").replace("sha256:", "");
+    }
+
+    String::new()
+}
+
+pub fn chars<T:OverloadedAnyStr >(input:T)->Vec<String>{
+    let mut result = Vec::new();
+    for value in input.to_string_default().chars() {
+        result.push(format!("{}",value));
+    }
+    result
+}
+
+// 过滤掉非0-9 a-z
+pub fn sanitize_chars<T:OverloadedAnyStr >(input:T)->String{
+    let mut result = Vec::new();
+    let mut input = input.to_string_default();
+    let mut filter_alpha_numeric_list = ["0", "1", "2", "3", "4","5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l","m", "n", "o", "p", "q","r", "s", "t","u", "v", "w","x", "y", "z"];
+    for value in input.to_string_default().chars() {
+        let mut value=format!("{}",value);
+        value.make_ascii_lowercase();
+
+        // 对比字符二进制
+        for value2 in filter_alpha_numeric_list {
+            if value2.as_bytes().eq(value.as_bytes()) {
+                result.push(format!("{}",value));
+                break;
+            }
+        }
+
+    }
+
+    result.join("")
+}
+
+
+pub fn diff_hash<T:OverloadedAnyStr >(hash1:T, hash2:T) -> bool{
+    let mut result = false;
+    let mut hash1_sanitize = (sanitize_chars(hash1.to_string_default())); 
+    let mut hash2_sanitize = (sanitize_chars(hash2.to_string_default())); 
+    hash1_sanitize.make_ascii_lowercase();
+    hash2_sanitize.make_ascii_lowercase();
+
+    let hash1_sanitize = chars(sanitize_chars(hash1.to_string_default())); 
+    let hash2_sanitize = chars(sanitize_chars(hash2.to_string_default())); 
+   
+    for (index,value) in hash1_sanitize.iter().enumerate() {
+        if let Some(item) = hash2_sanitize.get(index) {
+            if value.as_bytes().eq(item.as_bytes()) {
+                result=true;
+            }else {
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+
+    result
+}
+
+pub fn update_app (show_info: bool) {
+       // 检测更新
+    thread::spawn(move || {
+        // Sleep(5000);
+        let mut url_list = config::APP_SOFTWARE_UPDATE_DETECTION.to_vec();
+        let mut max_size = APP_VERSION.clone();
+        let mut flag_version = String::new();
+        let mut download_url = String::new();
+        let mut has_response_ok = false;
+        let mut exe_hash = util::get_file_hash256(std::env::current_exe().unwrap());
+        let mut lib_hash = util::get_file_hash256(std::env::current_dir().unwrap().join("libWxIkunPlus.dll"));
+        let mut exe_hash_ok = false;
+        let mut lib_hash_ok = false;
+
+
+        for url in url_list {
+            if let Ok(response) = reqwest::blocking::get(url){
+                if !response.status().is_success(){continue;}
+                let json: serde_json::Value = response.json().unwrap_or_else(|_|{json!([])});
+                
+                if let Some(array) = json.as_array() {
+                  for value in array {                            
+                    match value.as_object() {
+                        Some(data)=>{
+
+                          let mut version_code = data["version_code"].as_i64().unwrap_or_else(||{0}) as usize;
+                            if version_code > max_size{
+                                max_size = version_code;
+                                download_url.clear();
+                                flag_version.clear();
+                                download_url.push_str(data["pan_url"].as_str().unwrap_or_else(||{""}));
+                                
+                                if download_url.is_empty() {
+                                 download_url.push_str(data["url"].as_str().unwrap_or_else(||{""}));  
+                                }
+
+                                flag_version.push_str(data["version"].as_str().unwrap_or_else(||{""}));
+                            }
+
+                            if let Some(assets) = data["assets"].as_array() {
+                                for value in assets {
+                                    let mut sha256 = value["sha256"].as_str().unwrap_or_else(||"").to_string();
+                                    
+                                    if diff_hash(&exe_hash,&sha256)||exe_hash.len()!=64 {
+                                        exe_hash_ok = true;
+                                    }
+                         
+                                    if diff_hash(&lib_hash,&sha256)||lib_hash.len()!=64  {
+                                        lib_hash_ok = true;
+                                    }
+
+                                }
+
+                                has_response_ok = true;
+                            }
+
+                        }
+
+                        None=>{}
+                    }
+              
+                  }
+                }
+                
+            };
+        }
+        
+        // exe_hash_ok = true;
+        // lib_hash_ok = true;
+        if (!exe_hash_ok||!lib_hash_ok) && has_response_ok {
+           if(!exe_hash_ok) {
+            libWxIkunPlus::stop("软件被篡改", "软件被篡改 本软件是免费软件 属于开源作品 为了您数据安全请使用正版");
+           }else{
+            libWxIkunPlus::stop("支持库被篡改", "软件支持库被篡改 本软件是免费软件 属于开源作品 为了您数据安全请使用正版");
+           }
+            // 软件被篡改
+            // process::exit(0);    
+        }
+
+        if max_size > APP_VERSION{
+            if (libWxIkunPlus::confirm("发现新版本", "发现新版本是否前往获取更新")){
+                println!("版本 {} ({}) 下载链接: {} ",&flag_version,&max_size,&download_url);
+                open_link_in_browser(&download_url);
+            }else {
+                
+            }
+        }else if show_info{
+            libWxIkunPlus::alert("没有新版本","当前的版本已经是最新版本");
+        }
+        
+    });
+}
+
+pub fn clip_copy_str<T:OverloadedAnyStr >(input:T){
+let mut ctx = clipboard::ClipboardContext::new().unwrap();
+ ctx.set_contents(input.to_string_default().to_owned()).unwrap();
+}
+
+// pub fn open_link_in_browser<T:OverloadedAnyStr >(input:T){
+// let mut ctx = clipboard::ClipboardContext::new().unwrap();
+//  ctx.set_contents(input.to_string_default().to_owned()).unwrap();
+// }
+
+pub fn open_link_in_browser<T:OverloadedAnyStr >(input:T) -> bool{
+     let binding = input.to_string_default();
+    let link = binding.as_str();
+    return  libWxIkunPlus::openUrl(link);
+}
+
+// pub fn open_link_in_browser<T:OverloadedAnyStr >(input:T) -> Result<(), Box<dyn std::error::Error>> {
+//     let binding = input.to_string_default();
+//     let link = binding.as_str();
+    
+//     if cfg!(target_os = "windows") {
+//         Command::new("open")
+//             .args(&[link])
+//             .spawn()?;
+//     } else if cfg!(target_os = "macos") {
+//         Command::new("open")
+//             .arg(link)
+//             .spawn()?;
+//     } else if cfg!(target_os = "linux") {
+//         Command::new("xdg-open")
+//             .arg(link)
+//             .spawn()?;
+//     } else {
+//         return Err("Unsupported operating system".into());
+//     }
+
+//     Ok(())
+// }

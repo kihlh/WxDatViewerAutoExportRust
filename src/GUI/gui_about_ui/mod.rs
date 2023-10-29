@@ -65,10 +65,7 @@ macro_rules! main_init_check {
 
 pub fn main_init() -> Option<fltk::window::DoubleWindow> {
     main_init_check!();
-    if config::is_build_52pojie() {
-        libWxIkunPlus::error("软件接口被调试", "当前发布版本的关于页面不可用，请勿使用调试手段调用接口");
-        process::exit(0);
-    }
+   
     let hwnd: i128 = 0;
     let mut win: DoubleWindow =
         fltk::window::DoubleWindow::new(0, 0, 600, 450, "关于WxAutoExIm").center_screen();
@@ -78,12 +75,12 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
     gui_util::img::ImgPreview::new_border(0, 0, win.w(), win.h(), THE_WIN_UI_BORDER);
     // let mut win_control = add_ui_control();
 
-    let mut gui_about_txt = gui_util::TextPreview::new(291,370,124,27,19, "649020539", [153, 184, 212]);
+    let mut gui_about_txt = gui_util::TextPreview::new(291,370,124,27,19, if config::is_build_52pojie(){"特供版不提供支持"}else{"649020539"}, [153, 184, 212]);
     gui_about_txt.resize_debug();
     gui_about_txt.preview.set_color(fltk::enums::Color::from_rgb(227, 237, 249));
 
 
-    let mut gui_about_txt_mail = gui_util::TextPreview::new(101,400,170,21,15,"E5DM6@outlook.com",[153, 184, 212]); 
+    let mut gui_about_txt_mail = gui_util::TextPreview::new(101,400,170,21,15,if config::is_build_52pojie(){"特供版不提供支持"}else{"E5DM6@outlook.com"},[153, 184, 212]); 
     gui_about_txt_mail.preview.set_color(fltk::enums::Color::from_rgb(227, 237, 249));
 
     let mut gui_about_github = gui_util::TextPreview::new(345,402,210,24,13, "kihlh/WxDatViewerAutoExportRust", [153, 184, 212]);
@@ -94,10 +91,10 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
     if config::get_config_bool(config::CONFIG_KEY::Networking) {
         let mut gui_about_update = gui_util::border::BorderPreview::new(426,370,92,25,10,(227, 237, 249, 1.0),(192, 180, 212, 1.0),2).resize_debug();
         let mut gui_about_update_str = gui_util::TextControl::new(428,371,89,23,11,"检测更新",[192, 180, 212]);
-    
+        if config::is_build_52pojie(){return None;}
         gui_about_update_str.add_cursor_hand(&win);
         gui_about_update.add_cursor_hand_callback(&win,{move|win,frame|{
-            gui_util::sub_message_auto(get_the_hwnd!(), gui_util::IconType::Success, "当前已是最新版本", 3500u64);
+            util::update_app(true);
         }});
     }
 
@@ -122,6 +119,7 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
             }
             enums::Event::Push => {
                 if gui_about_github.existPoint(x, y) {
+                    if config::is_build_52pojie(){return false}
                     let mut ctx = clipboard::ClipboardContext::new().unwrap();
                     let the_string = "https://github.com/kihlh/WxDatViewerAutoExportRust";
                     ctx.set_contents(the_string.to_owned()).unwrap();
@@ -129,6 +127,7 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
                 }
                 
                 if gui_about_txt.existPoint(x, y) {
+                   if config::is_build_52pojie(){return false}
                     let mut ctx = clipboard::ClipboardContext::new().unwrap();
                     let the_string = "649020539";
                     ctx.set_contents(the_string.to_owned()).unwrap();
@@ -136,6 +135,7 @@ pub fn main_init() -> Option<fltk::window::DoubleWindow> {
                 }
                 
                 if gui_about_txt_mail.existPoint(x, y) {
+                    if config::is_build_52pojie(){return false}
                     let mut ctx = clipboard::ClipboardContext::new().unwrap();
                     let the_string = "E5DM6@outlook.com";
                     ctx.set_contents(the_string.to_owned()).unwrap();
