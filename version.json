@@ -72,6 +72,13 @@
                 "sha256": "fd36462c219a5428c65c21fb85f688ace677943f6dfbe0f2f2959c3726c61b3c",
                 "sha1": "b1611a5a6e5362ad862ddd7c4245ef5e324b1c25",
                 "size": 11818496
+            },
+            {
+                "url": "",
+                "name": "libWxIkunPlus@win7.dll",
+                "sha256": "226289e5c3e734d1a820b7ef23085bbb4473d7546fa70eca85f7731ef1a629c1",
+                "sha1": "fdb9bd8980aee29fbe3264ca6e5d031a6bfd3c8a",
+                "size": 11818496
             }
         ],
         "url": "https://vip.123pan.cn/1816369032/assets/WxAutoExIm/build/WxAutoExImv2.0.0_win32_x64.zip",
