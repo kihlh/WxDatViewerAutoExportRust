@@ -1,6 +1,6 @@
 #![allow(warnings, unused)]
 
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 
 use chrono::Local;
 use glob::glob;
