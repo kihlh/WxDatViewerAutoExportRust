@@ -28,7 +28,11 @@
 
 主界面截图
 ------------------------------
-![img](assets/main_all.png)
+![img](assets/page-dome/zh_main.png)
+
+![img](assets/page-dome/zh_util.png)
+
+![img](assets/page-dome/zh_sub.png)
 
 ### 查看全部界面 ：[所有页面](./assets/demo.md)
 
